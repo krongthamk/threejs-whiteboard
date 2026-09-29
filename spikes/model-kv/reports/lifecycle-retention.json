@@ -1,0 +1,33 @@
+{
+  "interpretation": "Hot edits plateau for fixed writer/key/generation sets. Retired writer arrays and obsolete generation overrides are retained to preserve offline merge and undo; lifecycle churn is not bounded by visible element count.",
+  "samples": [
+    {
+      "cycles": 50,
+      "visibleElements": 0,
+      "liveRecords": 102,
+      "structs": 450,
+      "snapshotBytes": 63524
+    },
+    {
+      "cycles": 100,
+      "visibleElements": 0,
+      "liveRecords": 202,
+      "structs": 900,
+      "snapshotBytes": 127511
+    },
+    {
+      "cycles": 150,
+      "visibleElements": 0,
+      "liveRecords": 302,
+      "structs": 1350,
+      "snapshotBytes": 191712
+    },
+    {
+      "cycles": 200,
+      "visibleElements": 0,
+      "liveRecords": 402,
+      "structs": 1800,
+      "snapshotBytes": 255912
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "threejs-whiteboard",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @whiteboard/app dev",
+    "dev:spikes": "vite --config spikes/vite.config.ts",
+    "build:spikes": "vite build --config spikes/vite.config.ts",
+    "preview:spikes": "vite preview --config spikes/vite.config.ts --host 127.0.0.1 --port 4175 --strictPort",
+    "build": "pnpm -r --if-present build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "test:app": "playwright test --config playwright.app.config.ts",
+    "test:routed": "playwright test --config playwright.routed.config.ts",
+    "test:model": "vitest run packages/model",
+    "server": "pnpm --filter @whiteboard/server start",
+    "loadtest": "pnpm --filter @whiteboard/loadtest start"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.6.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@types/rbush": "4.0.0",
+    "@types/ws": "8.18.1",
+    "@types/better-sqlite3": "9.6.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vite": "8.3.1",
+    "vitest": "5.0.2",
+    "y-utility": "0.1.4",
+    "yjs": "13.6.33"
+  }
+}

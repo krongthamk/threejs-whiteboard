@@ -1,0 +1,35 @@
+import * as Y from 'yjs';
+
+/**
+ * Yjs 13.6.33 skips conflicting remote keys when undoing either a deleted nested map or
+ * a winning local register write. Without its competing key in the deletion StackItem,
+ * native undo can leave a required field missing. Retain actual concurrent Yjs Items in
+ * that existing history entry so undo reveals the peer value.
+ *
+ * This deliberately depends on pinned Yjs Item.keep / AbstractType._item and StackItem
+ * deletion sets. No document fields, default values, or parallel authoritative store
+ * are introduced. Clearing native history releases the added Items through Yjs GC.
+ */
+export function preserveConcurrentHistory(doc: Y.Doc, undoManager: Y.UndoManager): () => void {
+  const handler = (transaction: Y.Transaction): void => {
+    if (transaction.origin === undoManager) return;
+    const history = [...undoManager.undoStack, ...undoManager.redoStack];
+    if (!history.length) return;
+    Y.iterateDeletedStructs(transaction, transaction.deleteSet, struct => {
+      if (!(struct instanceof Y.Item) || !(struct.parent instanceof Y.Map)) return;
+      const parent = struct.parent._item;
+      const visible = struct.parentSub === null ? undefined : struct.parent._map.get(struct.parentSub);
+      for (const stack of history) {
+        const parentRestored = parent?.deleted && Y.isDeleted(stack.deletions, parent.id);
+        const localWinnerUndone = visible && !visible.deleted && Y.isDeleted(stack.insertions, visible.id);
+        if ((!parentRestored && !localWinnerUndone) || Y.isDeleted(stack.deletions, struct.id) || Y.isDeleted(stack.insertions, struct.id)) continue;
+        const extra = Y.createDeleteSet();
+        extra.clients.set(struct.id.client, [{ clock: struct.id.clock, len: struct.length }]);
+        stack.deletions = Y.mergeDeleteSets([stack.deletions, extra]);
+        struct.keep = true;
+      }
+    });
+  };
+  doc.on('afterTransaction', handler);
+  return () => doc.off('afterTransaction', handler);
+}

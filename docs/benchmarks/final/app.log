@@ -1,0 +1,90 @@
+[WebServer] (node:94140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:94141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:94147) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:94147) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+[WebServer] (node:94157) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:94173) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [plugin builtin:vite-reporter]
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] (node:94179) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:94195) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+(node:94134) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 51 tests using 1 worker
+
+(node:94205) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94205) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+  ✓   1 tests/app/assets.spec.ts:43:1 › drop preserves PNG/JPEG/WebP bytes and dimensions; a whole batch is one undo gesture (1.4s)
+  ✓   2 tests/app/assets.spec.ts:67:1 › native clipboard image paste imports pixels, while a dialog input retains native paste (1.3s)
+  ✓   3 tests/app/assets.spec.ts:84:1 › native mixed selection copy remaps bindings and shared image refs across private boards (2.2s)
+  ✓   4 tests/app/assets.spec.ts:132:1 › invalid files, oversized bytes and actual GPU dimension limits fail before any upload (1.0s)
+  ✓   5 tests/app/assets.spec.ts:144:1 › failed uploads and closing during upload never insert partial batches (1.5s)
+  ✓   6 tests/app/assets.spec.ts:160:1 › cut requires successful clipboard writing and restores the whole selection in one undo (1.0s)
+  ✓   7 tests/app/collaboration.spec.ts:23:1 › an already revoked session can return to sign-in without reloading the page (871ms)
+  ✓   8 tests/app/collaboration.spec.ts:35:1 › private boards converge, isolate undo, keep 30s offline edits and restore after reload (34.3s)
+  ✓   9 tests/app/collaboration.spec.ts:97:1 › board access remains private and board rename/list navigation persists (1.8s)
+  ✓  10 tests/app/collaboration.spec.ts:123:1 › late board responses cannot replace a newer browser-history route (788ms)
+[WebServer] [beforeSync] Read-only changes require an authoritative reset
+[WebServer] closing connection 6cf30b38-33d6-4e08-a1e1-e1bac582dac5 (while handling 39c22a99-689f-4d06-9a59-8e41658a907f) because of exception Error: Read-only changes require an authoritative reset
+[WebServer]     at Object.beforeSync (/Users/mac/threejs-whiteboard/packages/server/src/server.ts:191:15)
+[WebServer]     at <anonymous> (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/src/Hocuspocus.ts:573:29)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async MessageReceiver.readSyncMessage (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/src/MessageReceiver.ts:190:4)
+[WebServer]     at async MessageReceiver.apply (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/src/MessageReceiver.ts:54:5)
+[WebServer]     at async Connection.processMessages (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/src/Connection.ts:275:6)
+[WebServer]     at async <anonymous> (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/src/ClientConnection.ts:281:4)
+  ✓  11 tests/app/collaboration.spec.ts:149:1 › live editor downgrade refreshes the local document and later regrant cannot replay rejected edits (2.8s)
+  ✓  12 tests/app/controller.spec.ts:20:1 › resize and rotate handles preview geometry then commit one undo step (972ms)
+  ✓  13 tests/app/controller.spec.ts:33:1 › Escape and pointercancel restore both document and rendered geometry (1.0s)
+  ✓  14 tests/app/controller.spec.ts:44:1 › a concurrent geometry and style change survives local move commit (719ms)
+  ✓  15 tests/app/controller.spec.ts:57:1 › switching to readonly during a gesture cancels its draft without an undo step (833ms)
+  ✓  16 tests/app/controller.spec.ts:65:1 › a peer deletion during a drag cannot be resurrected by pointerup (634ms)
+  ✓  17 tests/app/controller.spec.ts:73:1 › pen previews are transient, retain pen pressure, and commit simplified input once (924ms)
+  ✓  18 tests/app/controller.spec.ts:89:1 › fast erasing removes whole strokes as one gesture and Escape restores them (652ms)
+  ✓  19 tests/app/controller.spec.ts:109:1 › text tool creates a native editable text and commits after blur (684ms)
+  ✓  20 tests/app/controller.spec.ts:119:1 › elbow connectors bind to shape anchors and follow moved targets without connector writes (939ms)
+  ✓  21 tests/app/core.spec.ts:22:1 › shape preview commits once, undo/redo and cancellation preserve the document (967ms)
+  ✓  22 tests/app/core.spec.ts:38:1 › rectangle, ellipse and sticky tools create real projected elements (1.2s)
+  ✓  23 tests/app/core.spec.ts:45:1 › shift selection moves both shapes as one gesture and local history restores them (1.3s)
+  ✓  24 tests/app/core.spec.ts:59:1 › marquee, duplicate, nudge, style and delete are undoable (1.4s)
+  ✓  25 tests/app/core.spec.ts:77:1 › camera zoom anchors at the cursor and persists independently of a hard document reload (1.5s)
+  ✓  26 tests/app/core.spec.ts:95:1 › typing a style value commits one undo step and Escape cancels a draft (852ms)
+  ✓  27 tests/app/core.spec.ts:109:1 › narrow viewport keeps tools, selection controls and zoom reachable (887ms)
+  ✓  28 tests/app/export.spec.ts:12:1 › document-only selection PNG excludes overlap and draft; all four scales and transparency work (634ms)
+  ✓  29 tests/app/export.spec.ts:31:1 › mixed Latin/Japanese board exports PNG, embedded SVG and PDF through the real dialog (3.5s)
+  ✓  30 tests/app/export.spec.ts:113:1 › minimap navigates the actual camera and keyboard fit preserves document contents (925ms)
+  ✓  31 tests/app/image-export.spec.ts:20:1 › private mixed board image pixels agree across PNG, embedded SVG and screen; controls catch missing/mirrored images (2.8s)
+  ✓  32 tests/app/image-export.spec.ts:134:1 › PNG and embedded SVG retain native alternating-pixel detail after a low-resolution display preview (1.1s)
+  ✓  33 tests/app/image-export.spec.ts:165:1 › round translucent connector caps and elbow joins preserve one opacity contribution (1.0s)
+  ✓  34 tests/app/pdf.spec.ts:17:1 › PDF uses exact shipped cmap fallback and loaded measurement fonts for centered and right mixed text (8.8s)
+  ✓  35 tests/app/pdf.spec.ts:102:1 › PDF reports unsupported glyphs instead of silently dropping them and remains usable (1.3s)
+  ✓  36 tests/app/pdf.spec.ts:117:1 › a malformed PDF font response is evicted so retry fetches the repaired font (947ms)
+  ✓  37 tests/app/performance.spec.ts:5:1 › 5,000 real document shapes pan and zoom at 55 fps in the application (8.5s)
+  ✓  38 tests/app/text-layout.spec.ts:20:1 › actual Troika and browser glyph widths match deterministic mixed-script auto-size and wrapping (951ms)
+  ✓  39 tests/app/text-layout.spec.ts:54:1 › native mixed-script IME, caret and reopen preserve text; committed auto-size exports all glyphs (6.5s)
+  ✓  40 tests/app/text-layout.spec.ts:145:1 › repeated Noto Latin ligatures keep PNG SVG and PDF widths without cumulative clipping (13.8s)
+  ✓  41 tests/app/text-layout.spec.ts:196:72 › cold and warm production PNG exports retain wide text with offscreen atlas generation (1.0s)
+  ✓  42 tests/app/text-layout.spec.ts:196:72 › cold and warm production PNG exports retain wide text with onscreen atlas generation (971ms)
+  ✓  43 tests/app/text-layout.spec.ts:196:72 › cold and warm production PNG exports retain wide text with presence atlas generation (960ms)
+  ✓  44 tests/app/text.spec.ts:22:1 › native editing supports selection, cut/paste and one undoable blur commit (781ms)
+  ✓  45 tests/app/text.spec.ts:37:1 › real Japanese IME is visible after native composition and makes one commit (924ms)
+  ✓  46 tests/app/text.spec.ts:58:1 › blur during composition waits and Escape leaves the document untouched (951ms)
+  ✓  47 tests/app/text.spec.ts:72:1 › rotated zoomed editor follows the document and keeps an intervening style change (841ms)
+  ✓  48 tests/app/text.spec.ts:95:1 › intentional trailing lines survive commit, reopen, clipboard and undo (840ms)
+  ✓  49 tests/app/text.spec.ts:116:1 › blurring an untouched text draft preserves a peer edit and creates no local history (732ms)
+  ✓  50 tests/app/tiles.spec.ts:5:1 › PNG crosses the real GPU texture limit without a seam or vertical inversion (577ms)
+  ✓  51 tests/app/tiles.spec.ts:32:1 › controlled two-axis PNG tiles equal the untiled pixels, including translucent seam crossings (580ms)
+
+  51 passed (2.2m)

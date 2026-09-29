@@ -1,0 +1,37 @@
+{
+  "startedAt": 1790672648994,
+  "endedAt": 1790672749357,
+  "elapsedMs": 100362.489208,
+  "cpuMs": 77083.888,
+  "historicalUpdates": 100000,
+  "updateBytes": 83539981,
+  "compactions": 16,
+  "currentElements": 1280,
+  "storage": {
+    "updateCount": 0,
+    "updateBytes": 0,
+    "snapshotBytes": 1089571
+  },
+  "loads": [
+    {
+      "milliseconds": 67.78079099999741,
+      "hash": "dbe7dd6d0e895f3924826d79805fee9edc4ac6adb265d05abea8dfd7e79b7e12",
+      "elements": 1280
+    },
+    {
+      "milliseconds": 42.376459000006435,
+      "hash": "dbe7dd6d0e895f3924826d79805fee9edc4ac6adb265d05abea8dfd7e79b7e12",
+      "elements": 1280
+    },
+    {
+      "milliseconds": 34.95737499999814,
+      "hash": "dbe7dd6d0e895f3924826d79805fee9edc4ac6adb265d05abea8dfd7e79b7e12",
+      "elements": 1280
+    }
+  ],
+  "expectedHash": "dbe7dd6d0e895f3924826d79805fee9edc4ac6adb265d05abea8dfd7e79b7e12",
+  "restoredHash": "dbe7dd6d0e895f3924826d79805fee9edc4ac6adb265d05abea8dfd7e79b7e12",
+  "assetMatches": true,
+  "passed": true,
+  "methodology": "100000 real schema2 gestures after1280-element initialization, one writer; exact60/20/20 mix. All updates committed with SQLite WAL FULL;5MiB/10000 compaction. Loads include SQLite snapshot read, Yjs apply, BoardDocument construction, and full1280-element projection; SHA validation timed separately. Three sequential OS-cache-warm loads; historical workload emulates update count, not six calendar months. No document clock/identity reset."
+}

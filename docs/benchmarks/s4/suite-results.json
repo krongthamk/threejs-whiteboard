@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-09-29T08:22:48.288Z",
+  "browserVersion": "154.0.8037.58",
+  "productionBundle": true,
+  "tests": [
+    {
+      "title": "native caret, selection, typing and blur form one undo step",
+      "status": "passed",
+      "pageErrors": []
+    },
+    {
+      "title": "composition survives blur, commits once, and can be undone",
+      "status": "passed",
+      "pageErrors": []
+    },
+    {
+      "title": "Chromium IME candidate input commits through the native editing pipeline",
+      "status": "passed",
+      "pageErrors": []
+    },
+    {
+      "title": "synced troika text exposes caret positions and selection rectangles",
+      "status": "passed",
+      "pageErrors": []
+    },
+    {
+      "title": "escape discards the editor draft without a document mutation",
+      "status": "passed",
+      "pageErrors": []
+    },
+    {
+      "title": "native cut and paste preserve text, and commit once",
+      "status": "passed",
+      "pageErrors": []
+    },
+    {
+      "title": "mixed board exports at 2× with SVG visual parity per region",
+      "status": "passed",
+      "pageErrors": []
+    },
+    {
+      "title": "visual comparison rejects missing and displaced text despite edge tolerance",
+      "status": "passed",
+      "pageErrors": []
+    }
+  ],
+  "passed": true
+}

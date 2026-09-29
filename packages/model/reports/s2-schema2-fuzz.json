@@ -1,0 +1,29 @@
+{
+  "spike": "S2-schema2",
+  "seed": 334462,
+  "concurrentPairs": 10000,
+  "clients": 3,
+  "operations": 20000,
+  "validatedElements": 946710,
+  "invalidElements": 0,
+  "divergentPairs": 0,
+  "deliveredUpdates": 47954,
+  "operationCounts": {
+    "style": 1364,
+    "delete": 1328,
+    "rotate": 1361,
+    "move": 1302,
+    "order": 1246,
+    "multi-element gesture": 1336,
+    "image": 1327,
+    "position": 2656,
+    "resize": 1294,
+    "stroke": 1355,
+    "undo": 1320,
+    "text": 1396,
+    "binding": 1297,
+    "create": 1340,
+    "redo": 78
+  },
+  "durationMs": 93320
+}

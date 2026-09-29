@@ -1,0 +1,216 @@
+[
+  {
+    "name": "missing",
+    "comparison": {
+      "meanChannelError": 1.1284895833333333,
+      "edgeToleranceCssPixels": 0.5,
+      "rawForegroundMismatch": 0.029978100781790744,
+      "foregroundMismatch": 0.02571853263891253,
+      "regions": [
+        {
+          "name": "shapes",
+          "foreground": 241699,
+          "rawMismatch": 0.008522997612733193,
+          "mismatch": 0.003587106276815378
+        },
+        {
+          "name": "sticky",
+          "foreground": 171160,
+          "rawMismatch": 0.007180415985043234,
+          "mismatch": 0.0031841551764430942
+        },
+        {
+          "name": "text",
+          "foreground": 10656,
+          "rawMismatch": 0.9310247747747747,
+          "mismatch": 0.9310247747747747
+        },
+        {
+          "name": "stroke",
+          "foreground": 17140,
+          "rawMismatch": 0,
+          "mismatch": 0
+        }
+      ],
+      "textInkBounds": [
+        {
+          "name": "sticky",
+          "webgl": {
+            "left": 1307,
+            "top": 137,
+            "right": 1533,
+            "bottom": 241
+          },
+          "svg": {
+            "left": 1306,
+            "top": 136,
+            "right": 1534,
+            "bottom": 241
+          },
+          "maxEdgeDifferencePixels": 1,
+          "matches": true
+        },
+        {
+          "name": "text",
+          "webgl": {
+            "left": 142,
+            "top": 606,
+            "right": 831,
+            "bottom": 666
+          },
+          "svg": null,
+          "maxEdgeDifferencePixels": null,
+          "matches": false
+        }
+      ],
+      "inkMaskMaxChannel": 160,
+      "inkBoundsToleranceOutputPixels": 1
+    }
+  },
+  {
+    "name": "shift-1-css-pixel",
+    "comparison": {
+      "meanChannelError": 0.6887936507936508,
+      "edgeToleranceCssPixels": 0.5,
+      "rawForegroundMismatch": 0.022075667388167387,
+      "foregroundMismatch": 0.014409722222222223,
+      "regions": [
+        {
+          "name": "shapes",
+          "foreground": 241699,
+          "rawMismatch": 0.008522997612733193,
+          "mismatch": 0.003587106276815378
+        },
+        {
+          "name": "sticky",
+          "foreground": 171160,
+          "rawMismatch": 0.007180415985043234,
+          "mismatch": 0.0031841551764430942
+        },
+        {
+          "name": "text",
+          "foreground": 13521,
+          "rawMismatch": 0.48088159159825455,
+          "mismatch": 0.36824199393535983
+        },
+        {
+          "name": "stroke",
+          "foreground": 17140,
+          "rawMismatch": 0,
+          "mismatch": 0
+        }
+      ],
+      "textInkBounds": [
+        {
+          "name": "sticky",
+          "webgl": {
+            "left": 1307,
+            "top": 137,
+            "right": 1533,
+            "bottom": 241
+          },
+          "svg": {
+            "left": 1306,
+            "top": 136,
+            "right": 1534,
+            "bottom": 241
+          },
+          "maxEdgeDifferencePixels": 1,
+          "matches": true
+        },
+        {
+          "name": "text",
+          "webgl": {
+            "left": 142,
+            "top": 606,
+            "right": 831,
+            "bottom": 666
+          },
+          "svg": {
+            "left": 143,
+            "top": 605,
+            "right": 834,
+            "bottom": 666
+          },
+          "maxEdgeDifferencePixels": 3,
+          "matches": false
+        }
+      ],
+      "inkMaskMaxChannel": 160,
+      "inkBoundsToleranceOutputPixels": 1
+    }
+  },
+  {
+    "name": "shift-8-css-pixels",
+    "comparison": {
+      "meanChannelError": 1.4921458333333333,
+      "edgeToleranceCssPixels": 0.5,
+      "rawForegroundMismatch": 0.03862054178643457,
+      "foregroundMismatch": 0.03216591734953913,
+      "regions": [
+        {
+          "name": "shapes",
+          "foreground": 241699,
+          "rawMismatch": 0.008522997612733193,
+          "mismatch": 0.003587106276815378
+        },
+        {
+          "name": "sticky",
+          "foreground": 171160,
+          "rawMismatch": 0.007180415985043234,
+          "mismatch": 0.0031841551764430942
+        },
+        {
+          "name": "text",
+          "foreground": 17742,
+          "rawMismatch": 0.7892571299740728,
+          "mismatch": 0.7321609739600947
+        },
+        {
+          "name": "stroke",
+          "foreground": 17140,
+          "rawMismatch": 0,
+          "mismatch": 0
+        }
+      ],
+      "textInkBounds": [
+        {
+          "name": "sticky",
+          "webgl": {
+            "left": 1307,
+            "top": 137,
+            "right": 1533,
+            "bottom": 241
+          },
+          "svg": {
+            "left": 1306,
+            "top": 136,
+            "right": 1534,
+            "bottom": 241
+          },
+          "maxEdgeDifferencePixels": 1,
+          "matches": true
+        },
+        {
+          "name": "text",
+          "webgl": {
+            "left": 142,
+            "top": 606,
+            "right": 831,
+            "bottom": 666
+          },
+          "svg": {
+            "left": 157,
+            "top": 605,
+            "right": 848,
+            "bottom": 666
+          },
+          "maxEdgeDifferencePixels": 17,
+          "matches": false
+        }
+      ],
+      "inkMaskMaxChannel": 160,
+      "inkBoundsToleranceOutputPixels": 1
+    }
+  }
+]

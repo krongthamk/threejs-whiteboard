@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>S1 · three.js renderer benchmark</title>
+    <link rel="icon" href="data:," />
+    <style>
+      * { box-sizing: border-box; } html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: #f8fafc; color: #172033; }
+      header { height: 72px; display:flex; align-items:center; gap:18px; padding:0 24px; border-bottom:1px solid #cbd5e1; }
+      h1 { font-size:16px; margin:0; } p { font-size:12px; margin:4px 0 0; color:#64748b; }
+      button { border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; background:white; cursor:pointer; }
+      #status { margin-left:auto; font:12px ui-monospace,monospace; }
+      canvas { display:block; width:100%; height:calc(100% - 72px); }
+    </style>
+  </head>
+  <body>
+    <header><div><h1>S1 renderer benchmark</h1><p>Instanced shapes · chunked strokes · sync-gated troika text</p></div><button id="run">Run all scenarios</button><span id="status">Ready</span></header>
+    <canvas aria-label="Whiteboard renderer performance fixture"></canvas>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

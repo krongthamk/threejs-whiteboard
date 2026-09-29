@@ -1,0 +1,599 @@
+{
+  "browser": "154.0.8037.58",
+  "samples": 60,
+  "maxError": 0.00030517578125,
+  "wrapSamples": 6,
+  "wrapMismatches": 0,
+  "results": [
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "Hello",
+      "browser": 28.921875,
+      "model": 28.921875,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "AVATAR",
+      "browser": 44.90625,
+      "model": 44.90625,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "To WAVE or not?",
+      "browser": 94.283203125,
+      "model": 94.283203125,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "A shared place to think",
+      "browser": 130.060546875,
+      "model": 130.060546875,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "Ideas take shape",
+      "browser": 96.052734375,
+      "model": 96.052734375,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "Wi iii WWW — 0123456789",
+      "browser": 155.98828125,
+      "model": 155.98828125,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "café déjà vu",
+      "browser": 69.375,
+      "model": 69.375,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "café déjà vu",
+      "browser": 69.375,
+      "model": 69.375,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "office affinity ffi fl fi",
+      "browser": 110.841796875,
+      "model": 110.841796875,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 12,
+      "text": "ÁVÀTÄR",
+      "browser": 44.90625,
+      "model": 44.90625,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "Hello",
+      "browser": 57.84375,
+      "model": 57.84375,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "AVATAR",
+      "browser": 89.8125,
+      "model": 89.8125,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "To WAVE or not?",
+      "browser": 188.56640625,
+      "model": 188.56640625,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "A shared place to think",
+      "browser": 260.12109375,
+      "model": 260.12109375,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "Ideas take shape",
+      "browser": 192.10546875,
+      "model": 192.10546875,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "Wi iii WWW — 0123456789",
+      "browser": 311.9765625,
+      "model": 311.9765625,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "café déjà vu",
+      "browser": 138.75,
+      "model": 138.75,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "café déjà vu",
+      "browser": 138.75,
+      "model": 138.75,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "office affinity ffi fl fi",
+      "browser": 221.68359375,
+      "model": 221.68359375,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 24,
+      "text": "ÁVÀTÄR",
+      "browser": 89.8125,
+      "model": 89.8125,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "Hello",
+      "browser": 115.6875,
+      "model": 115.6875,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "AVATAR",
+      "browser": 179.625,
+      "model": 179.625,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "To WAVE or not?",
+      "browser": 377.1328125,
+      "model": 377.1328125,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "A shared place to think",
+      "browser": 520.2421875,
+      "model": 520.2421875,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "Ideas take shape",
+      "browser": 384.2109375,
+      "model": 384.2109375,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "Wi iii WWW — 0123456789",
+      "browser": 623.953125,
+      "model": 623.953125,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "café déjà vu",
+      "browser": 277.5,
+      "model": 277.5,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "café déjà vu",
+      "browser": 277.5,
+      "model": 277.5,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "office affinity ffi fl fi",
+      "browser": 443.3671875,
+      "model": 443.3671875,
+      "error": 0
+    },
+    {
+      "family": "Inter",
+      "size": 48,
+      "text": "ÁVÀTÄR",
+      "browser": 179.625,
+      "model": 179.625,
+      "error": 0
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "Hello",
+      "browser": 35.99998474121094,
+      "model": 36,
+      "error": 0.0000152587890625
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "AVATAR",
+      "browser": 43.199981689453125,
+      "model": 43.2,
+      "error": 0.00001831054687784217
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "To WAVE or not?",
+      "browser": 107.99995422363281,
+      "model": 108,
+      "error": 0.0000457763671875
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "A shared place to think",
+      "browser": 165.5999298095703,
+      "model": 165.6,
+      "error": 0.00007019042968181566
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "Ideas take shape",
+      "browser": 115.199951171875,
+      "model": 115.2,
+      "error": 0.00004882812500284217
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "Wi iii WWW — 0123456789",
+      "browser": 165.5999298095703,
+      "model": 165.6,
+      "error": 0.00007019042968181566
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "café déjà vu",
+      "browser": 86.39996337890625,
+      "model": 86.4,
+      "error": 0.00003662109375568434
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "café déjà vu",
+      "browser": 86.39996337890625,
+      "model": 86.4,
+      "error": 0.00003662109375568434
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "office affinity ffi fl fi",
+      "browser": 179.9999237060547,
+      "model": 180,
+      "error": 0.0000762939453125
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 12,
+      "text": "ÁVÀTÄR",
+      "browser": 43.199981689453125,
+      "model": 43.2,
+      "error": 0.00001831054687784217
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "Hello",
+      "browser": 71.99996948242188,
+      "model": 72,
+      "error": 0.000030517578125
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "AVATAR",
+      "browser": 86.39996337890625,
+      "model": 86.4,
+      "error": 0.00003662109375568434
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "To WAVE or not?",
+      "browser": 215.99990844726562,
+      "model": 216,
+      "error": 0.000091552734375
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "A shared place to think",
+      "browser": 331.1998596191406,
+      "model": 331.2,
+      "error": 0.00014038085936363132
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "Ideas take shape",
+      "browser": 230.39990234375,
+      "model": 230.4,
+      "error": 0.00009765625000568434
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "Wi iii WWW — 0123456789",
+      "browser": 331.1998596191406,
+      "model": 331.2,
+      "error": 0.00014038085936363132
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "café déjà vu",
+      "browser": 172.7999267578125,
+      "model": 172.8,
+      "error": 0.00007324218751136868
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "café déjà vu",
+      "browser": 172.7999267578125,
+      "model": 172.8,
+      "error": 0.00007324218751136868
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "office affinity ffi fl fi",
+      "browser": 359.9998474121094,
+      "model": 360,
+      "error": 0.000152587890625
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 24,
+      "text": "ÁVÀTÄR",
+      "browser": 86.39996337890625,
+      "model": 86.4,
+      "error": 0.00003662109375568434
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "Hello",
+      "browser": 143.99993896484375,
+      "model": 144,
+      "error": 0.00006103515625
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "AVATAR",
+      "browser": 172.7999267578125,
+      "model": 172.8,
+      "error": 0.00007324218751136868
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "To WAVE or not?",
+      "browser": 431.99981689453125,
+      "model": 432,
+      "error": 0.00018310546875
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "A shared place to think",
+      "browser": 662.3997192382812,
+      "model": 662.4,
+      "error": 0.00028076171872726263
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "Ideas take shape",
+      "browser": 460.7998046875,
+      "model": 460.8,
+      "error": 0.00019531250001136868
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "Wi iii WWW — 0123456789",
+      "browser": 662.3997192382812,
+      "model": 662.4,
+      "error": 0.00028076171872726263
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "café déjà vu",
+      "browser": 345.599853515625,
+      "model": 345.6,
+      "error": 0.00014648437502273737
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "café déjà vu",
+      "browser": 345.599853515625,
+      "model": 345.6,
+      "error": 0.00014648437502273737
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "office affinity ffi fl fi",
+      "browser": 719.9996948242188,
+      "model": 720,
+      "error": 0.00030517578125
+    },
+    {
+      "family": "IBM Plex Mono",
+      "size": 48,
+      "text": "ÁVÀTÄR",
+      "browser": 172.7999267578125,
+      "model": 172.8,
+      "error": 0.00007324218751136868
+    }
+  ],
+  "wraps": [
+    {
+      "family": "Inter",
+      "text": "one two three four",
+      "width": 96,
+      "browserLines": [
+        "one two",
+        "three",
+        "four"
+      ],
+      "modelLines": [
+        "one two",
+        "three",
+        "four"
+      ],
+      "matches": true
+    },
+    {
+      "family": "Inter",
+      "text": "A shared place to think",
+      "width": 96,
+      "browserLines": [
+        "A",
+        "shared",
+        "place to",
+        "think"
+      ],
+      "modelLines": [
+        "A",
+        "shared",
+        "place to",
+        "think"
+      ],
+      "matches": true
+    },
+    {
+      "family": "Inter",
+      "text": "abcdefghijk WWW iii",
+      "width": 96,
+      "browserLines": [
+        "abcdefg",
+        "hijk",
+        "WWW",
+        "iii"
+      ],
+      "modelLines": [
+        "abcdefg",
+        "hijk",
+        "WWW",
+        "iii"
+      ],
+      "matches": true
+    },
+    {
+      "family": "IBM Plex Mono",
+      "text": "one two three four",
+      "width": 96,
+      "browserLines": [
+        "one",
+        "two",
+        "three",
+        "four"
+      ],
+      "modelLines": [
+        "one",
+        "two",
+        "three",
+        "four"
+      ],
+      "matches": true
+    },
+    {
+      "family": "IBM Plex Mono",
+      "text": "A shared place to think",
+      "width": 96,
+      "browserLines": [
+        "A",
+        "shared",
+        "place",
+        "to",
+        "think"
+      ],
+      "modelLines": [
+        "A",
+        "shared",
+        "place",
+        "to",
+        "think"
+      ],
+      "matches": true
+    },
+    {
+      "family": "IBM Plex Mono",
+      "text": "abcdefghijk WWW iii",
+      "width": 96,
+      "browserLines": [
+        "abcdef",
+        "ghijk",
+        "WWW",
+        "iii"
+      ],
+      "modelLines": [
+        "abcdef",
+        "ghijk",
+        "WWW",
+        "iii"
+      ],
+      "matches": true
+    }
+  ]
+}

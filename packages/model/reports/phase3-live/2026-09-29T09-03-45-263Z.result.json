@@ -1,0 +1,72 @@
+{
+  "startedAt": "2026-09-29T09:03:45.687Z",
+  "seed": 334462,
+  "requestedPairs": 10000,
+  "requestedOfflineMs": 30000,
+  "node": "v26.8.1",
+  "sourceHashes": {
+    "packages/model/src/document.ts": "b32785985f5fd1da46ebdbb62e1df0b0ec857328896d5ee4ac1b3975a5b3eb0c",
+    "packages/model/src/schema.ts": "4a53a3d9a54c2ad229cf100c51128314bd1ac377a2e6cd27125082433cd961f6",
+    "packages/model/src/geometry.ts": "2c187a2f81d891aff786090d8e812977e6b49fc2751d1730793eb31d4fc29662",
+    "packages/server/src/server.ts": "9c7414d8ba1419cede2018f65327252b807271457ad63e1a18ce9d6191705df8",
+    "packages/server/src/store.ts": "ceec27946e48df3c490cc36f9dacfd2af79b12e83d1913001b991bb6dd2348df",
+    "packages/loadtest/src/live-model-fuzz.ts": "ffe9f149a41bbe1e3f13626102c25237180f8010401a8e8664bd24644a97f21b",
+    "pnpm-lock.yaml": "6860bf743dbd48a811494b85c98df1d1a7daa3765bcbaa45258d5e7288f2626c"
+  },
+  "passed": true,
+  "acceptanceRun": true,
+  "concurrentPairs": 10000,
+  "authenticatedUsers": 3,
+  "operations": 20000,
+  "operationCounts": {
+    "style": 1368,
+    "multi-element gesture": 1265,
+    "stroke": 1339,
+    "create": 1352,
+    "text": 1345,
+    "position": 2780,
+    "binding": 1391,
+    "order": 1315,
+    "rotate": 1360,
+    "delete": 1362,
+    "image": 1187,
+    "move": 1299,
+    "undo": 1264,
+    "resize": 1289,
+    "redo": 84
+  },
+  "validatedElements": 771378,
+  "invalidElements": 0,
+  "divergentPairs": 0,
+  "offlineMeasuredMs": 30001.094167000032,
+  "fuzzDurationMs": 531346,
+  "durationMs": 562355,
+  "scenarios": [
+    "real provisioning, HTTP sessions and membership authorization",
+    "independent move/recolor with per-user undo and redo",
+    "newer peer value survives local undo and stale redo",
+    "undoing a concurrent winning register reveals peer value",
+    "delete/remote-move restoration with repeated native history",
+    "measured socket-offline interval merges local and both peer edits after reconnect",
+    "SQLite snapshot/log reload preserves exact raw and semantic state"
+  ],
+  "finalElements": 16,
+  "finalHash": "ffe55f5fa68eae28e55486c17d9397ba706a3edb6f4dad7f69fedba57ba7a7b7",
+  "persistedSnapshotBytes": 1847740,
+  "storage": {
+    "updateCount": 1285,
+    "updateBytes": 318885,
+    "snapshotBytes": 1546069
+  },
+  "serverMetrics": {
+    "updates": 21285,
+    "awareness": 114,
+    "persistedUpdates": 21285,
+    "persistenceMs": 11468.83901699993,
+    "compactions": 2,
+    "windowAt": 1790673171515,
+    "windowUpdates": 2,
+    "windowAwareness": 6
+  },
+  "artifactStem": "packages/model/reports/phase3-live/2026-09-29T09-03-45-263Z"
+}

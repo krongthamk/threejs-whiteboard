@@ -1,0 +1,380 @@
+{
+  "representation": "one YKeyValue array per actual Yjs writer ID",
+  "yjs": "13.6.33",
+  "yUtility": "0.1.4",
+  "gc": true,
+  "clientIds": 40,
+  "methodology": "Each client edits only its own array. Before its next edit it receives current server state. Flat per-property keys, 12800 fields. This storage diagnostic does not yet implement cross-writer Lamport merge, lifecycle semantics, or undo. CPU includes clients/state-vector exchange and is not server-only CPU evidence. No awareness/network/undo.",
+  "samples": [
+    {
+      "operations": 0,
+      "elapsedMs": 4.952916999999957,
+      "cpuMs": 5.122,
+      "liveFields": 12800,
+      "encodedBytes": 728932,
+      "retainedStructs": 40,
+      "deletedStructs": 0,
+      "heapUsedBytes": 71897144
+    },
+    {
+      "operations": 10000,
+      "elapsedMs": 18364.197667,
+      "cpuMs": 16798.339,
+      "liveFields": 12800,
+      "encodedBytes": 1682548,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 402068696
+    },
+    {
+      "operations": 20000,
+      "elapsedMs": 33658.214708,
+      "cpuMs": 32539.898,
+      "liveFields": 12800,
+      "encodedBytes": 1692348,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 603248368
+    },
+    {
+      "operations": 30000,
+      "elapsedMs": 53164.95325,
+      "cpuMs": 49782.459,
+      "liveFields": 12800,
+      "encodedBytes": 1682868,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 801777200
+    },
+    {
+      "operations": 40000,
+      "elapsedMs": 73333.657667,
+      "cpuMs": 67394.654,
+      "liveFields": 12800,
+      "encodedBytes": 1692387,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 388861384
+    },
+    {
+      "operations": 50000,
+      "elapsedMs": 93925.031958,
+      "cpuMs": 85652.633,
+      "liveFields": 12800,
+      "encodedBytes": 1682537,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 597003224
+    },
+    {
+      "operations": 60000,
+      "elapsedMs": 111634.26270800001,
+      "cpuMs": 102623.632,
+      "liveFields": 12800,
+      "encodedBytes": 1692348,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 811073856
+    },
+    {
+      "operations": 70000,
+      "elapsedMs": 130241.15033300001,
+      "cpuMs": 120186.177,
+      "liveFields": 12800,
+      "encodedBytes": 1682868,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 379968912
+    },
+    {
+      "operations": 80000,
+      "elapsedMs": 150029.940667,
+      "cpuMs": 138384.036,
+      "liveFields": 12800,
+      "encodedBytes": 1692388,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 606067888
+    },
+    {
+      "operations": 90000,
+      "elapsedMs": 170355.972208,
+      "cpuMs": 156902.965,
+      "liveFields": 12800,
+      "encodedBytes": 1682548,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 784449344
+    },
+    {
+      "operations": 100000,
+      "elapsedMs": 191135.5785,
+      "cpuMs": 175890.798,
+      "liveFields": 12800,
+      "encodedBytes": 1692347,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 334946568
+    },
+    {
+      "operations": 110000,
+      "elapsedMs": 212435.088417,
+      "cpuMs": 194757.819,
+      "liveFields": 12800,
+      "encodedBytes": 1682857,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 571790368
+    },
+    {
+      "operations": 120000,
+      "elapsedMs": 232458.81375,
+      "cpuMs": 213324.665,
+      "liveFields": 12800,
+      "encodedBytes": 1692388,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 774690872
+    },
+    {
+      "operations": 130000,
+      "elapsedMs": 253043.364042,
+      "cpuMs": 232331.642,
+      "liveFields": 12800,
+      "encodedBytes": 1682548,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 352543760
+    },
+    {
+      "operations": 140000,
+      "elapsedMs": 273854.192458,
+      "cpuMs": 251098.801,
+      "liveFields": 12800,
+      "encodedBytes": 1692348,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 550862072
+    },
+    {
+      "operations": 150000,
+      "elapsedMs": 293288.4455,
+      "cpuMs": 268990.678,
+      "liveFields": 12800,
+      "encodedBytes": 1682868,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 789397960
+    },
+    {
+      "operations": 160000,
+      "elapsedMs": 312697.579208,
+      "cpuMs": 287176.765,
+      "liveFields": 12800,
+      "encodedBytes": 1692387,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 353376024
+    },
+    {
+      "operations": 170000,
+      "elapsedMs": 328190.083,
+      "cpuMs": 302919.612,
+      "liveFields": 12800,
+      "encodedBytes": 1682537,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 560288944
+    },
+    {
+      "operations": 180000,
+      "elapsedMs": 343058.39279199997,
+      "cpuMs": 318423.986,
+      "liveFields": 12800,
+      "encodedBytes": 1692348,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 781524912
+    },
+    {
+      "operations": 190000,
+      "elapsedMs": 357983.868708,
+      "cpuMs": 334053.377,
+      "liveFields": 12800,
+      "encodedBytes": 1682868,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 320491528
+    },
+    {
+      "operations": 200000,
+      "elapsedMs": 372808.718917,
+      "cpuMs": 349477.432,
+      "liveFields": 12800,
+      "encodedBytes": 1692388,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 534812024
+    },
+    {
+      "operations": 210000,
+      "elapsedMs": 387877.95445799996,
+      "cpuMs": 365021.871,
+      "liveFields": 12800,
+      "encodedBytes": 1682548,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 746200464
+    },
+    {
+      "operations": 220000,
+      "elapsedMs": 402775.748042,
+      "cpuMs": 380590.19,
+      "liveFields": 12800,
+      "encodedBytes": 1692347,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 331182328
+    },
+    {
+      "operations": 230000,
+      "elapsedMs": 419886.765,
+      "cpuMs": 396928.046,
+      "liveFields": 12800,
+      "encodedBytes": 1682857,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 542706688
+    },
+    {
+      "operations": 240000,
+      "elapsedMs": 435964.80775,
+      "cpuMs": 412854.407,
+      "liveFields": 12800,
+      "encodedBytes": 1692388,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 753906096
+    },
+    {
+      "operations": 250000,
+      "elapsedMs": 451728.13675,
+      "cpuMs": 428622.944,
+      "liveFields": 12800,
+      "encodedBytes": 1682548,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 308491024
+    },
+    {
+      "operations": 260000,
+      "elapsedMs": 466888.757042,
+      "cpuMs": 444015.22,
+      "liveFields": 12800,
+      "encodedBytes": 1692348,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 521349176
+    },
+    {
+      "operations": 270000,
+      "elapsedMs": 482627.96674999996,
+      "cpuMs": 459821.812,
+      "liveFields": 12800,
+      "encodedBytes": 1682868,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 765143048
+    },
+    {
+      "operations": 280000,
+      "elapsedMs": 499441.0155,
+      "cpuMs": 476094.189,
+      "liveFields": 12800,
+      "encodedBytes": 1692387,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 316602336
+    },
+    {
+      "operations": 290000,
+      "elapsedMs": 515044.564708,
+      "cpuMs": 491775.391,
+      "liveFields": 12800,
+      "encodedBytes": 1682537,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 532852272
+    },
+    {
+      "operations": 300000,
+      "elapsedMs": 530375.680167,
+      "cpuMs": 507212.488,
+      "liveFields": 12800,
+      "encodedBytes": 1692348,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 746122984
+    },
+    {
+      "operations": 310000,
+      "elapsedMs": 547534.33475,
+      "cpuMs": 523678.522,
+      "liveFields": 12800,
+      "encodedBytes": 1682868,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 301894472
+    },
+    {
+      "operations": 320000,
+      "elapsedMs": 564569.915875,
+      "cpuMs": 539954.237,
+      "liveFields": 12800,
+      "encodedBytes": 1692388,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 518281912
+    },
+    {
+      "operations": 330000,
+      "elapsedMs": 580799.519125,
+      "cpuMs": 556057.519,
+      "liveFields": 12800,
+      "encodedBytes": 1682548,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 758776400
+    },
+    {
+      "operations": 340000,
+      "elapsedMs": 596957.895375,
+      "cpuMs": 572479.183,
+      "liveFields": 12800,
+      "encodedBytes": 1692347,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 309643464
+    },
+    {
+      "operations": 350000,
+      "elapsedMs": 613424.968542,
+      "cpuMs": 588928.989,
+      "liveFields": 12800,
+      "encodedBytes": 1682857,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 515641016
+    },
+    {
+      "operations": 360000,
+      "elapsedMs": 629380.82375,
+      "cpuMs": 604993.192,
+      "liveFields": 12800,
+      "encodedBytes": 1692388,
+      "retainedStructs": 4120,
+      "deletedStructs": 2040,
+      "heapUsedBytes": 728534056
+    }
+  ]
+}

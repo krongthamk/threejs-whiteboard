@@ -1,0 +1,4515 @@
+{
+  "status": "failed",
+  "error": "Workload could not complete: {\"type\":\"failed\",\"workerIndex\":0,\"pid\":76842,\"startedAt\":1790706310018,\"endedAt\":0,\"operations\":13245,\"acknowledged\":13245,\"cursorUpdates\":52975,\"documentUpdates\":13245,\"documentAcknowledgements\":13245,\"disconnects\":0,\"maxSchedulerLagMs\":41064.799791999976,\"traffic\":{\"sentBytes\":22000458,\"receivedBytes\":783243330,\"sentMessages\":66220,\"receivedMessages\":349715,\"awarenessSent\":52975,\"awarenessReceived\":294300},\"pendingPackets\":0,\"memory\":{\"rss\":250675200,\"heapTotal\":128516096,\"heapUsed\":54104648,\"external\":8345803,\"arrayBuffers\":3582725},\"latencyFile\":\"/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-0.latencies.f64le\",\"hashes\":[],\"error\":\"Workload scheduler stalled for 41064.8ms; required cadence was not maintained\"}",
+  "startedAt": 1790706310018,
+  "failedAt": 1790706880961,
+  "samples": [
+    {
+      "type": "sample",
+      "at": 1790706315049,
+      "elapsedMs": 6051.965708,
+      "cpuPctOneCore": 27.508847213051656,
+      "rss": 218841088,
+      "heapTotal": 86310912,
+      "heapUsed": 40449488,
+      "external": 8867393,
+      "arrayBuffers": 4515892,
+      "changes": 1040,
+      "awarenessMessages": 4040,
+      "inboundMessages": 5080,
+      "inboundBytes": 1699531,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 2083,
+          "deletedStructs": 1080
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 1120,
+          "awareness": 4120,
+          "persistedUpdates": 1120,
+          "persistenceMs": 450.7802529999881,
+          "compactions": 0,
+          "windowAt": 1790706308419,
+          "windowUpdates": 1120,
+          "windowAwareness": 4120
+        },
+        "storage": {
+          "updateCount": 1120,
+          "updateBytes": 1313709,
+          "snapshotBytes": 98
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706320063,
+      "elapsedMs": 5014.190791999999,
+      "cpuPctOneCore": 26.20646190999587,
+      "rss": 229703680,
+      "heapTotal": 94699520,
+      "heapUsed": 33028752,
+      "external": 8274574,
+      "arrayBuffers": 3923073,
+      "changes": 2040,
+      "awarenessMessages": 8040,
+      "inboundMessages": 10080,
+      "inboundBytes": 3357294,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 2963,
+          "deletedStructs": 1520
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 2120,
+          "awareness": 8120,
+          "persistedUpdates": 2120,
+          "persistenceMs": 691.5992280000064,
+          "compactions": 0,
+          "windowAt": 1790706308419,
+          "windowUpdates": 2120,
+          "windowAwareness": 8120
+        },
+        "storage": {
+          "updateCount": 2120,
+          "updateBytes": 2146704,
+          "snapshotBytes": 98
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706325054,
+      "elapsedMs": 4990.5341659999995,
+      "cpuPctOneCore": 25.74894705169323,
+      "rss": 236208128,
+      "heapTotal": 96796672,
+      "heapUsed": 36481968,
+      "external": 8744293,
+      "arrayBuffers": 4403222,
+      "changes": 3040,
+      "awarenessMessages": 12040,
+      "inboundMessages": 15080,
+      "inboundBytes": 5029107,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 3120,
+          "awareness": 12120,
+          "persistedUpdates": 3120,
+          "persistenceMs": 912.5288829999827,
+          "compactions": 0,
+          "windowAt": 1790706308419,
+          "windowUpdates": 3120,
+          "windowAwareness": 12120
+        },
+        "storage": {
+          "updateCount": 3120,
+          "updateBytes": 2988981,
+          "snapshotBytes": 98
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706330056,
+      "elapsedMs": 5001.949709,
+      "cpuPctOneCore": 24.85916637191843,
+      "rss": 238026752,
+      "heapTotal": 94699520,
+      "heapUsed": 27374512,
+      "external": 8316642,
+      "arrayBuffers": 3976947,
+      "changes": 4040,
+      "awarenessMessages": 16040,
+      "inboundMessages": 20080,
+      "inboundBytes": 6703110,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 4120,
+          "awareness": 16120,
+          "persistedUpdates": 4120,
+          "persistenceMs": 1128.6196009999749,
+          "compactions": 0,
+          "windowAt": 1790706308419,
+          "windowUpdates": 4120,
+          "windowAwareness": 16120
+        },
+        "storage": {
+          "updateCount": 4120,
+          "updateBytes": 3830701,
+          "snapshotBytes": 98
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706335056,
+      "elapsedMs": 5000.250541000001,
+      "cpuPctOneCore": 25.270093761087796,
+      "rss": 239616000,
+      "heapTotal": 94699520,
+      "heapUsed": 24313072,
+      "external": 8197795,
+      "arrayBuffers": 3858100,
+      "changes": 5040,
+      "awarenessMessages": 20040,
+      "inboundMessages": 25080,
+      "inboundBytes": 8365414,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 5120,
+          "awareness": 20120,
+          "persistedUpdates": 5120,
+          "persistenceMs": 1327.9020579999942,
+          "compactions": 0,
+          "windowAt": 1790706308419,
+          "windowUpdates": 5120,
+          "windowAwareness": 20120
+        },
+        "storage": {
+          "updateCount": 5120,
+          "updateBytes": 4660061,
+          "snapshotBytes": 98
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706340062,
+      "elapsedMs": 5005.6494999999995,
+      "cpuPctOneCore": 27.032835599056625,
+      "rss": 251379712,
+      "heapTotal": 90767360,
+      "heapUsed": 25468928,
+      "external": 9716786,
+      "arrayBuffers": 4961778,
+      "changes": 6040,
+      "awarenessMessages": 24040,
+      "inboundMessages": 30080,
+      "inboundBytes": 10032827,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 6120,
+          "awareness": 24120,
+          "persistedUpdates": 6120,
+          "persistenceMs": 1671.6660309999588,
+          "compactions": 1,
+          "windowAt": 1790706308419,
+          "windowUpdates": 6120,
+          "windowAwareness": 24120
+        },
+        "storage": {
+          "updateCount": 272,
+          "updateBytes": 253828,
+          "snapshotBytes": 1657480
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706345066,
+      "elapsedMs": 5004.656374999999,
+      "cpuPctOneCore": 29.414706818907227,
+      "rss": 252280832,
+      "heapTotal": 94437376,
+      "heapUsed": 44753592,
+      "external": 9197051,
+      "arrayBuffers": 4857356,
+      "changes": 7040,
+      "awarenessMessages": 28040,
+      "inboundMessages": 35080,
+      "inboundBytes": 11702883,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 7120,
+          "awareness": 28120,
+          "persistedUpdates": 7120,
+          "persistenceMs": 2162.1496970000753,
+          "compactions": 1,
+          "windowAt": 1790706308419,
+          "windowUpdates": 7120,
+          "windowAwareness": 28120
+        },
+        "storage": {
+          "updateCount": 1272,
+          "updateBytes": 1097548,
+          "snapshotBytes": 1657480
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706350066,
+      "elapsedMs": 5000.252,
+      "cpuPctOneCore": 29.834816325257208,
+      "rss": 252428288,
+      "heapTotal": 94175232,
+      "heapUsed": 26587968,
+      "external": 9642447,
+      "arrayBuffers": 5302752,
+      "changes": 8040,
+      "awarenessMessages": 32040,
+      "inboundMessages": 40080,
+      "inboundBytes": 13369627,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 8120,
+          "awareness": 32120,
+          "persistedUpdates": 8120,
+          "persistenceMs": 2644.401951999849,
+          "compactions": 1,
+          "windowAt": 1790706308419,
+          "windowUpdates": 8120,
+          "windowAwareness": 32120
+        },
+        "storage": {
+          "updateCount": 2272,
+          "updateBytes": 1939588,
+          "snapshotBytes": 1657480
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706355076,
+      "elapsedMs": 5009.243999999999,
+      "cpuPctOneCore": 30.658957718969177,
+      "rss": 253100032,
+      "heapTotal": 94175232,
+      "heapUsed": 42931264,
+      "external": 9317386,
+      "arrayBuffers": 4977691,
+      "changes": 9040,
+      "awarenessMessages": 36065,
+      "inboundMessages": 45105,
+      "inboundBytes": 15033124,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 9120,
+          "awareness": 36145,
+          "persistedUpdates": 9120,
+          "persistenceMs": 3160.4311679998664,
+          "compactions": 1,
+          "windowAt": 1790706308419,
+          "windowUpdates": 9120,
+          "windowAwareness": 36145
+        },
+        "storage": {
+          "updateCount": 3272,
+          "updateBytes": 2768948,
+          "snapshotBytes": 1657480
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706360077,
+      "elapsedMs": 5000.848292000002,
+      "cpuPctOneCore": 29.310447236418575,
+      "rss": 236011520,
+      "heapTotal": 94175232,
+      "heapUsed": 43580888,
+      "external": 9025203,
+      "arrayBuffers": 4685508,
+      "changes": 10040,
+      "awarenessMessages": 40055,
+      "inboundMessages": 50095,
+      "inboundBytes": 16699742,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 10120,
+          "awareness": 40135,
+          "persistedUpdates": 10120,
+          "persistenceMs": 3646.896451999726,
+          "compactions": 1,
+          "windowAt": 1790706308419,
+          "windowUpdates": 10120,
+          "windowAwareness": 40135
+        },
+        "storage": {
+          "updateCount": 4272,
+          "updateBytes": 3605788,
+          "snapshotBytes": 1657480
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706365076,
+      "elapsedMs": 4999.325125000003,
+      "cpuPctOneCore": 33.42327130604452,
+      "rss": 237060096,
+      "heapTotal": 95223808,
+      "heapUsed": 28009624,
+      "external": 8244066,
+      "arrayBuffers": 3904371,
+      "changes": 11040,
+      "awarenessMessages": 44065,
+      "inboundMessages": 55105,
+      "inboundBytes": 18379481,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 11120,
+          "awareness": 44145,
+          "persistedUpdates": 11120,
+          "persistenceMs": 4280.583119999736,
+          "compactions": 1,
+          "windowAt": 1790706308419,
+          "windowUpdates": 11120,
+          "windowAwareness": 44145
+        },
+        "storage": {
+          "updateCount": 5272,
+          "updateBytes": 4449348,
+          "snapshotBytes": 1657480
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706370082,
+      "elapsedMs": 5005.788916999998,
+      "cpuPctOneCore": 34.28051059389088,
+      "rss": 247791616,
+      "heapTotal": 97058816,
+      "heapUsed": 43151968,
+      "external": 15842996,
+      "arrayBuffers": 11503301,
+      "changes": 12040,
+      "awarenessMessages": 48050,
+      "inboundMessages": 60090,
+      "inboundBytes": 20049204,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 12120,
+          "awareness": 48130,
+          "persistedUpdates": 12120,
+          "persistenceMs": 4945.453668999837,
+          "compactions": 2,
+          "windowAt": 1790706368420,
+          "windowUpdates": 359,
+          "windowAwareness": 1330
+        },
+        "storage": {
+          "updateCount": 41,
+          "updateBytes": 48094,
+          "snapshotBytes": 1667976
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706375079,
+      "elapsedMs": 4997.636750000005,
+      "cpuPctOneCore": 33.18606539380834,
+      "rss": 250314752,
+      "heapTotal": 97058816,
+      "heapUsed": 44365568,
+      "external": 9038054,
+      "arrayBuffers": 4698359,
+      "changes": 13040,
+      "awarenessMessages": 52075,
+      "inboundMessages": 65115,
+      "inboundBytes": 21710517,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 13120,
+          "awareness": 52155,
+          "persistedUpdates": 13120,
+          "persistenceMs": 5565.691365999877,
+          "compactions": 2,
+          "windowAt": 1790706368420,
+          "windowUpdates": 1359,
+          "windowAwareness": 5355
+        },
+        "storage": {
+          "updateCount": 1041,
+          "updateBytes": 877684,
+          "snapshotBytes": 1667976
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706380079,
+      "elapsedMs": 4999.984749999989,
+      "cpuPctOneCore": 33.946683537384864,
+      "rss": 250822656,
+      "heapTotal": 97583104,
+      "heapUsed": 28173768,
+      "external": 8322079,
+      "arrayBuffers": 3982384,
+      "changes": 14040,
+      "awarenessMessages": 56080,
+      "inboundMessages": 70120,
+      "inboundBytes": 23373128,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 14120,
+          "awareness": 56160,
+          "persistedUpdates": 14120,
+          "persistenceMs": 6117.292082999609,
+          "compactions": 2,
+          "windowAt": 1790706368420,
+          "windowUpdates": 2359,
+          "windowAwareness": 9360
+        },
+        "storage": {
+          "updateCount": 2041,
+          "updateBytes": 1714719,
+          "snapshotBytes": 1667976
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706385087,
+      "elapsedMs": 5007.55412500001,
+      "cpuPctOneCore": 40.02131479707164,
+      "rss": 251248640,
+      "heapTotal": 97320960,
+      "heapUsed": 56251200,
+      "external": 10101286,
+      "arrayBuffers": 5761591,
+      "changes": 15040,
+      "awarenessMessages": 60065,
+      "inboundMessages": 75105,
+      "inboundBytes": 25042415,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 15120,
+          "awareness": 60145,
+          "persistedUpdates": 15120,
+          "persistenceMs": 7191.9341909996965,
+          "compactions": 2,
+          "windowAt": 1790706368420,
+          "windowUpdates": 3359,
+          "windowAwareness": 13345
+        },
+        "storage": {
+          "updateCount": 3041,
+          "updateBytes": 2558356,
+          "snapshotBytes": 1667976
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706390087,
+      "elapsedMs": 5000.405874999997,
+      "cpuPctOneCore": 33.560635715395826,
+      "rss": 251822080,
+      "heapTotal": 97845248,
+      "heapUsed": 27096384,
+      "external": 8037134,
+      "arrayBuffers": 3697439,
+      "changes": 16040,
+      "awarenessMessages": 64080,
+      "inboundMessages": 80120,
+      "inboundBytes": 26717777,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 16120,
+          "awareness": 64160,
+          "persistedUpdates": 16120,
+          "persistenceMs": 7875.561018999908,
+          "compactions": 2,
+          "windowAt": 1790706368420,
+          "windowUpdates": 4359,
+          "windowAwareness": 17360
+        },
+        "storage": {
+          "updateCount": 4041,
+          "updateBytes": 3400436,
+          "snapshotBytes": 1667976
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706395086,
+      "elapsedMs": 4998.9035,
+      "cpuPctOneCore": 39.243626127209694,
+      "rss": 251904000,
+      "heapTotal": 97845248,
+      "heapUsed": 40072464,
+      "external": 9075280,
+      "arrayBuffers": 4735585,
+      "changes": 17040,
+      "awarenessMessages": 68080,
+      "inboundMessages": 85120,
+      "inboundBytes": 28381216,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 17120,
+          "awareness": 68160,
+          "persistedUpdates": 17120,
+          "persistenceMs": 8777.564196999892,
+          "compactions": 2,
+          "windowAt": 1790706368420,
+          "windowUpdates": 5359,
+          "windowAwareness": 21360
+        },
+        "storage": {
+          "updateCount": 5041,
+          "updateBytes": 4229876,
+          "snapshotBytes": 1667976
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706400087,
+      "elapsedMs": 5000.997957999993,
+      "cpuPctOneCore": 31.73814533279204,
+      "rss": 252706816,
+      "heapTotal": 98631680,
+      "heapUsed": 30119528,
+      "external": 8101996,
+      "arrayBuffers": 3762301,
+      "changes": 18040,
+      "awarenessMessages": 72080,
+      "inboundMessages": 90120,
+      "inboundBytes": 30049467,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 18120,
+          "awareness": 72160,
+          "persistedUpdates": 18120,
+          "persistenceMs": 9342.812012000062,
+          "compactions": 2,
+          "windowAt": 1790706368420,
+          "windowUpdates": 6359,
+          "windowAwareness": 25360
+        },
+        "storage": {
+          "updateCount": 6041,
+          "updateBytes": 5066756,
+          "snapshotBytes": 1667976
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706405088,
+      "elapsedMs": 5000.4432080000115,
+      "cpuPctOneCore": 32.984376212117475,
+      "rss": 254623744,
+      "heapTotal": 99680256,
+      "heapUsed": 43485024,
+      "external": 8934637,
+      "arrayBuffers": 4594942,
+      "changes": 19040,
+      "awarenessMessages": 76080,
+      "inboundMessages": 95120,
+      "inboundBytes": 31720897,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 19120,
+          "awareness": 76160,
+          "persistedUpdates": 19120,
+          "persistenceMs": 9993.934517000112,
+          "compactions": 3,
+          "windowAt": 1790706368420,
+          "windowUpdates": 7359,
+          "windowAwareness": 29360
+        },
+        "storage": {
+          "updateCount": 793,
+          "updateBytes": 666835,
+          "snapshotBytes": 1659316
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706410088,
+      "elapsedMs": 5000.249041999996,
+      "cpuPctOneCore": 30.635254107009363,
+      "rss": 253804544,
+      "heapTotal": 99680256,
+      "heapUsed": 27184392,
+      "external": 8325006,
+      "arrayBuffers": 3985311,
+      "changes": 20040,
+      "awarenessMessages": 80080,
+      "inboundMessages": 100120,
+      "inboundBytes": 33388535,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 20120,
+          "awareness": 80160,
+          "persistedUpdates": 20120,
+          "persistenceMs": 10502.455854000067,
+          "compactions": 3,
+          "windowAt": 1790706368420,
+          "windowUpdates": 8359,
+          "windowAwareness": 33360
+        },
+        "storage": {
+          "updateCount": 1793,
+          "updateBytes": 1508875,
+          "snapshotBytes": 1659316
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706415093,
+      "elapsedMs": 5005.192999999999,
+      "cpuPctOneCore": 30.71058398747062,
+      "rss": 253870080,
+      "heapTotal": 99680256,
+      "heapUsed": 45297088,
+      "external": 8896468,
+      "arrayBuffers": 4556773,
+      "changes": 21040,
+      "awarenessMessages": 84080,
+      "inboundMessages": 105120,
+      "inboundBytes": 35044825,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 21120,
+          "awareness": 84160,
+          "persistedUpdates": 21120,
+          "persistenceMs": 11061.580862000186,
+          "compactions": 3,
+          "windowAt": 1790706368420,
+          "windowUpdates": 9359,
+          "windowAwareness": 37360
+        },
+        "storage": {
+          "updateCount": 2793,
+          "updateBytes": 2338475,
+          "snapshotBytes": 1659316
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706420091,
+      "elapsedMs": 4998.406667000003,
+      "cpuPctOneCore": 33.43285393389139,
+      "rss": 253952000,
+      "heapTotal": 99942400,
+      "heapUsed": 27905256,
+      "external": 8068743,
+      "arrayBuffers": 3729048,
+      "changes": 22040,
+      "awarenessMessages": 88080,
+      "inboundMessages": 110120,
+      "inboundBytes": 36712090,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 22120,
+          "awareness": 88160,
+          "persistedUpdates": 22120,
+          "persistenceMs": 11664.886723999976,
+          "compactions": 3,
+          "windowAt": 1790706368420,
+          "windowUpdates": 10359,
+          "windowAwareness": 41360
+        },
+        "storage": {
+          "updateCount": 3793,
+          "updateBytes": 3175595,
+          "snapshotBytes": 1659316
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706425092,
+      "elapsedMs": 5001.023665999994,
+      "cpuPctOneCore": 34.66156362716165,
+      "rss": 254656512,
+      "heapTotal": 100466688,
+      "heapUsed": 38942568,
+      "external": 8890426,
+      "arrayBuffers": 4550731,
+      "changes": 23040,
+      "awarenessMessages": 92080,
+      "inboundMessages": 115120,
+      "inboundBytes": 38388339,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 23120,
+          "awareness": 92160,
+          "persistedUpdates": 23120,
+          "persistenceMs": 12347.094883999753,
+          "compactions": 3,
+          "windowAt": 1790706368420,
+          "windowUpdates": 11359,
+          "windowAwareness": 45360
+        },
+        "storage": {
+          "updateCount": 4793,
+          "updateBytes": 4019195,
+          "snapshotBytes": 1659316
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706430093,
+      "elapsedMs": 5000.171042000002,
+      "cpuPctOneCore": 31.772413116583138,
+      "rss": 254820352,
+      "heapTotal": 99942400,
+      "heapUsed": 23016016,
+      "external": 7966606,
+      "arrayBuffers": 3626911,
+      "changes": 24040,
+      "awarenessMessages": 96080,
+      "inboundMessages": 120120,
+      "inboundBytes": 40063127,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 24120,
+          "awareness": 96160,
+          "persistedUpdates": 24120,
+          "persistenceMs": 12930.140805999801,
+          "compactions": 3,
+          "windowAt": 1790706428421,
+          "windowUpdates": 359,
+          "windowAwareness": 1360
+        },
+        "storage": {
+          "updateCount": 5793,
+          "updateBytes": 4861155,
+          "snapshotBytes": 1659316
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706435094,
+      "elapsedMs": 5000.881041999994,
+      "cpuPctOneCore": 31.466335367391085,
+      "rss": 255148032,
+      "heapTotal": 99942400,
+      "heapUsed": 44954112,
+      "external": 8918040,
+      "arrayBuffers": 4578345,
+      "changes": 25040,
+      "awarenessMessages": 100080,
+      "inboundMessages": 125120,
+      "inboundBytes": 41722447,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 25120,
+          "awareness": 100160,
+          "persistedUpdates": 25120,
+          "persistenceMs": 13526.846266999908,
+          "compactions": 4,
+          "windowAt": 1790706428421,
+          "windowUpdates": 1359,
+          "windowAwareness": 5360
+        },
+        "storage": {
+          "updateCount": 547,
+          "updateBytes": 447553,
+          "snapshotBytes": 1660405
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706440094,
+      "elapsedMs": 5000.465790999995,
+      "cpuPctOneCore": 30.36439130796168,
+      "rss": 255148032,
+      "heapTotal": 99942400,
+      "heapUsed": 29190736,
+      "external": 8113472,
+      "arrayBuffers": 3773777,
+      "changes": 26040,
+      "awarenessMessages": 104080,
+      "inboundMessages": 130120,
+      "inboundBytes": 43385385,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 26120,
+          "awareness": 104160,
+          "persistedUpdates": 26120,
+          "persistenceMs": 14028.293232999824,
+          "compactions": 4,
+          "windowAt": 1790706428421,
+          "windowUpdates": 2359,
+          "windowAwareness": 9360
+        },
+        "storage": {
+          "updateCount": 1547,
+          "updateBytes": 1284428,
+          "snapshotBytes": 1660405
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706445095,
+      "elapsedMs": 5000.6186670000025,
+      "cpuPctOneCore": 29.937155773929746,
+      "rss": 255721472,
+      "heapTotal": 100466688,
+      "heapUsed": 43273880,
+      "external": 9180722,
+      "arrayBuffers": 4841027,
+      "changes": 27040,
+      "awarenessMessages": 108080,
+      "inboundMessages": 135120,
+      "inboundBytes": 45054495,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 27120,
+          "awareness": 108160,
+          "persistedUpdates": 27120,
+          "persistenceMs": 14542.521995000507,
+          "compactions": 4,
+          "windowAt": 1790706428421,
+          "windowUpdates": 3359,
+          "windowAwareness": 13360
+        },
+        "storage": {
+          "updateCount": 2547,
+          "updateBytes": 2127945,
+          "snapshotBytes": 1660405
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706450119,
+      "elapsedMs": 5024.250542000023,
+      "cpuPctOneCore": 31.77851077793629,
+      "rss": 255737856,
+      "heapTotal": 100728832,
+      "heapUsed": 57001896,
+      "external": 9655007,
+      "arrayBuffers": 5315312,
+      "changes": 28040,
+      "awarenessMessages": 112080,
+      "inboundMessages": 140120,
+      "inboundBytes": 46726155,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 28120,
+          "awareness": 112160,
+          "persistedUpdates": 28120,
+          "persistenceMs": 15148.532757000381,
+          "compactions": 4,
+          "windowAt": 1790706428421,
+          "windowUpdates": 4359,
+          "windowAwareness": 17360
+        },
+        "storage": {
+          "updateCount": 3547,
+          "updateBytes": 2969945,
+          "snapshotBytes": 1660405
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706455095,
+      "elapsedMs": 4975.819332999992,
+      "cpuPctOneCore": 37.74936094529626,
+      "rss": 255197184,
+      "heapTotal": 100204544,
+      "heapUsed": 43140600,
+      "external": 9028931,
+      "arrayBuffers": 4689236,
+      "changes": 29040,
+      "awarenessMessages": 116080,
+      "inboundMessages": 145120,
+      "inboundBytes": 48387864,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 29120,
+          "awareness": 116160,
+          "persistedUpdates": 29120,
+          "persistenceMs": 15977.506678000727,
+          "compactions": 4,
+          "windowAt": 1790706428421,
+          "windowUpdates": 5359,
+          "windowAwareness": 21360
+        },
+        "storage": {
+          "updateCount": 4547,
+          "updateBytes": 3799425,
+          "snapshotBytes": 1660405
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706460095,
+      "elapsedMs": 4999.803374999989,
+      "cpuPctOneCore": 31.16538557878796,
+      "rss": 255262720,
+      "heapTotal": 100204544,
+      "heapUsed": 24677296,
+      "external": 8066248,
+      "arrayBuffers": 3726553,
+      "changes": 30040,
+      "awarenessMessages": 120080,
+      "inboundMessages": 150120,
+      "inboundBytes": 50058841,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 30120,
+          "awareness": 120160,
+          "persistedUpdates": 30120,
+          "persistenceMs": 16537.984173000463,
+          "compactions": 4,
+          "windowAt": 1790706428421,
+          "windowUpdates": 6359,
+          "windowAwareness": 25360
+        },
+        "storage": {
+          "updateCount": 5547,
+          "updateBytes": 4636505,
+          "snapshotBytes": 1660405
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706465095,
+      "elapsedMs": 5000.475208000018,
+      "cpuPctOneCore": 29.981950467456343,
+      "rss": 256884736,
+      "heapTotal": 97320960,
+      "heapUsed": 28168440,
+      "external": 8174994,
+      "arrayBuffers": 3835299,
+      "changes": 31040,
+      "awarenessMessages": 124080,
+      "inboundMessages": 155120,
+      "inboundBytes": 51732829,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 31120,
+          "awareness": 124160,
+          "persistedUpdates": 31120,
+          "persistenceMs": 17070.598008000547,
+          "compactions": 5,
+          "windowAt": 1790706428421,
+          "windowUpdates": 7359,
+          "windowAwareness": 29360
+        },
+        "storage": {
+          "updateCount": 256,
+          "updateBytes": 236232,
+          "snapshotBytes": 1661560
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706470095,
+      "elapsedMs": 5000.45433399998,
+      "cpuPctOneCore": 29.935359869641914,
+      "rss": 256622592,
+      "heapTotal": 99942400,
+      "heapUsed": 23163992,
+      "external": 8124071,
+      "arrayBuffers": 3784376,
+      "changes": 32040,
+      "awarenessMessages": 128080,
+      "inboundMessages": 160120,
+      "inboundBytes": 53400651,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 32120,
+          "awareness": 128160,
+          "persistedUpdates": 32120,
+          "persistenceMs": 17568.640684999955,
+          "compactions": 5,
+          "windowAt": 1790706428421,
+          "windowUpdates": 8359,
+          "windowAwareness": 33360
+        },
+        "storage": {
+          "updateCount": 1256,
+          "updateBytes": 1078272,
+          "snapshotBytes": 1661560
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706475096,
+      "elapsedMs": 5000.6075830000045,
+      "cpuPctOneCore": 30.666173550855063,
+      "rss": 256950272,
+      "heapTotal": 100466688,
+      "heapUsed": 45840648,
+      "external": 9324548,
+      "arrayBuffers": 4984853,
+      "changes": 33040,
+      "awarenessMessages": 132080,
+      "inboundMessages": 165120,
+      "inboundBytes": 55055092,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 33120,
+          "awareness": 132160,
+          "persistedUpdates": 33120,
+          "persistenceMs": 18077.209401000313,
+          "compactions": 5,
+          "windowAt": 1790706428421,
+          "windowUpdates": 9359,
+          "windowAwareness": 37360
+        },
+        "storage": {
+          "updateCount": 2256,
+          "updateBytes": 1907632,
+          "snapshotBytes": 1661560
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706480096,
+      "elapsedMs": 5000.196499999991,
+      "cpuPctOneCore": 29.844387115586414,
+      "rss": 257474560,
+      "heapTotal": 100990976,
+      "heapUsed": 26223088,
+      "external": 8144284,
+      "arrayBuffers": 3804589,
+      "changes": 34040,
+      "awarenessMessages": 136080,
+      "inboundMessages": 170120,
+      "inboundBytes": 56720394,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 34120,
+          "awareness": 136160,
+          "persistedUpdates": 34120,
+          "persistenceMs": 18580.8580350005,
+          "compactions": 5,
+          "windowAt": 1790706428421,
+          "windowUpdates": 10359,
+          "windowAwareness": 41360
+        },
+        "storage": {
+          "updateCount": 3256,
+          "updateBytes": 2744472,
+          "snapshotBytes": 1661560
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706485097,
+      "elapsedMs": 5000.753083000018,
+      "cpuPctOneCore": 28.27828082148872,
+      "rss": 257490944,
+      "heapTotal": 99942400,
+      "heapUsed": 47328576,
+      "external": 8973246,
+      "arrayBuffers": 4633551,
+      "changes": 35040,
+      "awarenessMessages": 140080,
+      "inboundMessages": 175120,
+      "inboundBytes": 58394463,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 35120,
+          "awareness": 140160,
+          "persistedUpdates": 35120,
+          "persistenceMs": 19026.091823000017,
+          "compactions": 5,
+          "windowAt": 1790706428421,
+          "windowUpdates": 11359,
+          "windowAwareness": 45360
+        },
+        "storage": {
+          "updateCount": 4256,
+          "updateBytes": 3588032,
+          "snapshotBytes": 1661560
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706490098,
+      "elapsedMs": 5000.540458999982,
+      "cpuPctOneCore": 30.292165665287452,
+      "rss": 257490944,
+      "heapTotal": 99942400,
+      "heapUsed": 29632688,
+      "external": 8253138,
+      "arrayBuffers": 3913443,
+      "changes": 36040,
+      "awarenessMessages": 144080,
+      "inboundMessages": 180120,
+      "inboundBytes": 60071280,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 36120,
+          "awareness": 144160,
+          "persistedUpdates": 36120,
+          "persistenceMs": 19521.151917999225,
+          "compactions": 5,
+          "windowAt": 1790706488422,
+          "windowUpdates": 359,
+          "windowAwareness": 1359
+        },
+        "storage": {
+          "updateCount": 5256,
+          "updateBytes": 4430152,
+          "snapshotBytes": 1661560
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706495334,
+      "elapsedMs": 5236.817250000022,
+      "cpuPctOneCore": 34.89012338553522,
+      "rss": 258441216,
+      "heapTotal": 101515264,
+      "heapUsed": 53916752,
+      "external": 15492440,
+      "arrayBuffers": 11152745,
+      "changes": 37055,
+      "awarenessMessages": 148188,
+      "inboundMessages": 185243,
+      "inboundBytes": 61771781,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 37135,
+          "awareness": 148268,
+          "persistedUpdates": 37135,
+          "persistenceMs": 20288.10584799869,
+          "compactions": 6,
+          "windowAt": 1790706488422,
+          "windowUpdates": 1374,
+          "windowAwareness": 5467
+        },
+        "storage": {
+          "updateCount": 29,
+          "updateBytes": 34414,
+          "snapshotBytes": 1656446
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706500098,
+      "elapsedMs": 4763.733290999982,
+      "cpuPctOneCore": 32.22514583048276,
+      "rss": 258523136,
+      "heapTotal": 100990976,
+      "heapUsed": 43300952,
+      "external": 8920965,
+      "arrayBuffers": 4581270,
+      "changes": 38040,
+      "awarenessMessages": 152075,
+      "inboundMessages": 190115,
+      "inboundBytes": 63395292,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 38120,
+          "awareness": 152155,
+          "persistedUpdates": 38120,
+          "persistenceMs": 20909.296152998482,
+          "compactions": 6,
+          "windowAt": 1790706488422,
+          "windowUpdates": 2359,
+          "windowAwareness": 9354
+        },
+        "storage": {
+          "updateCount": 1014,
+          "updateBytes": 853649,
+          "snapshotBytes": 1656446
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706505098,
+      "elapsedMs": 4999.738834000018,
+      "cpuPctOneCore": 31.594310271927185,
+      "rss": 258113536,
+      "heapTotal": 100990976,
+      "heapUsed": 26617144,
+      "external": 8272565,
+      "arrayBuffers": 3932870,
+      "changes": 39040,
+      "awarenessMessages": 156080,
+      "inboundMessages": 195120,
+      "inboundBytes": 65065507,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 39120,
+          "awareness": 156160,
+          "persistedUpdates": 39120,
+          "persistenceMs": 21513.361137998138,
+          "compactions": 6,
+          "windowAt": 1790706488422,
+          "windowUpdates": 3359,
+          "windowAwareness": 13359
+        },
+        "storage": {
+          "updateCount": 2014,
+          "updateBytes": 1697286,
+          "snapshotBytes": 1656446
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706510098,
+      "elapsedMs": 5000.522457999992,
+      "cpuPctOneCore": 31.640053880146024,
+      "rss": 258097152,
+      "heapTotal": 100990976,
+      "heapUsed": 45218336,
+      "external": 9009949,
+      "arrayBuffers": 4670254,
+      "changes": 40040,
+      "awarenessMessages": 160080,
+      "inboundMessages": 200120,
+      "inboundBytes": 66734975,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 40120,
+          "awareness": 160160,
+          "persistedUpdates": 40120,
+          "persistenceMs": 22120.58592999819,
+          "compactions": 6,
+          "windowAt": 1790706488422,
+          "windowUpdates": 4359,
+          "windowAwareness": 17359
+        },
+        "storage": {
+          "updateCount": 3014,
+          "updateBytes": 2539366,
+          "snapshotBytes": 1656446
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706515099,
+      "elapsedMs": 5000.3299169999955,
+      "cpuPctOneCore": 32.87323091245543,
+      "rss": 258129920,
+      "heapTotal": 100990976,
+      "heapUsed": 28121848,
+      "external": 8207443,
+      "arrayBuffers": 3867748,
+      "changes": 41040,
+      "awarenessMessages": 164080,
+      "inboundMessages": 205120,
+      "inboundBytes": 68394064,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 41120,
+          "awareness": 164160,
+          "persistedUpdates": 41120,
+          "persistenceMs": 22761.439649998058,
+          "compactions": 6,
+          "windowAt": 1790706488422,
+          "windowUpdates": 5359,
+          "windowAwareness": 21359
+        },
+        "storage": {
+          "updateCount": 4014,
+          "updateBytes": 3368806,
+          "snapshotBytes": 1656446
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706520099,
+      "elapsedMs": 5000.782875000004,
+      "cpuPctOneCore": 31.22205140730087,
+      "rss": 258146304,
+      "heapTotal": 100990976,
+      "heapUsed": 25418464,
+      "external": 8453400,
+      "arrayBuffers": 4113705,
+      "changes": 42040,
+      "awarenessMessages": 168080,
+      "inboundMessages": 210120,
+      "inboundBytes": 70064782,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 42120,
+          "awareness": 168160,
+          "persistedUpdates": 42120,
+          "persistenceMs": 23303.108264997914,
+          "compactions": 6,
+          "windowAt": 1790706488422,
+          "windowUpdates": 6359,
+          "windowAwareness": 25359
+        },
+        "storage": {
+          "updateCount": 5014,
+          "updateBytes": 4205686,
+          "snapshotBytes": 1656446
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706525100,
+      "elapsedMs": 5000.133666000009,
+      "cpuPctOneCore": 31.8638281779085,
+      "rss": 258719744,
+      "heapTotal": 101515264,
+      "heapUsed": 45475968,
+      "external": 9434067,
+      "arrayBuffers": 5094372,
+      "changes": 43040,
+      "awarenessMessages": 172080,
+      "inboundMessages": 215120,
+      "inboundBytes": 71739938,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 43120,
+          "awareness": 172160,
+          "persistedUpdates": 43120,
+          "persistenceMs": 23903.431087998404,
+          "compactions": 6,
+          "windowAt": 1790706488422,
+          "windowUpdates": 7359,
+          "windowAwareness": 29359
+        },
+        "storage": {
+          "updateCount": 6014,
+          "updateBytes": 5049206,
+          "snapshotBytes": 1656446
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706530100,
+      "elapsedMs": 5000.633499999996,
+      "cpuPctOneCore": 33.42212541670973,
+      "rss": 258162688,
+      "heapTotal": 100466688,
+      "heapUsed": 41418360,
+      "external": 9049310,
+      "arrayBuffers": 4709615,
+      "changes": 44040,
+      "awarenessMessages": 176080,
+      "inboundMessages": 220120,
+      "inboundBytes": 73410633,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 44120,
+          "awareness": 176160,
+          "persistedUpdates": 44120,
+          "persistenceMs": 24562.00097499883,
+          "compactions": 7,
+          "windowAt": 1790706488422,
+          "windowUpdates": 8359,
+          "windowAwareness": 33359
+        },
+        "storage": {
+          "updateCount": 779,
+          "updateBytes": 647933,
+          "snapshotBytes": 1665751
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706535101,
+      "elapsedMs": 5000.3913750000065,
+      "cpuPctOneCore": 30.01133086307665,
+      "rss": 258260992,
+      "heapTotal": 100466688,
+      "heapUsed": 46371984,
+      "external": 8998325,
+      "arrayBuffers": 4658630,
+      "changes": 45040,
+      "awarenessMessages": 180080,
+      "inboundMessages": 225120,
+      "inboundBytes": 75066169,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 45120,
+          "awareness": 180160,
+          "persistedUpdates": 45120,
+          "persistenceMs": 25090.01894599926,
+          "compactions": 7,
+          "windowAt": 1790706488422,
+          "windowUpdates": 9359,
+          "windowAwareness": 37359
+        },
+        "storage": {
+          "updateCount": 1779,
+          "updateBytes": 1477533,
+          "snapshotBytes": 1665751
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706540101,
+      "elapsedMs": 5000.818083999999,
+      "cpuPctOneCore": 30.34297537946594,
+      "rss": 257736704,
+      "heapTotal": 100466688,
+      "heapUsed": 29767568,
+      "external": 8129659,
+      "arrayBuffers": 3789964,
+      "changes": 46040,
+      "awarenessMessages": 184080,
+      "inboundMessages": 230120,
+      "inboundBytes": 76729074,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 46120,
+          "awareness": 184160,
+          "persistedUpdates": 46120,
+          "persistenceMs": 25655.49992199963,
+          "compactions": 7,
+          "windowAt": 1790706488422,
+          "windowUpdates": 10359,
+          "windowAwareness": 41359
+        },
+        "storage": {
+          "updateCount": 2779,
+          "updateBytes": 2314653,
+          "snapshotBytes": 1665751
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706545102,
+      "elapsedMs": 5000.326415999996,
+      "cpuPctOneCore": 30.60038230912166,
+      "rss": 257802240,
+      "heapTotal": 100466688,
+      "heapUsed": 26493880,
+      "external": 8381254,
+      "arrayBuffers": 4041559,
+      "changes": 47040,
+      "awarenessMessages": 188080,
+      "inboundMessages": 235120,
+      "inboundBytes": 78402178,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 47120,
+          "awareness": 188160,
+          "persistedUpdates": 47120,
+          "persistenceMs": 26232.192782000166,
+          "compactions": 7,
+          "windowAt": 1790706488422,
+          "windowUpdates": 11359,
+          "windowAwareness": 45359
+        },
+        "storage": {
+          "updateCount": 3779,
+          "updateBytes": 3158253,
+          "snapshotBytes": 1665751
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706550102,
+      "elapsedMs": 4999.839584000001,
+      "cpuPctOneCore": 29.79295585336123,
+      "rss": 257867776,
+      "heapTotal": 100466688,
+      "heapUsed": 46071544,
+      "external": 9005466,
+      "arrayBuffers": 4665771,
+      "changes": 48040,
+      "awarenessMessages": 192080,
+      "inboundMessages": 240120,
+      "inboundBytes": 80076903,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 48120,
+          "awareness": 192160,
+          "persistedUpdates": 48120,
+          "persistenceMs": 26776.401160999863,
+          "compactions": 7,
+          "windowAt": 1790706548423,
+          "windowUpdates": 359,
+          "windowAwareness": 1360
+        },
+        "storage": {
+          "updateCount": 4779,
+          "updateBytes": 4000213,
+          "snapshotBytes": 1665751
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706555102,
+      "elapsedMs": 5000.467540999991,
+      "cpuPctOneCore": 31.64886057201592,
+      "rss": 258408448,
+      "heapTotal": 100990976,
+      "heapUsed": 29051328,
+      "external": 8112395,
+      "arrayBuffers": 3772700,
+      "changes": 49040,
+      "awarenessMessages": 196080,
+      "inboundMessages": 245120,
+      "inboundBytes": 81739509,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 49120,
+          "awareness": 196160,
+          "persistedUpdates": 49120,
+          "persistenceMs": 27337.936664999746,
+          "compactions": 7,
+          "windowAt": 1790706548423,
+          "windowUpdates": 1359,
+          "windowAwareness": 5360
+        },
+        "storage": {
+          "updateCount": 5779,
+          "updateBytes": 4829563,
+          "snapshotBytes": 1665751
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706560103,
+      "elapsedMs": 5000.770334000001,
+      "cpuPctOneCore": 31.118625652925253,
+      "rss": 259014656,
+      "heapTotal": 101515264,
+      "heapUsed": 26524592,
+      "external": 8123976,
+      "arrayBuffers": 3784281,
+      "changes": 50040,
+      "awarenessMessages": 200080,
+      "inboundMessages": 250120,
+      "inboundBytes": 83406391,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 50120,
+          "awareness": 200160,
+          "persistedUpdates": 50120,
+          "persistenceMs": 27912.54625199976,
+          "compactions": 8,
+          "windowAt": 1790706548423,
+          "windowUpdates": 2359,
+          "windowAwareness": 9360
+        },
+        "storage": {
+          "updateCount": 473,
+          "updateBytes": 422753,
+          "snapshotBytes": 1656615
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706565103,
+      "elapsedMs": 5000.170332999987,
+      "cpuPctOneCore": 28.83315775234819,
+      "rss": 257720320,
+      "heapTotal": 100204544,
+      "heapUsed": 46964888,
+      "external": 9012373,
+      "arrayBuffers": 4672678,
+      "changes": 51040,
+      "awarenessMessages": 204080,
+      "inboundMessages": 255120,
+      "inboundBytes": 85075847,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 51120,
+          "awareness": 204160,
+          "persistedUpdates": 51120,
+          "persistenceMs": 28402.870488999637,
+          "compactions": 8,
+          "windowAt": 1790706548423,
+          "windowUpdates": 3359,
+          "windowAwareness": 13360
+        },
+        "storage": {
+          "updateCount": 1473,
+          "updateBytes": 1266270,
+          "snapshotBytes": 1656615
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706570103,
+      "elapsedMs": 4999.807000000001,
+      "cpuPctOneCore": 29.92175497974221,
+      "rss": 257654784,
+      "heapTotal": 100204544,
+      "heapUsed": 42896224,
+      "external": 9090686,
+      "arrayBuffers": 4750991,
+      "changes": 52040,
+      "awarenessMessages": 208080,
+      "inboundMessages": 260120,
+      "inboundBytes": 86743259,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 52120,
+          "awareness": 208160,
+          "persistedUpdates": 52120,
+          "persistenceMs": 28918.649927999235,
+          "compactions": 8,
+          "windowAt": 1790706548423,
+          "windowUpdates": 4359,
+          "windowAwareness": 17360
+        },
+        "storage": {
+          "updateCount": 2473,
+          "updateBytes": 2108270,
+          "snapshotBytes": 1656615
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706575103,
+      "elapsedMs": 4999.940375000006,
+      "cpuPctOneCore": 29.21468838515896,
+      "rss": 257703936,
+      "heapTotal": 100204544,
+      "heapUsed": 26318160,
+      "external": 8112363,
+      "arrayBuffers": 3772668,
+      "changes": 53040,
+      "awarenessMessages": 212080,
+      "inboundMessages": 265120,
+      "inboundBytes": 88401947,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 53120,
+          "awareness": 212160,
+          "persistedUpdates": 53120,
+          "persistenceMs": 29403.759401000098,
+          "compactions": 8,
+          "windowAt": 1790706548423,
+          "windowUpdates": 5359,
+          "windowAwareness": 21360
+        },
+        "storage": {
+          "updateCount": 3473,
+          "updateBytes": 2937750,
+          "snapshotBytes": 1656615
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706580102,
+      "elapsedMs": 4999.517417000025,
+      "cpuPctOneCore": 29.225000697702196,
+      "rss": 257736704,
+      "heapTotal": 100204544,
+      "heapUsed": 47131784,
+      "external": 8932805,
+      "arrayBuffers": 4593110,
+      "changes": 54040,
+      "awarenessMessages": 216080,
+      "inboundMessages": 270120,
+      "inboundBytes": 90070473,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 54120,
+          "awareness": 216160,
+          "persistedUpdates": 54120,
+          "persistenceMs": 29917.966013000514,
+          "compactions": 8,
+          "windowAt": 1790706548423,
+          "windowUpdates": 6359,
+          "windowAwareness": 25360
+        },
+        "storage": {
+          "updateCount": 4473,
+          "updateBytes": 3774830,
+          "snapshotBytes": 1656615
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706585102,
+      "elapsedMs": 5000.056500000006,
+      "cpuPctOneCore": 29.790043372509857,
+      "rss": 257982464,
+      "heapTotal": 100466688,
+      "heapUsed": 29667440,
+      "external": 8132621,
+      "arrayBuffers": 3792926,
+      "changes": 55040,
+      "awarenessMessages": 220080,
+      "inboundMessages": 275120,
+      "inboundBytes": 91748605,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 55120,
+          "awareness": 220160,
+          "persistedUpdates": 55120,
+          "persistenceMs": 30437.221487001334,
+          "compactions": 8,
+          "windowAt": 1790706548423,
+          "windowUpdates": 7359,
+          "windowAwareness": 29360
+        },
+        "storage": {
+          "updateCount": 5473,
+          "updateBytes": 4618550,
+          "snapshotBytes": 1656615
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706590111,
+      "elapsedMs": 5008.7279160000035,
+      "cpuPctOneCore": 32.705849219061456,
+      "rss": 257998848,
+      "heapTotal": 100466688,
+      "heapUsed": 25346104,
+      "external": 8033498,
+      "arrayBuffers": 3693803,
+      "changes": 56040,
+      "awarenessMessages": 224080,
+      "inboundMessages": 280120,
+      "inboundBytes": 93420600,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 56120,
+          "awareness": 224160,
+          "persistedUpdates": 56120,
+          "persistenceMs": 31078.16132000123,
+          "compactions": 9,
+          "windowAt": 1790706548423,
+          "windowUpdates": 8359,
+          "windowAwareness": 33360
+        },
+        "storage": {
+          "updateCount": 242,
+          "updateBytes": 216816,
+          "snapshotBytes": 1668464
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706595108,
+      "elapsedMs": 4996.983749999956,
+      "cpuPctOneCore": 31.541207233263748,
+      "rss": 258801664,
+      "heapTotal": 101253120,
+      "heapUsed": 49247632,
+      "external": 9317037,
+      "arrayBuffers": 4977342,
+      "changes": 57040,
+      "awarenessMessages": 228080,
+      "inboundMessages": 285120,
+      "inboundBytes": 95076626,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 57120,
+          "awareness": 228160,
+          "persistedUpdates": 57120,
+          "persistenceMs": 31657.95914100104,
+          "compactions": 9,
+          "windowAt": 1790706548423,
+          "windowUpdates": 9359,
+          "windowAwareness": 37360
+        },
+        "storage": {
+          "updateCount": 1242,
+          "updateBytes": 1046176,
+          "snapshotBytes": 1668464
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706600108,
+      "elapsedMs": 4999.6627089999965,
+      "cpuPctOneCore": 33.3061667740595,
+      "rss": 258752512,
+      "heapTotal": 100728832,
+      "heapUsed": 43415488,
+      "external": 9118750,
+      "arrayBuffers": 4779055,
+      "changes": 58040,
+      "awarenessMessages": 232080,
+      "inboundMessages": 290120,
+      "inboundBytes": 96738630,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 58120,
+          "awareness": 232160,
+          "persistedUpdates": 58120,
+          "persistenceMs": 32260.03466600074,
+          "compactions": 9,
+          "windowAt": 1790706548423,
+          "windowUpdates": 10359,
+          "windowAwareness": 41360
+        },
+        "storage": {
+          "updateCount": 2242,
+          "updateBytes": 1883016,
+          "snapshotBytes": 1668464
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706605108,
+      "elapsedMs": 5000.144708000007,
+      "cpuPctOneCore": 29.75557882593981,
+      "rss": 258244608,
+      "heapTotal": 100204544,
+      "heapUsed": 36200008,
+      "external": 8769846,
+      "arrayBuffers": 4430151,
+      "changes": 59040,
+      "awarenessMessages": 236080,
+      "inboundMessages": 295120,
+      "inboundBytes": 98410575,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 59120,
+          "awareness": 236160,
+          "persistedUpdates": 59120,
+          "persistenceMs": 32752.75306000007,
+          "compactions": 9,
+          "windowAt": 1790706548423,
+          "windowUpdates": 11359,
+          "windowAwareness": 45360
+        },
+        "storage": {
+          "updateCount": 3242,
+          "updateBytes": 2726576,
+          "snapshotBytes": 1668464
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706610108,
+      "elapsedMs": 5000.247582999989,
+      "cpuPctOneCore": 30.439972716047077,
+      "rss": 258277376,
+      "heapTotal": 100204544,
+      "heapUsed": 24044544,
+      "external": 7982250,
+      "arrayBuffers": 3642555,
+      "changes": 60040,
+      "awarenessMessages": 240080,
+      "inboundMessages": 300120,
+      "inboundBytes": 100082602,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 60120,
+          "awareness": 240160,
+          "persistedUpdates": 60120,
+          "persistenceMs": 33257.19781600031,
+          "compactions": 9,
+          "windowAt": 1790706608424,
+          "windowUpdates": 356,
+          "windowAwareness": 1357
+        },
+        "storage": {
+          "updateCount": 4242,
+          "updateBytes": 3568696,
+          "snapshotBytes": 1668464
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706615108,
+      "elapsedMs": 5000.343458999996,
+      "cpuPctOneCore": 28.432066950143497,
+      "rss": 257474560,
+      "heapTotal": 99680256,
+      "heapUsed": 29772936,
+      "external": 8265422,
+      "arrayBuffers": 3925727,
+      "changes": 61040,
+      "awarenessMessages": 244080,
+      "inboundMessages": 305120,
+      "inboundBytes": 101746209,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 61120,
+          "awareness": 244160,
+          "persistedUpdates": 61120,
+          "persistenceMs": 33727.51090100046,
+          "compactions": 9,
+          "windowAt": 1790706608424,
+          "windowUpdates": 1356,
+          "windowAwareness": 5357
+        },
+        "storage": {
+          "updateCount": 5242,
+          "updateBytes": 4398286,
+          "snapshotBytes": 1668464
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706620109,
+      "elapsedMs": 5000.252666000044,
+      "cpuPctOneCore": 29.77727525899362,
+      "rss": 258031616,
+      "heapTotal": 100466688,
+      "heapUsed": 41893600,
+      "external": 9036910,
+      "arrayBuffers": 4697215,
+      "changes": 62040,
+      "awarenessMessages": 248080,
+      "inboundMessages": 310120,
+      "inboundBytes": 103414721,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 62120,
+          "awareness": 248160,
+          "persistedUpdates": 62120,
+          "persistenceMs": 34220.28294300159,
+          "compactions": 9,
+          "windowAt": 1790706608424,
+          "windowUpdates": 2356,
+          "windowAwareness": 9357
+        },
+        "storage": {
+          "updateCount": 6242,
+          "updateBytes": 5235321,
+          "snapshotBytes": 1668464
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706625109,
+      "elapsedMs": 4999.930999999982,
+      "cpuPctOneCore": 29.82165153879134,
+      "rss": 258293760,
+      "heapTotal": 98107392,
+      "heapUsed": 29445344,
+      "external": 8115929,
+      "arrayBuffers": 3776234,
+      "changes": 63040,
+      "awarenessMessages": 252080,
+      "inboundMessages": 315120,
+      "inboundBytes": 105086987,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 63120,
+          "awareness": 252160,
+          "persistedUpdates": 63120,
+          "persistenceMs": 34761.609247002045,
+          "compactions": 10,
+          "windowAt": 1790706608424,
+          "windowUpdates": 3356,
+          "windowAwareness": 13357
+        },
+        "storage": {
+          "updateCount": 993,
+          "updateBytes": 835246,
+          "snapshotBytes": 1658891
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706630109,
+      "elapsedMs": 5000.494459000009,
+      "cpuPctOneCore": 29.69560334833275,
+      "rss": 257359872,
+      "heapTotal": 99418112,
+      "heapUsed": 26529280,
+      "external": 8174966,
+      "arrayBuffers": 3835271,
+      "changes": 64040,
+      "awarenessMessages": 256080,
+      "inboundMessages": 320120,
+      "inboundBytes": 106754884,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 64120,
+          "awareness": 256160,
+          "persistedUpdates": 64120,
+          "persistenceMs": 35270.738558000994,
+          "compactions": 10,
+          "windowAt": 1790706608424,
+          "windowUpdates": 4356,
+          "windowAwareness": 17357
+        },
+        "storage": {
+          "updateCount": 1993,
+          "updateBytes": 1677326,
+          "snapshotBytes": 1658891
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706635110,
+      "elapsedMs": 5000.714333000011,
+      "cpuPctOneCore": 28.829021295746088,
+      "rss": 257376256,
+      "heapTotal": 99418112,
+      "heapUsed": 46961744,
+      "external": 9014072,
+      "arrayBuffers": 4674377,
+      "changes": 65040,
+      "awarenessMessages": 260080,
+      "inboundMessages": 325120,
+      "inboundBytes": 108410916,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 65120,
+          "awareness": 260160,
+          "persistedUpdates": 65120,
+          "persistenceMs": 35771.82306600053,
+          "compactions": 10,
+          "windowAt": 1790706608424,
+          "windowUpdates": 5356,
+          "windowAwareness": 21357
+        },
+        "storage": {
+          "updateCount": 2993,
+          "updateBytes": 2506766,
+          "snapshotBytes": 1658891
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706640111,
+      "elapsedMs": 5001.235832999984,
+      "cpuPctOneCore": 32.416567707176256,
+      "rss": 254640128,
+      "heapTotal": 99418112,
+      "heapUsed": 44337488,
+      "external": 9030908,
+      "arrayBuffers": 4691213,
+      "changes": 66040,
+      "awarenessMessages": 264080,
+      "inboundMessages": 330120,
+      "inboundBytes": 110077810,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 66120,
+          "awareness": 264160,
+          "persistedUpdates": 66120,
+          "persistenceMs": 36360.19135800137,
+          "compactions": 10,
+          "windowAt": 1790706608424,
+          "windowUpdates": 6356,
+          "windowAwareness": 25357
+        },
+        "storage": {
+          "updateCount": 3993,
+          "updateBytes": 3343646,
+          "snapshotBytes": 1658891
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706645112,
+      "elapsedMs": 5000.9337090000045,
+      "cpuPctOneCore": 33.95389938771129,
+      "rss": 255688704,
+      "heapTotal": 100466688,
+      "heapUsed": 26565864,
+      "external": 8299312,
+      "arrayBuffers": 3959617,
+      "changes": 67040,
+      "awarenessMessages": 268080,
+      "inboundMessages": 335120,
+      "inboundBytes": 111754821,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 67120,
+          "awareness": 268160,
+          "persistedUpdates": 67120,
+          "persistenceMs": 37068.7530609999,
+          "compactions": 10,
+          "windowAt": 1790706608424,
+          "windowUpdates": 7356,
+          "windowAwareness": 29357
+        },
+        "storage": {
+          "updateCount": 4993,
+          "updateBytes": 4187166,
+          "snapshotBytes": 1658891
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706650111,
+      "elapsedMs": 4999.087624999986,
+      "cpuPctOneCore": 29.164581807065332,
+      "rss": 255705088,
+      "heapTotal": 100204544,
+      "heapUsed": 46975088,
+      "external": 9020234,
+      "arrayBuffers": 4680539,
+      "changes": 68040,
+      "awarenessMessages": 272080,
+      "inboundMessages": 340120,
+      "inboundBytes": 113429119,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 68120,
+          "awareness": 272160,
+          "persistedUpdates": 68120,
+          "persistenceMs": 37561.599225000355,
+          "compactions": 10,
+          "windowAt": 1790706608424,
+          "windowUpdates": 8356,
+          "windowAwareness": 33357
+        },
+        "storage": {
+          "updateCount": 5993,
+          "updateBytes": 5029206,
+          "snapshotBytes": 1658891
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706655112,
+      "elapsedMs": 5001.016999999993,
+      "cpuPctOneCore": 33.48292957212508,
+      "rss": 254754816,
+      "heapTotal": 99680256,
+      "heapUsed": 25274384,
+      "external": 8079391,
+      "arrayBuffers": 3739696,
+      "changes": 69040,
+      "awarenessMessages": 276080,
+      "inboundMessages": 345120,
+      "inboundBytes": 115087743,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 69120,
+          "awareness": 276160,
+          "persistedUpdates": 69120,
+          "persistenceMs": 38194.00688300147,
+          "compactions": 11,
+          "windowAt": 1790706608424,
+          "windowUpdates": 9356,
+          "windowAwareness": 37357
+        },
+        "storage": {
+          "updateCount": 755,
+          "updateBytes": 615876,
+          "snapshotBytes": 1663224
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706660112,
+      "elapsedMs": 5000.096958000038,
+      "cpuPctOneCore": 30.64030583544513,
+      "rss": 254885888,
+      "heapTotal": 99680256,
+      "heapUsed": 44190848,
+      "external": 9002709,
+      "arrayBuffers": 4663014,
+      "changes": 70040,
+      "awarenessMessages": 280080,
+      "inboundMessages": 350120,
+      "inboundBytes": 116750774,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 70120,
+          "awareness": 280160,
+          "persistedUpdates": 70120,
+          "persistenceMs": 38759.014758002646,
+          "compactions": 11,
+          "windowAt": 1790706608424,
+          "windowUpdates": 10356,
+          "windowAwareness": 41357
+        },
+        "storage": {
+          "updateCount": 1755,
+          "updateBytes": 1452996,
+          "snapshotBytes": 1663224
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706665113,
+      "elapsedMs": 5001.279082999972,
+      "cpuPctOneCore": 29.909148743259767,
+      "rss": 255393792,
+      "heapTotal": 100204544,
+      "heapUsed": 35892648,
+      "external": 8769073,
+      "arrayBuffers": 4429378,
+      "changes": 71040,
+      "awarenessMessages": 284080,
+      "inboundMessages": 355120,
+      "inboundBytes": 118419559,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 71120,
+          "awareness": 284160,
+          "persistedUpdates": 71120,
+          "persistenceMs": 39290.01659700297,
+          "compactions": 11,
+          "windowAt": 1790706608424,
+          "windowUpdates": 11356,
+          "windowAwareness": 45357
+        },
+        "storage": {
+          "updateCount": 2755,
+          "updateBytes": 2296596,
+          "snapshotBytes": 1663224
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706670115,
+      "elapsedMs": 5001.255584000028,
+      "cpuPctOneCore": 30.095342553882798,
+      "rss": 255442944,
+      "heapTotal": 100204544,
+      "heapUsed": 23314664,
+      "external": 7977863,
+      "arrayBuffers": 3638168,
+      "changes": 72040,
+      "awarenessMessages": 288080,
+      "inboundMessages": 360120,
+      "inboundBytes": 120091399,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 72120,
+          "awareness": 288160,
+          "persistedUpdates": 72120,
+          "persistenceMs": 39816.358140002696,
+          "compactions": 11,
+          "windowAt": 1790706668425,
+          "windowUpdates": 353,
+          "windowAwareness": 1354
+        },
+        "storage": {
+          "updateCount": 3755,
+          "updateBytes": 3138556,
+          "snapshotBytes": 1663224
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706675115,
+      "elapsedMs": 5000,
+      "cpuPctOneCore": 29.641679999999997,
+      "rss": 255410176,
+      "heapTotal": 100204544,
+      "heapUsed": 45019752,
+      "external": 9307406,
+      "arrayBuffers": 4967711,
+      "changes": 73040,
+      "awarenessMessages": 292080,
+      "inboundMessages": 365120,
+      "inboundBytes": 121752563,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 73120,
+          "awareness": 292160,
+          "persistedUpdates": 73120,
+          "persistenceMs": 40334.590146001945,
+          "compactions": 11,
+          "windowAt": 1790706668425,
+          "windowUpdates": 1353,
+          "windowAwareness": 5354
+        },
+        "storage": {
+          "updateCount": 4755,
+          "updateBytes": 3967906,
+          "snapshotBytes": 1663224
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706680219,
+      "elapsedMs": 5104.049082999991,
+      "cpuPctOneCore": 32.57243362994522,
+      "rss": 256327680,
+      "heapTotal": 101515264,
+      "heapUsed": 38622440,
+      "external": 8617915,
+      "arrayBuffers": 4278220,
+      "changes": 74040,
+      "awarenessMessages": 296134,
+      "inboundMessages": 370174,
+      "inboundBytes": 123434101,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 74120,
+          "awareness": 296214,
+          "persistedUpdates": 74120,
+          "persistenceMs": 41015.295131002895,
+          "compactions": 11,
+          "windowAt": 1790706668425,
+          "windowUpdates": 2353,
+          "windowAwareness": 9408
+        },
+        "storage": {
+          "updateCount": 5755,
+          "updateBytes": 4804781,
+          "snapshotBytes": 1663224
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706685116,
+      "elapsedMs": 4897.006667000009,
+      "cpuPctOneCore": 34.727949452473084,
+      "rss": 256524288,
+      "heapTotal": 100990976,
+      "heapUsed": 44732144,
+      "external": 9003821,
+      "arrayBuffers": 4664126,
+      "changes": 75040,
+      "awarenessMessages": 300080,
+      "inboundMessages": 375120,
+      "inboundBytes": 125097044,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 75120,
+          "awareness": 300160,
+          "persistedUpdates": 75120,
+          "persistenceMs": 41795.435403002826,
+          "compactions": 12,
+          "windowAt": 1790706668425,
+          "windowUpdates": 3353,
+          "windowAwareness": 13354
+        },
+        "storage": {
+          "updateCount": 456,
+          "updateBytes": 405262,
+          "snapshotBytes": 1660384
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706690116,
+      "elapsedMs": 4999.764832999965,
+      "cpuPctOneCore": 31.096182559192997,
+      "rss": 256655360,
+      "heapTotal": 101253120,
+      "heapUsed": 29396744,
+      "external": 8534887,
+      "arrayBuffers": 4195192,
+      "changes": 76040,
+      "awarenessMessages": 304080,
+      "inboundMessages": 380120,
+      "inboundBytes": 126764986,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 76120,
+          "awareness": 304160,
+          "persistedUpdates": 76120,
+          "persistenceMs": 42357.22122900199,
+          "compactions": 12,
+          "windowAt": 1790706668425,
+          "windowUpdates": 4353,
+          "windowAwareness": 17354
+        },
+        "storage": {
+          "updateCount": 1456,
+          "updateBytes": 1247262,
+          "snapshotBytes": 1660384
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706695116,
+      "elapsedMs": 5000.318874999997,
+      "cpuPctOneCore": 30.22801220852142,
+      "rss": 256524288,
+      "heapTotal": 101253120,
+      "heapUsed": 46770512,
+      "external": 8981801,
+      "arrayBuffers": 4642106,
+      "changes": 77040,
+      "awarenessMessages": 308080,
+      "inboundMessages": 385120,
+      "inboundBytes": 128419694,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 77120,
+          "awareness": 308160,
+          "persistedUpdates": 77120,
+          "persistenceMs": 42908.71510000119,
+          "compactions": 12,
+          "windowAt": 1790706668425,
+          "windowUpdates": 5353,
+          "windowAwareness": 21354
+        },
+        "storage": {
+          "updateCount": 2456,
+          "updateBytes": 2076742,
+          "snapshotBytes": 1660384
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706700116,
+      "elapsedMs": 5000.53579200001,
+      "cpuPctOneCore": 29.805026141086703,
+      "rss": 256770048,
+      "heapTotal": 101515264,
+      "heapUsed": 29607936,
+      "external": 8190853,
+      "arrayBuffers": 3851158,
+      "changes": 78040,
+      "awarenessMessages": 312080,
+      "inboundMessages": 390120,
+      "inboundBytes": 130085294,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 78120,
+          "awareness": 312160,
+          "persistedUpdates": 78120,
+          "persistenceMs": 43412.04194300074,
+          "compactions": 12,
+          "windowAt": 1790706668425,
+          "windowUpdates": 6353,
+          "windowAwareness": 25354
+        },
+        "storage": {
+          "updateCount": 3456,
+          "updateBytes": 2913822,
+          "snapshotBytes": 1660384
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706705118,
+      "elapsedMs": 5001.11725000001,
+      "cpuPctOneCore": 29.473634116456616,
+      "rss": 255983616,
+      "heapTotal": 100728832,
+      "heapUsed": 26248320,
+      "external": 8270756,
+      "arrayBuffers": 3931061,
+      "changes": 79040,
+      "awarenessMessages": 316080,
+      "inboundMessages": 395120,
+      "inboundBytes": 131760136,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 79120,
+          "awareness": 316160,
+          "persistedUpdates": 79120,
+          "persistenceMs": 43926.230352001374,
+          "compactions": 12,
+          "windowAt": 1790706668425,
+          "windowUpdates": 7353,
+          "windowAwareness": 29354
+        },
+        "storage": {
+          "updateCount": 4456,
+          "updateBytes": 3757542,
+          "snapshotBytes": 1660384
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706710131,
+      "elapsedMs": 5013.0236249999725,
+      "cpuPctOneCore": 31.639527731130705,
+      "rss": 256000000,
+      "heapTotal": 100728832,
+      "heapUsed": 43180008,
+      "external": 8899484,
+      "arrayBuffers": 4559789,
+      "changes": 80040,
+      "awarenessMessages": 320085,
+      "inboundMessages": 400125,
+      "inboundBytes": 133437584,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 80120,
+          "awareness": 320165,
+          "persistedUpdates": 80120,
+          "persistenceMs": 44552.6441790015,
+          "compactions": 12,
+          "windowAt": 1790706668425,
+          "windowUpdates": 8353,
+          "windowAwareness": 33359
+        },
+        "storage": {
+          "updateCount": 5456,
+          "updateBytes": 4599582,
+          "snapshotBytes": 1660384
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706715137,
+      "elapsedMs": 5006.0157500000205,
+      "cpuPctOneCore": 41.017729518729375,
+      "rss": 236929024,
+      "heapTotal": 94961664,
+      "heapUsed": 26019848,
+      "external": 9815108,
+      "arrayBuffers": 5199724,
+      "changes": 81040,
+      "awarenessMessages": 324080,
+      "inboundMessages": 405120,
+      "inboundBytes": 135097071,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 81120,
+          "awareness": 324160,
+          "persistedUpdates": 81120,
+          "persistenceMs": 45562.417870001336,
+          "compactions": 13,
+          "windowAt": 1790706668425,
+          "windowUpdates": 9353,
+          "windowAwareness": 37354
+        },
+        "storage": {
+          "updateCount": 216,
+          "updateBytes": 185345,
+          "snapshotBytes": 1656416
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706720127,
+      "elapsedMs": 4990.391874999972,
+      "cpuPctOneCore": 36.03458495932266,
+      "rss": 237518848,
+      "heapTotal": 101515264,
+      "heapUsed": 30515296,
+      "external": 8096391,
+      "arrayBuffers": 3756696,
+      "changes": 82040,
+      "awarenessMessages": 328108,
+      "inboundMessages": 410148,
+      "inboundBytes": 136766517,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 82120,
+          "awareness": 328188,
+          "persistedUpdates": 82120,
+          "persistenceMs": 46373.91350300161,
+          "compactions": 13,
+          "windowAt": 1790706668425,
+          "windowUpdates": 10353,
+          "windowAwareness": 41382
+        },
+        "storage": {
+          "updateCount": 1216,
+          "updateBytes": 1022185,
+          "snapshotBytes": 1656416
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706725127,
+      "elapsedMs": 4999.872458000027,
+      "cpuPctOneCore": 33.239187878499905,
+      "rss": 237682688,
+      "heapTotal": 100728832,
+      "heapUsed": 46099512,
+      "external": 9075546,
+      "arrayBuffers": 4735851,
+      "changes": 83040,
+      "awarenessMessages": 332115,
+      "inboundMessages": 415155,
+      "inboundBytes": 138436750,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 83120,
+          "awareness": 332195,
+          "persistedUpdates": 83120,
+          "persistenceMs": 47005.71432900096,
+          "compactions": 13,
+          "windowAt": 1790706668425,
+          "windowUpdates": 11353,
+          "windowAwareness": 45389
+        },
+        "storage": {
+          "updateCount": 2216,
+          "updateBytes": 1865745,
+          "snapshotBytes": 1656416
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706730128,
+      "elapsedMs": 5001.055999999982,
+      "cpuPctOneCore": 31.919798538548772,
+      "rss": 237862912,
+      "heapTotal": 101515264,
+      "heapUsed": 35302808,
+      "external": 8173223,
+      "arrayBuffers": 3833528,
+      "changes": 84040,
+      "awarenessMessages": 336115,
+      "inboundMessages": 420155,
+      "inboundBytes": 140106334,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 84120,
+          "awareness": 336195,
+          "persistedUpdates": 84120,
+          "persistenceMs": 47580.12408000067,
+          "compactions": 13,
+          "windowAt": 1790706728426,
+          "windowUpdates": 355,
+          "windowAwareness": 1391
+        },
+        "storage": {
+          "updateCount": 3216,
+          "updateBytes": 2707865,
+          "snapshotBytes": 1656416
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706735127,
+      "elapsedMs": 4999.601958000043,
+      "cpuPctOneCore": 28.613637885930032,
+      "rss": 239009792,
+      "heapTotal": 100728832,
+      "heapUsed": 30445392,
+      "external": 8180731,
+      "arrayBuffers": 3841036,
+      "changes": 85040,
+      "awarenessMessages": 340120,
+      "inboundMessages": 425160,
+      "inboundBytes": 141767653,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 85120,
+          "awareness": 340200,
+          "persistedUpdates": 85120,
+          "persistenceMs": 48040.15005000022,
+          "compactions": 13,
+          "windowAt": 1790706728426,
+          "windowUpdates": 1355,
+          "windowAwareness": 5396
+        },
+        "storage": {
+          "updateCount": 4216,
+          "updateBytes": 3537455,
+          "snapshotBytes": 1656416
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706740139,
+      "elapsedMs": 5011.9433749999735,
+      "cpuPctOneCore": 28.37432296409389,
+      "rss": 237256704,
+      "heapTotal": 100728832,
+      "heapUsed": 47960024,
+      "external": 9040620,
+      "arrayBuffers": 4700925,
+      "changes": 86040,
+      "awarenessMessages": 344105,
+      "inboundMessages": 430145,
+      "inboundBytes": 143435818,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 86120,
+          "awareness": 344185,
+          "persistedUpdates": 86120,
+          "persistenceMs": 48524.12850299919,
+          "compactions": 13,
+          "windowAt": 1790706728426,
+          "windowUpdates": 2355,
+          "windowAwareness": 9381
+        },
+        "storage": {
+          "updateCount": 5216,
+          "updateBytes": 4374490,
+          "snapshotBytes": 1656416
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706745132,
+      "elapsedMs": 4992.923416999984,
+      "cpuPctOneCore": 30.722001358508024,
+      "rss": 237240320,
+      "heapTotal": 99942400,
+      "heapUsed": 43912784,
+      "external": 9175136,
+      "arrayBuffers": 4835441,
+      "changes": 87040,
+      "awarenessMessages": 348120,
+      "inboundMessages": 435160,
+      "inboundBytes": 145114071,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 87120,
+          "awareness": 348200,
+          "persistedUpdates": 87120,
+          "persistenceMs": 49072.02482299762,
+          "compactions": 13,
+          "windowAt": 1790706728426,
+          "windowUpdates": 3355,
+          "windowAwareness": 13396
+        },
+        "storage": {
+          "updateCount": 6216,
+          "updateBytes": 5218127,
+          "snapshotBytes": 1656416
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706750134,
+      "elapsedMs": 5001.224042000016,
+      "cpuPctOneCore": 35.22631630186813,
+      "rss": 238993408,
+      "heapTotal": 98893824,
+      "heapUsed": 33162464,
+      "external": 8344705,
+      "arrayBuffers": 4005010,
+      "changes": 88040,
+      "awarenessMessages": 352120,
+      "inboundMessages": 440160,
+      "inboundBytes": 146784635,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 88120,
+          "awareness": 352200,
+          "persistedUpdates": 88120,
+          "persistenceMs": 49762.58085499633,
+          "compactions": 14,
+          "windowAt": 1790706728426,
+          "windowUpdates": 4355,
+          "windowAwareness": 17396
+        },
+        "storage": {
+          "updateCount": 979,
+          "updateBytes": 816771,
+          "snapshotBytes": 1664488
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706755135,
+      "elapsedMs": 5000.940249999985,
+      "cpuPctOneCore": 32.1674309146166,
+      "rss": 238485504,
+      "heapTotal": 100204544,
+      "heapUsed": 44603608,
+      "external": 9088830,
+      "arrayBuffers": 4749135,
+      "changes": 89040,
+      "awarenessMessages": 356120,
+      "inboundMessages": 445160,
+      "inboundBytes": 148439970,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 89120,
+          "awareness": 356200,
+          "persistedUpdates": 89120,
+          "persistenceMs": 50384.41104899637,
+          "compactions": 14,
+          "windowAt": 1790706728426,
+          "windowUpdates": 5355,
+          "windowAwareness": 21396
+        },
+        "storage": {
+          "updateCount": 1979,
+          "updateBytes": 1646211,
+          "snapshotBytes": 1664488
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706760135,
+      "elapsedMs": 5000.62604100001,
+      "cpuPctOneCore": 34.03521851155349,
+      "rss": 239534080,
+      "heapTotal": 101253120,
+      "heapUsed": 26012760,
+      "external": 8031078,
+      "arrayBuffers": 3691383,
+      "changes": 90040,
+      "awarenessMessages": 360120,
+      "inboundMessages": 450160,
+      "inboundBytes": 150102618,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 90120,
+          "awareness": 360200,
+          "persistedUpdates": 90120,
+          "persistenceMs": 51037.46925299655,
+          "compactions": 14,
+          "windowAt": 1790706728426,
+          "windowUpdates": 6355,
+          "windowAwareness": 25396
+        },
+        "storage": {
+          "updateCount": 2979,
+          "updateBytes": 2483091,
+          "snapshotBytes": 1664488
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706765136,
+      "elapsedMs": 5000.618791999994,
+      "cpuPctOneCore": 30.281972351552966,
+      "rss": 239648768,
+      "heapTotal": 101253120,
+      "heapUsed": 32224600,
+      "external": 8203380,
+      "arrayBuffers": 3863685,
+      "changes": 91040,
+      "awarenessMessages": 364120,
+      "inboundMessages": 455160,
+      "inboundBytes": 151776036,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 91120,
+          "awareness": 364200,
+          "persistedUpdates": 91120,
+          "persistenceMs": 51580.80549599678,
+          "compactions": 14,
+          "windowAt": 1790706728426,
+          "windowUpdates": 7355,
+          "windowAwareness": 29396
+        },
+        "storage": {
+          "updateCount": 3979,
+          "updateBytes": 3326611,
+          "snapshotBytes": 1664488
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706770136,
+      "elapsedMs": 5000.102083000005,
+      "cpuPctOneCore": 29.904729447100735,
+      "rss": 239632384,
+      "heapTotal": 100204544,
+      "heapUsed": 43726056,
+      "external": 9103893,
+      "arrayBuffers": 4764198,
+      "changes": 92040,
+      "awarenessMessages": 368120,
+      "inboundMessages": 460160,
+      "inboundBytes": 153450669,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 92120,
+          "awareness": 368200,
+          "persistedUpdates": 92120,
+          "persistenceMs": 52098.06013799819,
+          "compactions": 14,
+          "windowAt": 1790706728426,
+          "windowUpdates": 8355,
+          "windowAwareness": 33396
+        },
+        "storage": {
+          "updateCount": 4979,
+          "updateBytes": 4168651,
+          "snapshotBytes": 1664488
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706775135,
+      "elapsedMs": 4999.459542000026,
+      "cpuPctOneCore": 35.48385550671571,
+      "rss": 239763456,
+      "heapTotal": 100990976,
+      "heapUsed": 33651400,
+      "external": 8153141,
+      "arrayBuffers": 3813446,
+      "changes": 93040,
+      "awarenessMessages": 372120,
+      "inboundMessages": 465160,
+      "inboundBytes": 155112886,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 93120,
+          "awareness": 372200,
+          "persistedUpdates": 93120,
+          "persistenceMs": 52840.73183999786,
+          "compactions": 14,
+          "windowAt": 1790706728426,
+          "windowUpdates": 9355,
+          "windowAwareness": 37396
+        },
+        "storage": {
+          "updateCount": 5979,
+          "updateBytes": 4998251,
+          "snapshotBytes": 1664488
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706780136,
+      "elapsedMs": 5000.4930830000085,
+      "cpuPctOneCore": 35.18001066696,
+      "rss": 239435776,
+      "heapTotal": 98893824,
+      "heapUsed": 26004904,
+      "external": 8033197,
+      "arrayBuffers": 3693502,
+      "changes": 94040,
+      "awarenessMessages": 376120,
+      "inboundMessages": 470160,
+      "inboundBytes": 156780612,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 94120,
+          "awareness": 376200,
+          "persistedUpdates": 94120,
+          "persistenceMs": 53573.987056998296,
+          "compactions": 15,
+          "windowAt": 1790706728426,
+          "windowUpdates": 10355,
+          "windowAwareness": 41396
+        },
+        "storage": {
+          "updateCount": 674,
+          "updateBytes": 591384,
+          "snapshotBytes": 1656536
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706785136,
+      "elapsedMs": 5000.182583999995,
+      "cpuPctOneCore": 30.719978204699927,
+      "rss": 239517696,
+      "heapTotal": 99418112,
+      "heapUsed": 30422952,
+      "external": 8129216,
+      "arrayBuffers": 3789521,
+      "changes": 95040,
+      "awarenessMessages": 380120,
+      "inboundMessages": 475160,
+      "inboundBytes": 158450073,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 95120,
+          "awareness": 380200,
+          "persistedUpdates": 95120,
+          "persistenceMs": 54137.188496998504,
+          "compactions": 15,
+          "windowAt": 1790706728426,
+          "windowUpdates": 11355,
+          "windowAwareness": 45396
+        },
+        "storage": {
+          "updateCount": 1674,
+          "updateBytes": 1434984,
+          "snapshotBytes": 1656536
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706790136,
+      "elapsedMs": 4999.511832999997,
+      "cpuPctOneCore": 30.958502583866192,
+      "rss": 237977600,
+      "heapTotal": 99418112,
+      "heapUsed": 43342120,
+      "external": 9061911,
+      "arrayBuffers": 4722216,
+      "changes": 96040,
+      "awarenessMessages": 384120,
+      "inboundMessages": 480160,
+      "inboundBytes": 160117666,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 96120,
+          "awareness": 384200,
+          "persistedUpdates": 96120,
+          "persistenceMs": 54719.7600389989,
+          "compactions": 15,
+          "windowAt": 1790706788427,
+          "windowUpdates": 357,
+          "windowAwareness": 1398
+        },
+        "storage": {
+          "updateCount": 2674,
+          "updateBytes": 2276944,
+          "snapshotBytes": 1656536
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706795137,
+      "elapsedMs": 5001.120874999964,
+      "cpuPctOneCore": 29.811956904561132,
+      "rss": 239026176,
+      "heapTotal": 100466688,
+      "heapUsed": 33825864,
+      "external": 8335098,
+      "arrayBuffers": 3995403,
+      "changes": 97040,
+      "awarenessMessages": 388120,
+      "inboundMessages": 485160,
+      "inboundBytes": 161776047,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 97120,
+          "awareness": 388200,
+          "persistedUpdates": 97120,
+          "persistenceMs": 55247.855495999676,
+          "compactions": 15,
+          "windowAt": 1790706788427,
+          "windowUpdates": 1357,
+          "windowAwareness": 5398
+        },
+        "storage": {
+          "updateCount": 3674,
+          "updateBytes": 3106294,
+          "snapshotBytes": 1656536
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706800137,
+      "elapsedMs": 5000.810916999995,
+      "cpuPctOneCore": 29.64215253491859,
+      "rss": 239026176,
+      "heapTotal": 100466688,
+      "heapUsed": 28347048,
+      "external": 8098692,
+      "arrayBuffers": 3758997,
+      "changes": 98040,
+      "awarenessMessages": 392120,
+      "inboundMessages": 490160,
+      "inboundBytes": 163443956,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 98120,
+          "awareness": 392200,
+          "persistedUpdates": 98120,
+          "persistenceMs": 55761.87818899884,
+          "compactions": 15,
+          "windowAt": 1790706788427,
+          "windowUpdates": 2357,
+          "windowAwareness": 9398
+        },
+        "storage": {
+          "updateCount": 4674,
+          "updateBytes": 3943169,
+          "snapshotBytes": 1656536
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706805139,
+      "elapsedMs": 5001.413958000019,
+      "cpuPctOneCore": 29.382051002785524,
+      "rss": 240615424,
+      "heapTotal": 101777408,
+      "heapUsed": 51662440,
+      "external": 9574636,
+      "arrayBuffers": 5234941,
+      "changes": 99040,
+      "awarenessMessages": 396120,
+      "inboundMessages": 495160,
+      "inboundBytes": 165121605,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 99120,
+          "awareness": 396200,
+          "persistedUpdates": 99120,
+          "persistenceMs": 56269.497145997295,
+          "compactions": 15,
+          "windowAt": 1790706788427,
+          "windowUpdates": 3357,
+          "windowAwareness": 13398
+        },
+        "storage": {
+          "updateCount": 5674,
+          "updateBytes": 4786686,
+          "snapshotBytes": 1656536
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706810140,
+      "elapsedMs": 5001.055249999976,
+      "cpuPctOneCore": 30.566009043791453,
+      "rss": 241483776,
+      "heapTotal": 100466688,
+      "heapUsed": 47669400,
+      "external": 9097905,
+      "arrayBuffers": 4758210,
+      "changes": 100040,
+      "awarenessMessages": 400120,
+      "inboundMessages": 500160,
+      "inboundBytes": 166793418,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 100120,
+          "awareness": 400200,
+          "persistedUpdates": 100120,
+          "persistenceMs": 56819.97915999643,
+          "compactions": 16,
+          "windowAt": 1790706788427,
+          "windowUpdates": 4357,
+          "windowAwareness": 17398
+        },
+        "storage": {
+          "updateCount": 442,
+          "updateBytes": 385745,
+          "snapshotBytes": 1667461
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706815140,
+      "elapsedMs": 4999.917208000028,
+      "cpuPctOneCore": 29.382466526633564,
+      "rss": 239632384,
+      "heapTotal": 100466688,
+      "heapUsed": 44986832,
+      "external": 9097576,
+      "arrayBuffers": 4757881,
+      "changes": 101040,
+      "awarenessMessages": 404120,
+      "inboundMessages": 505160,
+      "inboundBytes": 168449383,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 101120,
+          "awareness": 404200,
+          "persistedUpdates": 101120,
+          "persistenceMs": 57307.81823399639,
+          "compactions": 16,
+          "windowAt": 1790706788427,
+          "windowUpdates": 5357,
+          "windowAwareness": 21398
+        },
+        "storage": {
+          "updateCount": 1442,
+          "updateBytes": 1215225,
+          "snapshotBytes": 1667461
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706820140,
+      "elapsedMs": 5000.529625000025,
+      "cpuPctOneCore": 30.400959778335334,
+      "rss": 239632384,
+      "heapTotal": 100466688,
+      "heapUsed": 35974952,
+      "external": 8574538,
+      "arrayBuffers": 4234843,
+      "changes": 102040,
+      "awarenessMessages": 408120,
+      "inboundMessages": 510160,
+      "inboundBytes": 170111291,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 102120,
+          "awareness": 408200,
+          "persistedUpdates": 102120,
+          "persistenceMs": 57856.694033995904,
+          "compactions": 16,
+          "windowAt": 1790706788427,
+          "windowUpdates": 6357,
+          "windowAwareness": 25398
+        },
+        "storage": {
+          "updateCount": 2442,
+          "updateBytes": 2052305,
+          "snapshotBytes": 1667461
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706825142,
+      "elapsedMs": 5001.157917000004,
+      "cpuPctOneCore": 30.397440457387553,
+      "rss": 239566848,
+      "heapTotal": 100466688,
+      "heapUsed": 31346584,
+      "external": 8214389,
+      "arrayBuffers": 3874694,
+      "changes": 103040,
+      "awarenessMessages": 412120,
+      "inboundMessages": 515160,
+      "inboundBytes": 171783078,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 103120,
+          "awareness": 412200,
+          "persistedUpdates": 103120,
+          "persistenceMs": 58394.82883899414,
+          "compactions": 16,
+          "windowAt": 1790706788427,
+          "windowUpdates": 7357,
+          "windowAwareness": 29398
+        },
+        "storage": {
+          "updateCount": 3442,
+          "updateBytes": 2896025,
+          "snapshotBytes": 1667461
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706830142,
+      "elapsedMs": 5000.456374999951,
+      "cpuPctOneCore": 29.37547875317709,
+      "rss": 239616000,
+      "heapTotal": 99942400,
+      "heapUsed": 44256296,
+      "external": 8990770,
+      "arrayBuffers": 4651075,
+      "changes": 104040,
+      "awarenessMessages": 416120,
+      "inboundMessages": 520160,
+      "inboundBytes": 173455701,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 104120,
+          "awareness": 416200,
+          "persistedUpdates": 104120,
+          "persistenceMs": 58875.60354299505,
+          "compactions": 16,
+          "windowAt": 1790706788427,
+          "windowUpdates": 8357,
+          "windowAwareness": 33398
+        },
+        "storage": {
+          "updateCount": 4442,
+          "updateBytes": 3738065,
+          "snapshotBytes": 1667461
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706835144,
+      "elapsedMs": 5001.993375000078,
+      "cpuPctOneCore": 29.603917658127184,
+      "rss": 241745920,
+      "heapTotal": 100204544,
+      "heapUsed": 26195000,
+      "external": 8049276,
+      "arrayBuffers": 3709581,
+      "changes": 105040,
+      "awarenessMessages": 420120,
+      "inboundMessages": 525160,
+      "inboundBytes": 175118914,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 105120,
+          "awareness": 420200,
+          "persistedUpdates": 105120,
+          "persistenceMs": 59469.66911699587,
+          "compactions": 16,
+          "windowAt": 1790706788427,
+          "windowUpdates": 9357,
+          "windowAwareness": 37398
+        },
+        "storage": {
+          "updateCount": 5442,
+          "updateBytes": 4567425,
+          "snapshotBytes": 1667461
+        }
+      }
+    },
+    {
+      "type": "sample",
+      "at": 1790706880883,
+      "elapsedMs": 45739.06054199999,
+      "cpuPctOneCore": 3.619081765966719,
+      "rss": 248643584,
+      "heapTotal": 101253120,
+      "heapUsed": 35351104,
+      "external": 9515814,
+      "arrayBuffers": 5176119,
+      "changes": 105960,
+      "awarenessMessages": 423800,
+      "inboundMessages": 529760,
+      "inboundBytes": 176625105,
+      "documentStats": [
+        {
+          "name": "339d0fe3-4e98-4fb5-9dd2-912439e36c04",
+          "writerArrays": 40,
+          "retainedStructs": 3363,
+          "deletedStructs": 1720
+        }
+      ],
+      "persistence": {
+        "metrics": {
+          "updates": 106040,
+          "awareness": 423880,
+          "persistedUpdates": 106040,
+          "persistenceMs": 60332.513954996124,
+          "compactions": 17,
+          "windowAt": 1790706788427,
+          "windowUpdates": 10277,
+          "windowAwareness": 41078
+        },
+        "storage": {
+          "updateCount": 114,
+          "updateBytes": 64983,
+          "snapshotBytes": 1657970
+        }
+      }
+    }
+  ],
+  "workers": [
+    {
+      "type": "failed",
+      "workerIndex": 0,
+      "pid": 76842,
+      "startedAt": 1790706310018,
+      "endedAt": 0,
+      "operations": 13245,
+      "acknowledged": 13245,
+      "cursorUpdates": 52975,
+      "documentUpdates": 13245,
+      "documentAcknowledgements": 13245,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 41064.799791999976,
+      "traffic": {
+        "sentBytes": 22000458,
+        "receivedBytes": 783243330,
+        "sentMessages": 66220,
+        "receivedMessages": 349715,
+        "awarenessSent": 52975,
+        "awarenessReceived": 294300
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 250675200,
+        "heapTotal": 128516096,
+        "heapUsed": 54104648,
+        "external": 8345803,
+        "arrayBuffers": 3582725
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-0.latencies.f64le",
+      "hashes": [],
+      "error": "Workload scheduler stalled for 41064.8ms; required cadence was not maintained"
+    },
+    {
+      "type": "failed",
+      "workerIndex": 1,
+      "pid": 76843,
+      "startedAt": 1790706310018,
+      "endedAt": 0,
+      "operations": 13245,
+      "acknowledged": 13245,
+      "cursorUpdates": 52975,
+      "documentUpdates": 13245,
+      "documentAcknowledgements": 13245,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 41061.445000000065,
+      "traffic": {
+        "sentBytes": 22005100,
+        "receivedBytes": 783243330,
+        "sentMessages": 66220,
+        "receivedMessages": 349715,
+        "awarenessSent": 52975,
+        "awarenessReceived": 294300
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 252248064,
+        "heapTotal": 147914752,
+        "heapUsed": 94775144,
+        "external": 8601505,
+        "arrayBuffers": 5571056
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-1.latencies.f64le",
+      "hashes": [],
+      "error": "Workload scheduler stalled for 41061.4ms; required cadence was not maintained"
+    },
+    {
+      "type": "failed",
+      "workerIndex": 2,
+      "pid": 76844,
+      "startedAt": 1790706310018,
+      "endedAt": 0,
+      "operations": 13245,
+      "acknowledged": 13245,
+      "cursorUpdates": 52975,
+      "documentUpdates": 13245,
+      "documentAcknowledgements": 13245,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 41061.40495899995,
+      "traffic": {
+        "sentBytes": 22123766,
+        "receivedBytes": 783243330,
+        "sentMessages": 66220,
+        "receivedMessages": 349715,
+        "awarenessSent": 52975,
+        "awarenessReceived": 294300
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 249348096,
+        "heapTotal": 145817600,
+        "heapUsed": 50605672,
+        "external": 6580265,
+        "arrayBuffers": 3549816
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-2.latencies.f64le",
+      "hashes": [],
+      "error": "Workload scheduler stalled for 41061.4ms; required cadence was not maintained"
+    },
+    {
+      "type": "failed",
+      "workerIndex": 3,
+      "pid": 76845,
+      "startedAt": 1790706310018,
+      "endedAt": 0,
+      "operations": 13245,
+      "acknowledged": 13245,
+      "cursorUpdates": 52975,
+      "documentUpdates": 13245,
+      "documentAcknowledgements": 13245,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 41064.89270800003,
+      "traffic": {
+        "sentBytes": 22121099,
+        "receivedBytes": 783243330,
+        "sentMessages": 66220,
+        "receivedMessages": 349715,
+        "awarenessSent": 52975,
+        "awarenessReceived": 294300
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 250593280,
+        "heapTotal": 148701184,
+        "heapUsed": 66966024,
+        "external": 8436617,
+        "arrayBuffers": 3674523
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-3.latencies.f64le",
+      "hashes": [],
+      "error": "Workload scheduler stalled for 41064.9ms; required cadence was not maintained"
+    },
+    {
+      "type": "failed",
+      "workerIndex": 4,
+      "pid": 76846,
+      "startedAt": 1790706310018,
+      "endedAt": 0,
+      "operations": 13245,
+      "acknowledged": 13245,
+      "cursorUpdates": 52975,
+      "documentUpdates": 13245,
+      "documentAcknowledgements": 13245,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 41065.89954200003,
+      "traffic": {
+        "sentBytes": 22082339,
+        "receivedBytes": 783243330,
+        "sentMessages": 66220,
+        "receivedMessages": 349715,
+        "awarenessSent": 52975,
+        "awarenessReceived": 294300
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 247447552,
+        "heapTotal": 134545408,
+        "heapUsed": 76680528,
+        "external": 8280016,
+        "arrayBuffers": 5249567
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-4.latencies.f64le",
+      "hashes": [],
+      "error": "Workload scheduler stalled for 41065.9ms; required cadence was not maintained"
+    },
+    {
+      "type": "failed",
+      "workerIndex": 5,
+      "pid": 76847,
+      "startedAt": 1790706310018,
+      "endedAt": 0,
+      "operations": 13245,
+      "acknowledged": 13245,
+      "cursorUpdates": 52975,
+      "documentUpdates": 13245,
+      "documentAcknowledgements": 13245,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 41062.47270799999,
+      "traffic": {
+        "sentBytes": 22107814,
+        "receivedBytes": 783243330,
+        "sentMessages": 66220,
+        "receivedMessages": 349715,
+        "awarenessSent": 52975,
+        "awarenessReceived": 294300
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 251330560,
+        "heapTotal": 147652608,
+        "heapUsed": 78956848,
+        "external": 7001390,
+        "arrayBuffers": 3970941
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-5.latencies.f64le",
+      "hashes": [],
+      "error": "Workload scheduler stalled for 41062.5ms; required cadence was not maintained"
+    },
+    {
+      "type": "failed",
+      "workerIndex": 6,
+      "pid": 76848,
+      "startedAt": 1790706310018,
+      "endedAt": 0,
+      "operations": 13245,
+      "acknowledged": 13245,
+      "cursorUpdates": 52975,
+      "documentUpdates": 13245,
+      "documentAcknowledgements": 13245,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 41065.84720900003,
+      "traffic": {
+        "sentBytes": 22112919,
+        "receivedBytes": 783243330,
+        "sentMessages": 66220,
+        "receivedMessages": 349715,
+        "awarenessSent": 52975,
+        "awarenessReceived": 294300
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 248053760,
+        "heapTotal": 139788288,
+        "heapUsed": 56066320,
+        "external": 6769254,
+        "arrayBuffers": 3738805
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-6.latencies.f64le",
+      "hashes": [],
+      "error": "Workload scheduler stalled for 41065.8ms; required cadence was not maintained"
+    },
+    {
+      "type": "failed",
+      "workerIndex": 7,
+      "pid": 76849,
+      "startedAt": 1790706310018,
+      "endedAt": 0,
+      "operations": 13245,
+      "acknowledged": 13245,
+      "cursorUpdates": 52975,
+      "documentUpdates": 13245,
+      "documentAcknowledgements": 13245,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 41066.48654099996,
+      "traffic": {
+        "sentBytes": 22071610,
+        "receivedBytes": 783243330,
+        "sentMessages": 66220,
+        "receivedMessages": 349715,
+        "awarenessSent": 52975,
+        "awarenessReceived": 294300
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 247939072,
+        "heapTotal": 143196160,
+        "heapUsed": 56561400,
+        "external": 8624997,
+        "arrayBuffers": 3874355
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-25-07.676Z.worker-7.latencies.f64le",
+      "hashes": [],
+      "error": "Workload scheduler stalled for 41066.5ms; required cadence was not maintained"
+    }
+  ],
+  "note": "Worker binary latency checkpoints and NDJSON preserve partial observations. No successful completion or convergence is claimed."
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@whiteboard/loadtest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "PRODUCTION=1 tsx src/run-writer-kv.ts",
+    "history": "tsx src/history-drill.ts",
+    "churn": "tsx src/churn-drill.ts",
+    "spike": "tsx src/run.ts",
+    "spike:writer": "tsx src/run-writer-kv.ts",
+    "verify": "tsx src/verify.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hocuspocus/provider": "4.7.0",
+    "yjs": "13.6.33",
+    "ws": "8.22.0",
+    "y-utility": "0.1.4"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.1"
+  }
+}

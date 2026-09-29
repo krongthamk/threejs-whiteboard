@@ -1,0 +1,11 @@
+# Independent Mac deployment verification
+
+**Passed — 2026-09-29 19:36:13 UTC.** Full nonsecret measurements and SHA256 values are in [independent.json](independent.json). This check used CLI/HTTP and read-only access to the live SQLite database. It did not launch a browser, restart the service, alter production data or delete existing data.
+
+- Launch agent `com.threejs-whiteboard.local` was running as **PID 95790**, the direct and sole listener on loopback port 3001. Previous PID 95565 was absent. The current PID stayed unchanged and `/ready` returned true before and after verification.
+- Served HTML and **all seven JavaScript/CSS files** matched the local production build byte-for-byte. The direct Welcome board route served the same index. No JavaScript contained the browser-test connection hook. Index SHA256: `2b9f84a45e61dd2b95a8b62ab8adf515891cf8effd8f7b9dedd8fb9fb75baf10`.
+- Data and log directories had mode **0700**; credentials, session secret and launch configuration had **0600**, all owned by the current macOS user. The SQLite file had mode 0644 inside its inaccessible-to-other-users 0700 parent. No password, session token, signing secret or password hash was printed or written to these reports.
+- Live SQLite integrity was `ok`. The persisted Welcome board contained one rectangle, ellipse, sticky and text element, including “A shared place to think,” with the expected owner membership. This independently checks server storage, rather than browser IndexedDB. The root agent's recorded UI SVG hashes also match before and after redeployment; this audit did not repeat its browser checks.
+- A coherent online backup restored into a separate, previously nonexistent directory. Account records, membership, board metadata and every document projection matched; restored SQLite integrity was `ok`, and the restored signing secret matched privately. Backup and restore bytes remain under the new **0700, gitignored** directory `artifacts/local/deployment-verify-2026-09-29T19-36-13.800Z/`.
+
+The deployed database currently contains **one board and zero image assets**. This restore proves the actual deployed database/secret and four-element document; it does not independently re-test image restoration, which has separate operations-drill evidence.

@@ -1,0 +1,140 @@
+{
+  "verifiedAt": "2026-09-29T19:36:13.841Z",
+  "status": "passed",
+  "scope": "Independent CLI verification; no browser, service restart, production writes or existing-data deletion.",
+  "deployment": {
+    "url": "http://127.0.0.1:3001",
+    "label": "com.threejs-whiteboard.local",
+    "pid": 95790,
+    "listenerPids": [
+      95790
+    ],
+    "previousPid": 95565,
+    "previousPidGone": true,
+    "pidStable": true,
+    "readyBeforeAndAfter": true,
+    "workingDirectory": "/Users/mac/threejs-whiteboard",
+    "loopback": true
+  },
+  "build": {
+    "indexSha256": "2b9f84a45e61dd2b95a8b62ab8adf515891cf8effd8f7b9dedd8fb9fb75baf10",
+    "allJavaScriptAndCssMatch": true,
+    "browserTestHookAbsent": true,
+    "boardRouteMatchesIndex": true,
+    "assets": [
+      {
+        "path": "/",
+        "bytes": 443,
+        "sha256": "2b9f84a45e61dd2b95a8b62ab8adf515891cf8effd8f7b9dedd8fb9fb75baf10",
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/assets/html2canvas-Bl_4NNwD.js",
+        "bytes": 199483,
+        "sha256": "2f50258294853c40804998bde2a8b701b0e83352953caebf2b9d712ab63abdde",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/assets/index-B10d6dkt.css",
+        "bytes": 17771,
+        "sha256": "9eb5c699901d2d9d43fc857a7fc04c47a94d6224508dd17d147442b35a8072b0",
+        "contentType": "text/css; charset=utf-8"
+      },
+      {
+        "path": "/assets/index-Bzk-Vq0O.js",
+        "bytes": 1877851,
+        "sha256": "2abedd73f4dc86f0b6f0aa7ea7e5357724e67c7b12a8b4ec1f0005250ba88c57",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/assets/index.es-BUiWgSRa.js",
+        "bytes": 151413,
+        "sha256": "c4a5925fc913b4c36dc713a03941fb9c05ad1676bc50132f269c46c20a21337c",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/assets/jspdf.es.min-B2yrXXeK.js",
+        "bytes": 399374,
+        "sha256": "e83410bf60a303f8b496b4296c5172118688a9c92f3b9622240c0ef2f5ffd43e",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/assets/purify.es-Bvo9QlJ8.js",
+        "bytes": 28086,
+        "sha256": "aa9ba8b5e16bc0f8a0fdfc2f31e221edb21a1f469d02474a76557cf16bbc7f30",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/assets/svg2pdf.es.min-nxW8TgGB.js",
+        "bytes": 86233,
+        "sha256": "a963438ecad9c9d510b84f09d3367337cbc5e2906e0497d1567a64a291852e7e",
+        "contentType": "text/javascript; charset=utf-8"
+      }
+    ]
+  },
+  "permissions": {
+    "dataDirectory": {
+      "path": "/Users/mac/Library/Application Support/ThreejsWhiteboard",
+      "mode": "0700",
+      "uid": 501
+    },
+    "credentials": {
+      "path": "/Users/mac/Library/Application Support/ThreejsWhiteboard/owner-credentials.json",
+      "mode": "0600",
+      "uid": 501
+    },
+    "sessionSecret": {
+      "path": "/Users/mac/Library/Application Support/ThreejsWhiteboard/session-secret",
+      "mode": "0600",
+      "uid": 501
+    },
+    "database": {
+      "path": "/Users/mac/Library/Application Support/ThreejsWhiteboard/whiteboard.sqlite",
+      "mode": "0644",
+      "uid": 501
+    },
+    "launchAgent": {
+      "path": "/Users/mac/Library/LaunchAgents/com.threejs-whiteboard.local.plist",
+      "mode": "0600",
+      "uid": 501
+    },
+    "logs": {
+      "path": "/Users/mac/Library/Application Support/ThreejsWhiteboard/logs",
+      "mode": "0700",
+      "uid": 501
+    }
+  },
+  "persistence": {
+    "boardId": "4e51909c-0db8-4205-b239-76ba5154572e",
+    "title": "Welcome to Whiteboard",
+    "elementCount": 4,
+    "elementTypes": [
+      "ellipse",
+      "rect",
+      "sticky",
+      "text"
+    ],
+    "textMatchesUiSmoke": true,
+    "ownerMembershipMatches": true,
+    "projectionSha256": "0f2c233365c52a177baba46efc85a448400d8b2645802233dcb21a601cdf41a8",
+    "uiSvgSha256": "0feed96b623af38d77237605fcc298c56427776375172f4c6ecf781a228b4c0e",
+    "recordedUiSvgMatchesAfterRedeploy": true,
+    "liveIntegrity": "ok"
+  },
+  "backupRestore": {
+    "privateRoot": "artifacts/local/deployment-verify-2026-09-29T19-36-13.800Z",
+    "rootMode": "0700",
+    "gitignored": true,
+    "coherentOnlineBackup": true,
+    "freshDestination": true,
+    "manifestFiles": 2,
+    "boards": 1,
+    "assets": 0,
+    "restoredIntegrity": "ok",
+    "accountsMembershipAndMetadataMatch": true,
+    "allDocumentProjectionsMatch": true,
+    "sessionSecretMatches": true,
+    "assetHashes": [],
+    "limitations": "This deployment currently has no image assets; this drill verifies its database/secret and four-element document. Image restoration is covered by the separate operations drill."
+  }
+}

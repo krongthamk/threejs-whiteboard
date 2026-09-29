@@ -1,0 +1,9 @@
+{
+  "status": "failed",
+  "error": "Process 76463 failed before ready: undefined",
+  "startedAt": 0,
+  "failedAt": 1790706211680,
+  "samples": [],
+  "workers": [],
+  "note": "Worker binary latency checkpoints and NDJSON preserve partial observations. No successful completion or convergence is claimed."
+}

@@ -1,0 +1,16 @@
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 72 modules transformed.
+rendering chunks...
+computing gzip size...
+spikes/renderer/dist/media/renderer/index.html           1.16 kB │ gzip:   0.70 kB
+spikes/renderer/dist/media/assets/index-Dce3TICr.js  1,471.01 kB │ gzip: 394.51 kB
+
+✓ built in 259ms
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+MEDIA_BENCHMARK_START
+MEDIA_CHECKS {"passed":true,"assertions":{"thumbnail64":true,"correctImageOrientation":true,"originalResolutionExport":true,"restoredThumbnail":true,"copiesShareTexture":true,"cssOpacityAndOrdering":true,"rotationWorks":true,"sourceAlphaSurvivesExport":true,"releasedOffscreenTextures":true,"returnsFromOffscreen":true,"fortyPeersAndSyncedLabels":true,"reusedPeers":true,"reusedFrames":true,"coalescedPresence":true,"presenceExcluded":true,"clearedPresence":true,"noPresenceGeometryGrowth":true,"boundedImageFailure":true,"invalidImageRejects":true,"offscreenNoImageAllocation":true,"destroyedPending":true},"benchmark":{"fps":60.00240009600385,"frameMs":{"median":16.699999999999818,"p95":16.799999999999272,"max":16.80000000000109},"updateAndRenderCpuMs":{"median":12.299999997019768,"p95":12.899999991059303,"max":18.299999997019768},"frames":600,"warmupFrames":90,"minVisibleTexts":500,"presenceSnapshotsPerSecond":60,"changedPeersPerSnapshot":40,"stats":{"calls":863,"triangles":148793,"geometries":634,"textures":17,"elements":7516,"shapeInstances":5000,"strokeChunks":8,"strokeChunkRebuilds":8,"textInstances":500,"visibleTexts":500,"pendingTexts":0,"textErrors":0,"presencePeers":40,"presenceLabels":80,"pendingPresenceLabels":0,"presenceErrors":0,"imageInstances":16,"visibleImages":16,"pendingImages":0,"imageErrors":0},"viewport":{"width":1440,"height":928,"dpr":1},"gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)","passed":true},"errors":[],"externalRequests":[]}

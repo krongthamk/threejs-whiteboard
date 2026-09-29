@@ -1,0 +1,300 @@
+{
+  "outputs": [
+    {
+      "fontFamily": "Inter",
+      "native": {
+        "scrollWidth": 524,
+        "clientWidth": 524,
+        "scrollHeight": 80,
+        "clientHeight": 80,
+        "caretInInput": true,
+        "overflow": "visible"
+      },
+      "element": {
+        "id": "draft",
+        "type": "text",
+        "x": -300,
+        "y": -100,
+        "w": 464.32,
+        "h": 80,
+        "rotation": 0,
+        "index": "a0",
+        "style": {
+          "stroke": "#334155",
+          "fill": "#ffffff",
+          "strokeWidth": 2,
+          "opacity": 1,
+          "fontFamily": "Inter",
+          "fontSize": 32,
+          "color": "#111111"
+        },
+        "props": {
+          "text": "日本語 WWWWWWWWWWWW！\nWWWWWWWWWWWW。",
+          "align": "left",
+          "autoSize": true
+        }
+      },
+      "width": 1029,
+      "height": 260,
+      "positive": [
+        {
+          "row": 0,
+          "pngInk": [
+            61,
+            60,
+            950,
+            118
+          ],
+          "svgInk": [
+            61,
+            60,
+            950,
+            118
+          ],
+          "maxInkDelta": 0,
+          "mismatch": 0.08968723156990552,
+          "foreground": 19791
+        },
+        {
+          "row": 1,
+          "pngInk": [
+            52,
+            147,
+            746,
+            197
+          ],
+          "svgInk": [
+            51,
+            146,
+            746,
+            197
+          ],
+          "maxInkDelta": 1,
+          "mismatch": 0.06425596615323594,
+          "foreground": 15127
+        }
+      ],
+      "negative": [
+        {
+          "row": 0,
+          "pngInk": [
+            61,
+            60,
+            950,
+            118
+          ],
+          "svgInk": [
+            62,
+            61,
+            950,
+            120
+          ],
+          "maxInkDelta": 2,
+          "mismatch": 0.629409640004816,
+          "foreground": 24917
+        },
+        {
+          "row": 1,
+          "pngInk": [
+            52,
+            147,
+            746,
+            197
+          ],
+          "svgInk": [
+            52,
+            149,
+            764,
+            193
+          ],
+          "maxInkDelta": 18,
+          "mismatch": 0.7325337331334333,
+          "foreground": 20010
+        }
+      ],
+      "families": [
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP"
+      ]
+    },
+    {
+      "fontFamily": "IBM Plex Mono",
+      "native": {
+        "scrollWidth": 378,
+        "clientWidth": 378,
+        "scrollHeight": 81,
+        "clientHeight": 80,
+        "caretInInput": true,
+        "overflow": "visible"
+      },
+      "element": {
+        "id": "draft",
+        "type": "text",
+        "x": -300,
+        "y": -100,
+        "w": 464.32,
+        "h": 80,
+        "rotation": 0,
+        "index": "a0",
+        "style": {
+          "stroke": "#334155",
+          "fill": "#ffffff",
+          "strokeWidth": 2,
+          "opacity": 1,
+          "fontFamily": "IBM Plex Mono",
+          "fontSize": 32,
+          "color": "#111111"
+        },
+        "props": {
+          "text": "日本語 WWWWWWWWWWWW！\nWWWWWWWWWWWW。",
+          "align": "left",
+          "autoSize": true
+        }
+      },
+      "width": 1029,
+      "height": 260,
+      "positive": [
+        {
+          "row": 0,
+          "pngInk": [
+            61,
+            60,
+            950,
+            118
+          ],
+          "svgInk": [
+            61,
+            60,
+            950,
+            118
+          ],
+          "maxInkDelta": 0,
+          "mismatch": 0.08968723156990552,
+          "foreground": 19791
+        },
+        {
+          "row": 1,
+          "pngInk": [
+            52,
+            147,
+            746,
+            197
+          ],
+          "svgInk": [
+            51,
+            146,
+            746,
+            197
+          ],
+          "maxInkDelta": 1,
+          "mismatch": 0.06425596615323594,
+          "foreground": 15127
+        }
+      ],
+      "negative": [
+        {
+          "row": 0,
+          "pngInk": [
+            61,
+            60,
+            950,
+            118
+          ],
+          "svgInk": [
+            62,
+            61,
+            950,
+            120
+          ],
+          "maxInkDelta": 2,
+          "mismatch": 0.629409640004816,
+          "foreground": 24917
+        },
+        {
+          "row": 1,
+          "pngInk": [
+            52,
+            147,
+            746,
+            197
+          ],
+          "svgInk": [
+            52,
+            149,
+            764,
+            193
+          ],
+          "maxInkDelta": 18,
+          "mismatch": 0.7325337331334333,
+          "foreground": 20010
+        }
+      ],
+      "families": [
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP",
+        "Noto Sans JP"
+      ]
+    }
+  ],
+  "channelTolerance": 48,
+  "edgeAllowanceCssPixels": 0.5,
+  "inkBoundsToleranceOutputPixels": 1,
+  "maxForegroundMismatch": 0.18,
+  "nativeTypography": "Native browser fallback intentionally may return to primary Latin while committed Troika retains Noto; no native glyph pixel parity is asserted.",
+  "errors": []
+}

@@ -1,0 +1,14 @@
+{
+  "width": 130,
+  "height": 134,
+  "nativeLimit": 16384,
+  "controlledLimit": 64,
+  "expectedTiles": 9,
+  "differingChannels": 0,
+  "overlap": [
+    73,
+    0,
+    183,
+    178
+  ]
+}

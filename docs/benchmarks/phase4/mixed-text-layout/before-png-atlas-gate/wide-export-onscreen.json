@@ -1,0 +1,164 @@
+{
+  "element": {
+    "id": "wide-export",
+    "type": "text",
+    "x": 0,
+    "y": 0,
+    "w": 2664.704,
+    "h": 40,
+    "rotation": 0,
+    "index": "a0",
+    "style": {
+      "stroke": "#334155",
+      "fill": "#ffffff",
+      "strokeWidth": 2,
+      "opacity": 1,
+      "fontFamily": "IBM Plex Mono",
+      "fontSize": 32,
+      "color": "#111111"
+    },
+    "props": {
+      "text": "日本語 office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi",
+      "align": "left",
+      "autoSize": true
+    }
+  },
+  "before": {
+    "display": {
+      "calls": 2,
+      "triangles": 4,
+      "geometries": 2,
+      "textures": 0,
+      "elements": 1,
+      "shapeInstances": 0,
+      "strokeChunks": 0,
+      "strokeChunkRebuilds": 0,
+      "textInstances": 1,
+      "visibleTexts": 1,
+      "pendingTexts": 1,
+      "textErrors": 0,
+      "presencePeers": 0,
+      "presenceLabels": 0,
+      "pendingPresenceLabels": 0,
+      "presenceErrors": 0,
+      "imageInstances": 0,
+      "visibleImages": 0,
+      "pendingImages": 0,
+      "imageErrors": 0
+    },
+    "textReady": false
+  },
+  "results": [
+    {
+      "label": "cold",
+      "ink": 0,
+      "bounds": [
+        5430,
+        180,
+        -1,
+        -1
+      ],
+      "width": 5430,
+      "height": 180,
+      "projection": {
+        "calls": 0,
+        "triangles": 0,
+        "geometries": 1,
+        "textures": 0,
+        "elements": 1,
+        "shapeInstances": 0,
+        "strokeChunks": 0,
+        "strokeChunkRebuilds": 0,
+        "textInstances": 1,
+        "visibleTexts": 0,
+        "pendingTexts": 0,
+        "textErrors": 0,
+        "presencePeers": 0,
+        "presenceLabels": 0,
+        "pendingPresenceLabels": 0,
+        "presenceErrors": 0,
+        "imageInstances": 0,
+        "visibleImages": 0,
+        "pendingImages": 0,
+        "imageErrors": 0
+      },
+      "text": {
+        "visible": true,
+        "blockBounds": [
+          0,
+          -7.840000000000003,
+          2664.7040000000006,
+          32.16
+        ],
+        "glyphs": 460
+      }
+    },
+    {
+      "label": "warm",
+      "ink": 78791,
+      "bounds": [
+        61,
+        60,
+        5374,
+        128
+      ],
+      "width": 5430,
+      "height": 180,
+      "projection": {
+        "calls": 0,
+        "triangles": 0,
+        "geometries": 1,
+        "textures": 1,
+        "elements": 1,
+        "shapeInstances": 0,
+        "strokeChunks": 0,
+        "strokeChunkRebuilds": 0,
+        "textInstances": 1,
+        "visibleTexts": 0,
+        "pendingTexts": 0,
+        "textErrors": 0,
+        "presencePeers": 0,
+        "presenceLabels": 0,
+        "pendingPresenceLabels": 0,
+        "presenceErrors": 0,
+        "imageInstances": 0,
+        "visibleImages": 0,
+        "pendingImages": 0,
+        "imageErrors": 0
+      },
+      "text": {
+        "visible": true,
+        "blockBounds": [
+          0,
+          -7.840000000000003,
+          2664.7040000000006,
+          32.16
+        ],
+        "glyphs": 460
+      }
+    }
+  ],
+  "display": {
+    "calls": 2,
+    "triangles": 232,
+    "geometries": 3,
+    "textures": 1,
+    "elements": 1,
+    "shapeInstances": 0,
+    "strokeChunks": 0,
+    "strokeChunkRebuilds": 0,
+    "textInstances": 1,
+    "visibleTexts": 1,
+    "pendingTexts": 0,
+    "textErrors": 0,
+    "presencePeers": 0,
+    "presenceLabels": 0,
+    "pendingPresenceLabels": 0,
+    "presenceErrors": 0,
+    "imageInstances": 0,
+    "visibleImages": 0,
+    "pendingImages": 0,
+    "imageErrors": 0
+  },
+  "pageErrors": []
+}

@@ -1,0 +1,259 @@
+{
+  "yjs": "13.6.33",
+  "gc": true,
+  "operations": 100000,
+  "awareness": false,
+  "network": false,
+  "output": [
+    {
+      "slots": 1,
+      "samples": [
+        {
+          "operation": 0,
+          "liveElements": 1,
+          "encodedBytes": 79,
+          "kinds": {
+            "Item:live": 2
+          },
+          "retainedStructs": 2,
+          "retainedStructsAfterSnapshotReload": 2
+        },
+        {
+          "operation": 10000,
+          "liveElements": 1,
+          "encodedBytes": 102,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 20000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 30000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 40000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 50000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 60000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 70000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 80000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 90000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        },
+        {
+          "operation": 100000,
+          "liveElements": 1,
+          "encodedBytes": 105,
+          "kinds": {
+            "Item:live": 2,
+            "Item:deleted": 1
+          },
+          "retainedStructs": 3,
+          "retainedStructsAfterSnapshotReload": 3
+        }
+      ]
+    },
+    {
+      "slots": 32,
+      "samples": [
+        {
+          "operation": 0,
+          "liveElements": 32,
+          "encodedBytes": 2271,
+          "kinds": {
+            "Item:live": 64
+          },
+          "retainedStructs": 64,
+          "retainedStructsAfterSnapshotReload": 64
+        },
+        {
+          "operation": 10000,
+          "liveElements": 32,
+          "encodedBytes": 92375,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 10000
+          },
+          "retainedStructs": 10064,
+          "retainedStructsAfterSnapshotReload": 10064
+        },
+        {
+          "operation": 20000,
+          "liveElements": 32,
+          "encodedBytes": 186025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 20000
+          },
+          "retainedStructs": 20064,
+          "retainedStructsAfterSnapshotReload": 20064
+        },
+        {
+          "operation": 30000,
+          "liveElements": 32,
+          "encodedBytes": 286025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 30000
+          },
+          "retainedStructs": 30064,
+          "retainedStructsAfterSnapshotReload": 30064
+        },
+        {
+          "operation": 40000,
+          "liveElements": 32,
+          "encodedBytes": 386025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 40000
+          },
+          "retainedStructs": 40064,
+          "retainedStructsAfterSnapshotReload": 40064
+        },
+        {
+          "operation": 50000,
+          "liveElements": 32,
+          "encodedBytes": 486025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 50000
+          },
+          "retainedStructs": 50064,
+          "retainedStructsAfterSnapshotReload": 50064
+        },
+        {
+          "operation": 60000,
+          "liveElements": 32,
+          "encodedBytes": 586025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 60000
+          },
+          "retainedStructs": 60064,
+          "retainedStructsAfterSnapshotReload": 60064
+        },
+        {
+          "operation": 70000,
+          "liveElements": 32,
+          "encodedBytes": 686025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 70000
+          },
+          "retainedStructs": 70064,
+          "retainedStructsAfterSnapshotReload": 70064
+        },
+        {
+          "operation": 80000,
+          "liveElements": 32,
+          "encodedBytes": 786025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 80000
+          },
+          "retainedStructs": 80064,
+          "retainedStructsAfterSnapshotReload": 80064
+        },
+        {
+          "operation": 90000,
+          "liveElements": 32,
+          "encodedBytes": 886025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 90000
+          },
+          "retainedStructs": 90064,
+          "retainedStructsAfterSnapshotReload": 90064
+        },
+        {
+          "operation": 100000,
+          "liveElements": 32,
+          "encodedBytes": 986025,
+          "kinds": {
+            "Item:live": 64,
+            "Item:deleted": 100000
+          },
+          "retainedStructs": 100064,
+          "retainedStructsAfterSnapshotReload": 100064
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+results/*.storage/
+results/*.backup/
+results/*.restored/
+results/*.inputs/

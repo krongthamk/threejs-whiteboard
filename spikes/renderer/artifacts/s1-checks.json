@@ -1,0 +1,47 @@
+{
+  "hardware": {
+    "model": "Apple M1 Pro",
+    "logicalCores": 8,
+    "memoryGiB": 32,
+    "os": "darwin 25.6.0"
+  },
+  "browserVersion": "154.0.8037.58",
+  "headless": true,
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "results": [],
+  "culling": null,
+  "checks": {
+    "oneStrokeChunkRebuilt": true,
+    "strokeEditPreservesShapes": true,
+    "shapeMovePreservesBatches": true,
+    "textEditPreservesShapes": true,
+    "translucentOrdering": true,
+    "screenMatchesPng": true,
+    "transparentAlpha": true,
+    "pngAt2x": true,
+    "reloadClearsProjection": true,
+    "overlapPixel": [
+      128,
+      0,
+      128,
+      255
+    ],
+    "screenPixel": [
+      128,
+      0,
+      128,
+      255
+    ],
+    "transparentPixel": [
+      255,
+      0,
+      0,
+      128
+    ]
+  },
+  "errors": [],
+  "passed": true
+}

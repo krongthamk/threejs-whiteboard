@@ -1,0 +1,25 @@
+{
+  "name": "@whiteboard/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "provision": "tsx src/provision.ts",
+    "operations": "tsx src/backup-cli.ts",
+    "router": "tsx src/router-cli.ts",
+    "test": "vitest run --root ../.. packages/server",
+    "spike": "tsx src/spike.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hocuspocus/extension-database": "4.7.0",
+    "@hocuspocus/server": "4.7.0",
+    "better-sqlite3": "13.0.3",
+    "yjs": "13.6.33"
+  },
+  "devDependencies": {
+    "@hocuspocus/provider": "4.7.0",
+    "ws": "8.22.0"
+  }
+}

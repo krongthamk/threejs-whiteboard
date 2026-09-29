@@ -1,0 +1,252 @@
+{
+  "output": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.trace-review.json",
+  "result": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.json",
+  "samples": 361,
+  "firstPostWarmup": {
+    "elapsedSeconds": 300.083,
+    "rssMiB": 240.5625,
+    "heapMiB": 24.97209930419922
+  },
+  "lastPostWarmup": {
+    "elapsedSeconds": 1800.434,
+    "rssMiB": 223.734375,
+    "heapMiB": 45.239356994628906
+  },
+  "postWarmupEndpointDeltaMiB": {
+    "rss": -16.828125,
+    "heap": 20.267257690429688
+  },
+  "maximumSampleIntervalMs": 6031.780333,
+  "actualMaximumTimestampGapMs": 5080,
+  "windows": [
+    {
+      "fromMinute": 5,
+      "toMinute": 10,
+      "sampleCount": 60,
+      "actualFirst": {
+        "elapsedSeconds": 300.083,
+        "rssMiB": 240.5625,
+        "heapMiB": 24.97209930419922
+      },
+      "actualLast": {
+        "elapsedSeconds": 595.111,
+        "rssMiB": 239.078125,
+        "heapMiB": 24.53863525390625
+      },
+      "rssMiB": {
+        "min": 237.984375,
+        "median": 239.2578125,
+        "p95": 240.80234375,
+        "max": 241.421875
+      },
+      "heapMiB": {
+        "min": 22.63452911376953,
+        "median": 32.49152755737305,
+        "p95": 44.59480171203613,
+        "max": 45.777488708496094
+      },
+      "structureStates": [
+        [
+          {
+            "writerArrays": 40,
+            "retained": 3363,
+            "deleted": 1720
+          }
+        ]
+      ]
+    },
+    {
+      "fromMinute": 10,
+      "toMinute": 15,
+      "sampleCount": 60,
+      "actualFirst": {
+        "elapsedSeconds": 600.111,
+        "rssMiB": 238.859375,
+        "heapMiB": 44.46369171142578
+      },
+      "actualLast": {
+        "elapsedSeconds": 895.149,
+        "rssMiB": 240.125,
+        "heapMiB": 43.988563537597656
+      },
+      "rssMiB": {
+        "min": 235.21875,
+        "median": 240.078125,
+        "p95": 241.0125,
+        "max": 241.5625
+      },
+      "heapMiB": {
+        "min": 25.070632934570312,
+        "median": 36.51487350463867,
+        "p95": 45.90907707214355,
+        "max": 47.358360290527344
+      },
+      "structureStates": [
+        [
+          {
+            "writerArrays": 40,
+            "retained": 3363,
+            "deleted": 1720
+          }
+        ]
+      ]
+    },
+    {
+      "fromMinute": 15,
+      "toMinute": 20,
+      "sampleCount": 60,
+      "actualFirst": {
+        "elapsedSeconds": 900.15,
+        "rssMiB": 240.125,
+        "heapMiB": 40.51594543457031
+      },
+      "actualLast": {
+        "elapsedSeconds": 1195.193,
+        "rssMiB": 240.75,
+        "heapMiB": 30.01457977294922
+      },
+      "rssMiB": {
+        "min": 239.046875,
+        "median": 240.28125,
+        "p95": 241.3296875,
+        "max": 241.421875
+      },
+      "heapMiB": {
+        "min": 21.960342407226562,
+        "median": 39.7090950012207,
+        "p95": 47.92040100097656,
+        "max": 49.590484619140625
+      },
+      "structureStates": [
+        [
+          {
+            "writerArrays": 40,
+            "retained": 3363,
+            "deleted": 1720
+          }
+        ]
+      ]
+    },
+    {
+      "fromMinute": 20,
+      "toMinute": 25,
+      "sampleCount": 60,
+      "actualFirst": {
+        "elapsedSeconds": 1200.195,
+        "rssMiB": 240.796875,
+        "heapMiB": 48.38523864746094
+      },
+      "actualLast": {
+        "elapsedSeconds": 1495.287,
+        "rssMiB": 225.171875,
+        "heapMiB": 22.716293334960938
+      },
+      "rssMiB": {
+        "min": 219.09375,
+        "median": 224.640625,
+        "p95": 240.86015625,
+        "max": 240.953125
+      },
+      "heapMiB": {
+        "min": 22.464759826660156,
+        "median": 39.2919807434082,
+        "p95": 50.99113616943359,
+        "max": 55.679710388183594
+      },
+      "structureStates": [
+        [
+          {
+            "writerArrays": 40,
+            "retained": 3363,
+            "deleted": 1720
+          }
+        ]
+      ]
+    },
+    {
+      "fromMinute": 25,
+      "toMinute": 30,
+      "sampleCount": 62,
+      "actualFirst": {
+        "elapsedSeconds": 1500.288,
+        "rssMiB": 225.234375,
+        "heapMiB": 23.470542907714844
+      },
+      "actualLast": {
+        "elapsedSeconds": 1800.434,
+        "rssMiB": 223.734375,
+        "heapMiB": 45.239356994628906
+      },
+      "rssMiB": {
+        "min": 221,
+        "median": 224.0859375,
+        "p95": 225.23046875,
+        "max": 225.6875
+      },
+      "heapMiB": {
+        "min": 22.957412719726562,
+        "median": 36.777584075927734,
+        "p95": 46.354384613037105,
+        "max": 47.05104064941406
+      },
+      "structureStates": [
+        [
+          {
+            "writerArrays": 40,
+            "retained": 3363,
+            "deleted": 1720
+          }
+        ]
+      ]
+    }
+  ],
+  "sampledHeapDropsAtLeast5MiB": 122,
+  "cleanChildExits": [
+    {
+      "pid": 82656,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "pid": 82662,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "pid": 82658,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "pid": 82655,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "pid": 82659,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "pid": 82660,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "pid": 82661,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "pid": 82626,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "pid": 82657,
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "note": "Descriptive evidence, not an automatic flat-memory verdict. Review window minima/medians, endpoints, plot and structure plateau together. Heap drops are sampled observations consistent with GC; no instrumented full-GC events are claimed. No forced GC, reset, trimming, or discarded trace samples. Quantiles use linear interpolation."
+}

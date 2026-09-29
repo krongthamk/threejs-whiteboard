@@ -1,0 +1,78 @@
+# S2 — Yjs coherent-value model
+
+Measured 2026-09-29 with Yjs 13.6.33 and Vitest 5.0.2. **PASS, including expanded undo/redo coverage:** 10,000 concurrent operation pairs across three simulated replicas converge with zero semantically invalid elements. D3 remains nested Yjs element maps with coherent `props` and `style`, plus the tested native-history repair described below.
+
+## Failures found and repaired
+
+First reproduction: create a rectangle and synchronize clients A/B; clear A's undo history; A deletes the rectangle while B concurrently moves it by `{ x: 75, y: 20 }`; synchronize; A undoes its deletion; synchronize. Stock `Y.UndoManager` restores the nested map with `x/y` missing because its conflict protection skips restoring keys superseded by remote writes, although the replacement remote keys belonged to the deleted original map. The permanent regression now verifies a complete restored rectangle retaining B's movement, including repeated redo/undo.
+
+Second reproduction: two clients concurrently replace `text.props`; synchronize; undo the winning client's change. Stock history could remove `props` entirely, discovered at pair 123 in the expanded seeded suite. The regression now verifies that undo reveals the competing peer value, while a causally newer peer write remains untouched.
+
+`src/undo-history.ts` extends the existing native StackItem deletion set with actual concurrent Yjs Items only when that history entry will restore their deleted parent or remove their current local winning value. This keeps the real peer values available to native undo, without schema defaults or a parallel authoritative model. **Pinned internal API dependency:** it uses Yjs `Item.keep`, `AbstractType._item`/`_map`, and mutable StackItem deletion sets, alongside exported deletion-set helpers. Upgrading Yjs must rerun the entire suite. History-clear tests confirm retained Items are released and garbage-collected from the authoritative Yjs store.
+
+## Reproduce
+
+```sh
+pnpm exec vitest run packages/model/test --disableConsoleIntercept --reporter=verbose
+pnpm exec tsc --noEmit
+```
+
+The permanent suite is `packages/model/test/fuzz.test.ts`. Seed `334462` (`0x51a7e`) fixes operation selection, operands and replica IDs. Each pair chooses two of three clients, performs both local operations before delivering either update, then applies packets in varying order, including duplicate packets. All three clients are checked after every pair. Both raw nested-map JSON and coherent read results must match exactly; geometry derivation cannot hide divergence.
+
+## Recorded result
+
+```json
+{
+  "spike": "S2",
+  "seed": 334462,
+  "concurrentPairs": 10000,
+  "clients": 3,
+  "operations": 20000,
+  "validatedElements": 870897,
+  "invalidElements": 0,
+  "divergentPairs": 0,
+  "deliveredUpdates": 42348,
+  "operationCounts": {
+    "style": 1332,
+    "delete": 1322,
+    "rotate": 1357,
+    "move": 1297,
+    "order": 1295,
+    "multi-element gesture": 1302,
+    "image": 1340,
+    "position": 2861,
+    "resize": 1297,
+    "stroke": 1245,
+    "undo": 1306,
+    "create": 1275,
+    "text": 1423,
+    "binding": 1266,
+    "redo": 82
+  },
+  "durationMs": 29375
+}
+```
+
+Combined run: 4 test files, 26 tests passed, 29.59 seconds. TypeScript check passed. Raw evidence is `packages/model/reports/s2-fuzz.json`. Every validation checks the raw schema, valid fractional indexes, finite nonnegative geometry, style ranges, type-specific coherent payloads, stroke pressure triplets, derived stroke boxes, resolved connector endpoints and render bounds. The suite requires all 15 operation classes to execute and exactly 20,000 operations. Undo/redo updates are delivered to peers under their native UndoManager origin, and each replica periodically clears its history.
+
+## Model contract
+
+- `BoardDocument` owns `doc`, `elements`, `meta` and a scoped `UndoManager`. Metadata initialization is excluded from undo; session and presence have no document keys.
+- Each element is one nested `Y.Map`. Independent geometry fields remain separate keys; `props` and `style` are validated and replaced atomically. Element type and ID are immutable.
+- `transact` wraps a gesture using `LOCAL_ORIGIN`. Nested mutations share the enclosing Yjs transaction. Undo uses `trackedOrigins: new Set([LOCAL_ORIGIN])` and `captureTimeout: 0`.
+- Stroke coordinates are world-space triplets. Reads derive `x/y/w/h` from points. Moving a stroke translates its coherent points value. Auto-size text derives its box from text and style; stored dimensions only control fixed-size text.
+- Fractional indexes determine stacking, with deterministic ID comparison for concurrent equal indexes. Reordering crosses a whole tied index group when necessary.
+- Reads deep-clone JSON values so callers cannot mutate a Yjs scalar value without a transaction.
+- Writes validate finite, acyclic, plain JSON and clone complete patches before starting a transaction. `updateMany` stages and validates all element patches before any write; malformed functions, dates, maps, cycles, undefined values and nonfinite numbers cannot cause partial patches or spurious undo steps.
+
+### Connector deletion detail
+
+Bound endpoints carry `{ elementId, nx, ny, fallback: { x, y } }`. The fallback is stored together with both endpoints and connector kind inside `props`; it records the position observed when binding. A normal deletion resolves every known bound endpoint at the target's latest visible position and detaches it in the same transaction. Undo restores target and binding together. A connector created or rebound concurrently with deletion may not be visible to the deleting client; its stored fallback gives every replica the same last position observed by the binding writer. This explicitly defines “last resolved” under concurrency without local renderer caches or document tombstone flags.
+
+## Targeted regressions
+
+The additional 25 tests cover concurrent move plus recolor, remote-edit-preserving undo/redo, concurrent winning/losing register edits, deletion versus remote movement and coherent props changes, multi-map restoration, repeated redo/undo, history clear and garbage collection, one undo step per gesture, detached reads, malformed patch and batch rejection, coherent geometry, connector degradation/restoration, reload equivalence, fractional indexes, SVG serialization, hit testing, actual font metrics and UTF-16 caret offset mappings.
+
+Shared geometry and the pure `documentToSvg` serializer are available for S4. SVG embeds supplied WOFF/TTF fonts, resolves assets through a callback, includes pressure-aware stroke outlines and connector arrows, and uses shared line wrapping, sticky corners and geometry. Metrics come from the exact shipped Inter/IBM Plex Mono WOFF bytes, generated by troika 0.52.5's parser with SHA-256 hashes checked in tests. Chrome 154 independently measured 60 strings/sizes with maximum width error **0.0003052 px**; all six real DOM wrapping cases matched. Raw evidence: `packages/model/reports/font-metrics-browser.json`. Regenerate with `node packages/model/scripts/generate-font-metrics.mjs`; verify with the spike server running and `node packages/model/scripts/verify-font-metrics.mjs`.
+
+The measured font set covers shipped Latin glyphs. Unsupported scripts use deterministic fallback advances; their platform fallback-font raster fidelity remains an S4/later typography concern. Source-to-rendered and rendered-to-source UTF-16 mappings preserve caret positions when explicit wrapping inserts or consumes line separators. This report establishes S2 only; it does not claim live-server convergence, transport reliability, S3 load targets or later-phase completion. `BoardDocument.create` still scans existing elements for the top fractional index; bulk creation performance should be measured before the Phase 1 5,000-shape reload gate.

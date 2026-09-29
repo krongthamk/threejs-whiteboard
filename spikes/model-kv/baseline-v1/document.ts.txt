@@ -1,0 +1,168 @@
+import * as Y from 'yjs';
+import { generateKeyBetween } from 'fractional-indexing';
+import { nanoid } from 'nanoid';
+import { resolveBinding } from './geometry.js';
+import { assertValidElement, createElement, elementToYMap, readElement, readElements } from './schema.js';
+import type { Binding, Element, ElementInput, ElementOf, ElementPatch, ElementStyle, ElementType, Point } from './types.js';
+import { preserveConcurrentHistory } from './undo-history.js';
+
+/** Local origin is never transmitted: remote providers use their own origin. */
+export const LOCAL_ORIGIN = Symbol('whiteboard.local');
+export const SCHEMA_VERSION = 1;
+export type DocumentChange = { ids: ReadonlySet<string>; transaction: Y.Transaction };
+
+export class BoardDocument {
+  readonly doc: Y.Doc;
+  readonly elements: Y.Map<Y.Map<unknown>>;
+  readonly meta: Y.Map<unknown>;
+  readonly undoManager: Y.UndoManager;
+  private readonly stopPreservingHistory: () => void;
+
+  constructor(doc = new Y.Doc()) {
+    this.doc = doc;
+    this.elements = doc.getMap<Y.Map<unknown>>('elements');
+    this.meta = doc.getMap('meta');
+    const version = this.meta.get('schemaVersion');
+    if (version !== undefined && version !== SCHEMA_VERSION) throw new Error(`Unsupported board schema ${String(version)}`);
+    if (version === undefined) doc.transact(() => {
+      this.meta.set('schemaVersion', SCHEMA_VERSION);
+      this.meta.set('title', 'Untitled board');
+      this.meta.set('createdAt', Date.now());
+    }, 'initialization');
+    this.undoManager = new Y.UndoManager(this.elements, { trackedOrigins: new Set([LOCAL_ORIGIN]), captureTimeout: 0 });
+    this.stopPreservingHistory = preserveConcurrentHistory(doc, this.undoManager);
+  }
+
+  /** Wrap a complete gesture here; nested helper calls stay in this transaction. */
+  transact<T>(operation: () => T): T { return this.doc.transact(operation, LOCAL_ORIGIN); }
+
+  create<T extends ElementType>(type: T, input: ElementInput<T> = {}): ElementOf<T> {
+    const current = this.readAll();
+    const element = createElement(type, { ...input, index: input.index ?? generateKeyBetween(current.at(-1)?.index ?? null, null) });
+    if (this.elements.has(element.id)) throw new Error(`Element already exists: ${element.id}`);
+    this.transact(() => this.elements.set(element.id, elementToYMap(element as Element)));
+    return element;
+  }
+
+  read(id: string): Element | undefined {
+    const map = this.elements.get(id);
+    return map ? readElement(map) : undefined;
+  }
+
+  readAll(): Element[] { return readElements(this.elements); }
+
+  private preparePatch(id: string, patch: ElementPatch): { map: Y.Map<unknown>; patch: ElementPatch } | undefined {
+    const map = this.elements.get(id);
+    if (!map) return undefined;
+    const allowed = new Set(['x', 'y', 'w', 'h', 'rotation', 'index', 'style', 'props']);
+    for (const key of Object.keys(patch)) if (!allowed.has(key)) throw new Error(`Immutable or unknown element field: ${key}`);
+    // Yjs transactions do not roll back on exceptions. Clone and validate every value before writing any key.
+    const prepared = structuredClone(patch);
+    assertValidElement({ ...map.toJSON(), ...prepared });
+    return { map, patch: prepared };
+  }
+
+  update(id: string, patch: ElementPatch): boolean {
+    const prepared = this.preparePatch(id, patch);
+    if (!prepared) return false;
+    this.transact(() => { for (const [key, value] of Object.entries(prepared.patch)) prepared.map.set(key, value); });
+    return true;
+  }
+
+  /** Validate the complete batch before Yjs's non-rollback transaction begins. */
+  updateMany(updates: readonly { id: string; patch: ElementPatch }[]): void {
+    const prepared = updates.map(({ id, patch }) => this.preparePatch(id, patch)).filter(value => value !== undefined);
+    this.transact(() => {
+      for (const update of prepared) for (const [key, value] of Object.entries(update.patch)) update.map.set(key, value);
+    });
+  }
+
+  updateStyle(ids: readonly string[], patch: Partial<ElementStyle>): void {
+    this.updateMany(ids.flatMap(id => { const element = this.read(id); return element ? [{ id, patch: { style: { ...element.style, ...patch } } }] : []; }));
+  }
+
+  move(ids: readonly string[], delta: Point): void {
+    this.transact(() => {
+      const selection = new Set(ids);
+      for (const id of ids) {
+        const element = this.read(id);
+        if (!element) continue;
+        if (element.type === 'stroke') {
+          this.update(id, { props: { ...element.props, points: element.props.points.map((n, i) => i % 3 === 0 ? n + delta.x : i % 3 === 1 ? n + delta.y : n) } });
+        } else if (element.type === 'connector') {
+          const translate = (binding: Binding): Binding => {
+            if ('elementId' in binding) {
+              // A selected target moves the binding itself. Otherwise dragging a connector detaches it.
+              if (selection.has(binding.elementId)) return binding;
+              const p = resolveBinding(binding, new Map(this.readAll().map(e => [e.id, e])));
+              return { x: p.x + delta.x, y: p.y + delta.y };
+            }
+            return { x: binding.x + delta.x, y: binding.y + delta.y };
+          };
+          this.update(id, { props: { ...element.props, start: translate(element.props.start), end: translate(element.props.end) } });
+        } else this.update(id, { x: element.x + delta.x, y: element.y + delta.y });
+      }
+    });
+  }
+
+  delete(ids: string | readonly string[]): void {
+    const deleted = new Set(typeof ids === 'string' ? [ids] : ids);
+    const map = new Map(this.readAll().map(element => [element.id, element]));
+    this.transact(() => {
+      for (const element of map.values()) {
+        if (element.type !== 'connector' || deleted.has(element.id)) continue;
+        const detach = (binding: Binding): Binding => 'elementId' in binding && deleted.has(binding.elementId) ? resolveBinding(binding, map) : binding;
+        const start = detach(element.props.start), end = detach(element.props.end);
+        if (start !== element.props.start || end !== element.props.end) this.update(element.id, { props: { ...element.props, start, end } });
+      }
+      for (const id of deleted) this.elements.delete(id);
+    });
+  }
+
+  duplicate(ids: readonly string[], delta: Point = { x: 24, y: 24 }): string[] {
+    const idMap = new Map(ids.filter(id => this.elements.has(id)).map(id => [id, nanoid()]));
+    this.transact(() => {
+      for (const [oldId, id] of idMap) {
+        const source = this.read(oldId)!;
+        let copy = { ...source, id, index: generateKeyBetween(this.readAll().at(-1)?.index ?? null, null) } as Element;
+        if (copy.type === 'connector') {
+          const remap = (binding: Binding): Binding => {
+            if (!('elementId' in binding)) return { x: binding.x + delta.x, y: binding.y + delta.y };
+            const elementId = idMap.get(binding.elementId);
+            return elementId ? { ...binding, elementId, fallback: { x: binding.fallback.x + delta.x, y: binding.fallback.y + delta.y } } : binding;
+          };
+          copy = { ...copy, props: { ...copy.props, start: remap(copy.props.start), end: remap(copy.props.end) } };
+        } else if (copy.type === 'stroke') copy = { ...copy, props: { ...copy.props, points: copy.props.points.map((n, i) => i % 3 === 0 ? n + delta.x : i % 3 === 1 ? n + delta.y : n) } };
+        else copy = { ...copy, x: copy.x + delta.x, y: copy.y + delta.y };
+        this.elements.set(id, elementToYMap(copy));
+      }
+    });
+    return [...idMap.values()];
+  }
+
+  reorder(id: string, direction: 'forward' | 'backward' | 'front' | 'back'): void {
+    const elements = this.readAll(), i = elements.findIndex(element => element.id === id);
+    if (i < 0) return;
+    const remaining = elements.filter(element => element.id !== id);
+    let insertion = direction === 'front' ? remaining.length : direction === 'back' ? 0 : direction === 'forward' ? Math.min(i + 1, remaining.length) : Math.max(i - 1, 0);
+    // Concurrent keys can coincide: move beyond the whole tie rather than ask for an impossible gap.
+    if (direction === 'forward' || direction === 'front') while (insertion < remaining.length && remaining[insertion - 1]?.index === remaining[insertion]?.index) insertion++;
+    else while (insertion > 0 && remaining[insertion - 1]?.index === remaining[insertion]?.index) insertion--;
+    this.update(id, { index: generateKeyBetween(remaining[insertion - 1]?.index ?? null, remaining[insertion]?.index ?? null) });
+  }
+
+  subscribe(listener: (change: DocumentChange) => void): () => void {
+    const callback = (events: Y.YEvent<Y.AbstractType<unknown>>[], transaction: Y.Transaction): void => {
+      const ids = new Set<string>();
+      for (const event of events) {
+        if (event.target === this.elements) for (const key of event.changes.keys.keys()) ids.add(key);
+        else if (typeof event.path[0] === 'string') ids.add(event.path[0]);
+      }
+      listener({ ids, transaction });
+    };
+    this.elements.observeDeep(callback);
+    return () => this.elements.unobserveDeep(callback);
+  }
+
+  destroy(): void { this.stopPreservingHistory(); this.undoManager.destroy(); this.doc.destroy(); }
+}

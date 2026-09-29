@@ -1,0 +1,31 @@
+{
+  "candidate": "writer-owned-y-keyvalue",
+  "seed": 334462,
+  "concurrentPairs": 10000,
+  "clients": 3,
+  "operations": 20000,
+  "invalidElements": 0,
+  "divergentPairs": 0,
+  "validatedElements": 818007,
+  "deliveredUpdates": 47876,
+  "operationCounts": {
+    "stroke": 1281,
+    "image": 1197,
+    "position": 2861,
+    "gesture": 1315,
+    "text": 1366,
+    "create": 1308,
+    "resize": 1302,
+    "binding": 1300,
+    "undo": 1281,
+    "style": 1325,
+    "delete": 1346,
+    "move": 1327,
+    "rotate": 1376,
+    "order": 1329,
+    "redo": 86
+  },
+  "durationMs": 618854,
+  "runnerStatus": "exit-status-unavailable-after-environment-update",
+  "message": "Raw 10,000-pair completion artifact was observed before the final clean rerun; the process was absent and the Vitest cache retained the previous run, so no clean exit was claimed."
+}

@@ -1,0 +1,80 @@
+{
+  "glyphs": {
+    "text": "日本語",
+    "count": 3,
+    "errors": 0
+  },
+  "externalRequests": [],
+  "embeddedFonts": 2,
+  "pngExported": true,
+  "comparison": {
+    "meanChannelError": 0.21578587962962964,
+    "edgeToleranceCssPixels": 0.5,
+    "rawForegroundMismatch": 0.009859890609288316,
+    "foregroundMismatch": 0.00503924397534222,
+    "regions": [
+      {
+        "name": "shapes",
+        "foreground": 241699,
+        "rawMismatch": 0.008522997612733193,
+        "mismatch": 0.003587106276815378
+      },
+      {
+        "name": "sticky",
+        "foreground": 171160,
+        "rawMismatch": 0.007180415985043234,
+        "mismatch": 0.0031841551764430942
+      },
+      {
+        "name": "text",
+        "foreground": 4590,
+        "rawMismatch": 0.2169934640522876,
+        "mismatch": 0.16949891067538125
+      },
+      {
+        "name": "stroke",
+        "foreground": 17140,
+        "rawMismatch": 0,
+        "mismatch": 0
+      }
+    ],
+    "textInkBounds": [
+      {
+        "name": "sticky",
+        "webgl": {
+          "left": 1307,
+          "top": 137,
+          "right": 1533,
+          "bottom": 241
+        },
+        "svg": {
+          "left": 1306,
+          "top": 136,
+          "right": 1534,
+          "bottom": 241
+        },
+        "maxEdgeDifferencePixels": 1,
+        "matches": true
+      },
+      {
+        "name": "text",
+        "webgl": {
+          "left": 151,
+          "top": 600,
+          "right": 329,
+          "bottom": 658
+        },
+        "svg": {
+          "left": 151,
+          "top": 600,
+          "right": 329,
+          "bottom": 658
+        },
+        "maxEdgeDifferencePixels": 0,
+        "matches": true
+      }
+    ],
+    "inkMaskMaxChannel": 160,
+    "inkBoundsToleranceOutputPixels": 1
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "dimensions": [
+    2048,
+    64
+  ],
+  "preview": {
+    "calls": 7,
+    "triangles": 206,
+    "geometries": 4,
+    "textures": 1,
+    "elements": 1,
+    "shapeInstances": 0,
+    "strokeChunks": 0,
+    "strokeChunkRebuilds": 0,
+    "textInstances": 0,
+    "visibleTexts": 0,
+    "pendingTexts": 0,
+    "textErrors": 0,
+    "presencePeers": 0,
+    "presenceLabels": 0,
+    "pendingPresenceLabels": 0,
+    "presenceErrors": 0,
+    "imageInstances": 1,
+    "visibleImages": 1,
+    "pendingImages": 0,
+    "imageErrors": 0
+  },
+  "png": {
+    "meanError": 0,
+    "maxError": 0,
+    "adjacentContrast": 255,
+    "alphaMin": 255
+  },
+  "svg": {
+    "meanError": 0,
+    "maxError": 0,
+    "adjacentContrast": 255,
+    "alphaMin": 255
+  },
+  "thumbnailControl": {
+    "meanError": 127.5,
+    "maxError": 128,
+    "adjacentContrast": 0,
+    "alphaMin": 255
+  },
+  "documentElements": 1
+}

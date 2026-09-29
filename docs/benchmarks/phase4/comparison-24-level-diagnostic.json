@@ -1,0 +1,115 @@
+{
+  "fonts": 3,
+  "embedded": true,
+  "width": 1721,
+  "height": 914,
+  "pngVsSvg": 0.0084342343327438,
+  "pngVsScreen": 0.006645924904990102,
+  "regions": [
+    {
+      "name": "rectangle",
+      "foreground": 155356,
+      "rawMismatch": 0.006565565539792477,
+      "edgeTolerantMismatch": 0.00651407090810783,
+      "screen": {
+        "name": "rectangle",
+        "foreground": 154846,
+        "rawMismatch": 0.00969350193095075,
+        "edgeTolerantMismatch": 0.009674127843147385
+      }
+    },
+    {
+      "name": "ellipse",
+      "foreground": 85825,
+      "rawMismatch": 0.029012525487911448,
+      "edgeTolerantMismatch": 0.01595106321002039,
+      "screen": {
+        "name": "ellipse",
+        "foreground": 85811,
+        "rawMismatch": 0.018622321147638416,
+        "edgeTolerantMismatch": 0.01237603570637797
+      }
+    },
+    {
+      "name": "sticky",
+      "foreground": 171564,
+      "rawMismatch": 0.015387843603553194,
+      "edgeTolerantMismatch": 0.012164556666899817,
+      "screen": {
+        "name": "sticky",
+        "foreground": 171158,
+        "rawMismatch": 0.011492305355285759,
+        "edgeTolerantMismatch": 0.008822257796889424
+      }
+    },
+    {
+      "name": "editable",
+      "foreground": 11452,
+      "rawMismatch": 0.2743625567586448,
+      "edgeTolerantMismatch": 0.19350331819769473,
+      "screen": {
+        "name": "editable",
+        "foreground": 10669,
+        "rawMismatch": 0.18577186240509888,
+        "edgeTolerantMismatch": 0.12878432842815635
+      }
+    },
+    {
+      "name": "stroke",
+      "foreground": 17403,
+      "rawMismatch": 0.07866459805780612,
+      "edgeTolerantMismatch": 0.06493133367810147,
+      "screen": {
+        "name": "stroke",
+        "foreground": 17271,
+        "rawMismatch": 0.058016327948584336,
+        "edgeTolerantMismatch": 0.027965954490185862
+      }
+    },
+    {
+      "name": "connector",
+      "foreground": 1840,
+      "rawMismatch": 0.2184782608695652,
+      "edgeTolerantMismatch": 0.21358695652173912,
+      "screen": {
+        "name": "connector",
+        "foreground": 1828,
+        "rawMismatch": 0.15153172866520787,
+        "edgeTolerantMismatch": 0.13785557986870897
+      }
+    },
+    {
+      "name": "japanese",
+      "foreground": 6998,
+      "rawMismatch": 0.31623320948842526,
+      "edgeTolerantMismatch": 0.2387825092883681,
+      "screen": {
+        "name": "japanese",
+        "foreground": 6544,
+        "rawMismatch": 0.30424816625916873,
+        "edgeTolerantMismatch": 0.24862469437652812
+      }
+    }
+  ],
+  "negativeControls": [
+    {
+      "name": "missing Latin",
+      "foreground": 10336,
+      "rawMismatch": 0.9940982972136223,
+      "edgeTolerantMismatch": 0.9940982972136223
+    },
+    {
+      "name": "displaced Latin",
+      "foreground": 17391,
+      "rawMismatch": 0.8266344661031568,
+      "edgeTolerantMismatch": 0.7932838824679432
+    },
+    {
+      "name": "missing Japanese",
+      "foreground": 6286,
+      "rawMismatch": 0.9925230671333122,
+      "edgeTolerantMismatch": 0.9925230671333122
+    }
+  ],
+  "pageErrors": []
+}

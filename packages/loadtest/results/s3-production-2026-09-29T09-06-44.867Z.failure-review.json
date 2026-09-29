@@ -1,0 +1,25 @@
+{
+  "status": "failed/incomplete",
+  "causeEvidence": "All eight workers report simultaneous scheduler stalls (~161s); server sample gaps263.6s and4799.9s;40disconnects and coordinator timeout. A shared host/process suspension is consistent with these observations, but the trace alone does not prove its cause. No complete workload/convergence or final latency is claimed.",
+  "observedSavedAcknowledgements": 202261,
+  "partialObservedP95Ms": 19133.957958000014,
+  "sampleCount": 216,
+  "maximumSamplingGapMs": 4799853.17825,
+  "peakObservedRssMiB": 971.75,
+  "disconnectsInLatestCheckpoints": 40,
+  "maximumWorkerSchedulerLagMs": 4718405.263166,
+  "boundedMetadataBeforeUnload": [
+    [
+      2083,
+      1080
+    ],
+    [
+      2963,
+      1520
+    ],
+    [
+      3363,
+      1720
+    ]
+  ]
+}

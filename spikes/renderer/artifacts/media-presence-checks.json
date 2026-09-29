@@ -1,0 +1,178 @@
+{
+  "timestamp": "2026-09-29T09:18:12.593Z",
+  "browserVersion": "154.0.8037.58",
+  "headless": true,
+  "productionBuild": true,
+  "hardware": {
+    "model": "Apple M1 Pro",
+    "logicalCores": 8,
+    "memoryGiB": 32
+  },
+  "assertions": {
+    "thumbnail64": true,
+    "correctImageOrientation": true,
+    "originalResolutionExport": true,
+    "restoredThumbnail": true,
+    "copiesShareTexture": true,
+    "cssOpacityAndOrdering": true,
+    "rotationWorks": true,
+    "sourceAlphaSurvivesExport": true,
+    "releasedOffscreenTextures": true,
+    "returnsFromOffscreen": true,
+    "fortyPeersAndSyncedLabels": true,
+    "reusedPeers": true,
+    "reusedFrames": true,
+    "presenceExcluded": true,
+    "clearedPresence": true,
+    "noPresenceGeometryGrowth": true,
+    "boundedImageFailure": true,
+    "invalidImageRejects": true,
+    "offscreenNoImageAllocation": true,
+    "destroyedPending": true
+  },
+  "checks": {
+    "displayWidth": 64,
+    "orientationPixels": [
+      [
+        255,
+        0,
+        0,
+        255
+      ],
+      [
+        0,
+        255,
+        0,
+        255
+      ],
+      [
+        0,
+        0,
+        255,
+        255
+      ],
+      [
+        255,
+        255,
+        0,
+        255
+      ]
+    ],
+    "fullExportSize": [
+      1024,
+      512
+    ],
+    "stripePixels": [
+      [
+        0,
+        0,
+        0,
+        255
+      ],
+      [
+        255,
+        255,
+        255,
+        255
+      ],
+      [
+        0,
+        0,
+        0,
+        255
+      ],
+      [
+        255,
+        255,
+        255,
+        255
+      ]
+    ],
+    "restoredThumbnail": true,
+    "copiesShareTexture": true,
+    "opacityScreen": [
+      128,
+      0,
+      128,
+      255
+    ],
+    "opacityPng": [
+      128,
+      0,
+      128,
+      255
+    ],
+    "mixedOrderPixel": [
+      64,
+      128,
+      64,
+      255
+    ],
+    "rotatedTop": [
+      255,
+      0,
+      0,
+      255
+    ],
+    "rotatedBottom": [
+      255,
+      255,
+      0,
+      255
+    ],
+    "sourceAlphaPixel": [
+      255,
+      0,
+      0,
+      128
+    ],
+    "releasedOffscreenTextures": true,
+    "returnsFromOffscreen": true,
+    "labelStats": {
+      "calls": 245,
+      "triangles": 1390,
+      "geometries": 85,
+      "textures": 2,
+      "elements": 2,
+      "shapeInstances": 1,
+      "strokeChunks": 0,
+      "strokeChunkRebuilds": 0,
+      "textInstances": 0,
+      "visibleTexts": 0,
+      "pendingTexts": 0,
+      "textErrors": 0,
+      "presencePeers": 40,
+      "presenceLabels": 41,
+      "pendingPresenceLabels": 0,
+      "presenceErrors": 0,
+      "imageInstances": 1,
+      "visibleImages": 1,
+      "pendingImages": 0,
+      "imageErrors": 0
+    },
+    "reusedPeers": true,
+    "reusedFrames": true,
+    "presenceExcluded": true,
+    "clearedPresence": true,
+    "noPresenceGeometryGrowth": true,
+    "memoryBeforeCycles": {
+      "geometries": 4,
+      "textures": 2
+    },
+    "memoryAfterCycles": {
+      "geometries": 4,
+      "textures": 2
+    },
+    "timeoutError": "Image never failed to load within 120 ms",
+    "timeoutMs": 121.40000000596046,
+    "timedOut": true,
+    "decodeError": "The source image could not be decoded.",
+    "destroyedPending": true,
+    "offscreenNoImageAllocation": true,
+    "resolverCalls": 9
+  },
+  "benchmark": null,
+  "errors": [],
+  "externalRequests": [],
+  "passed": true
+}

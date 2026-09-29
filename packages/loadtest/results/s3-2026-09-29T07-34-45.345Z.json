@@ -1,0 +1,158 @@
+{
+  "startedAt": 1790667286341,
+  "endedAt": 1790667296350,
+  "measuredSeconds": 10.009,
+  "hardware": {
+    "cpu": "Apple M1 Pro",
+    "logicalCores": 8,
+    "memoryBytes": 34359738368,
+    "platform": "darwin",
+    "release": "25.6.0",
+    "node": "v26.8.1"
+  },
+  "serverPid": 43655,
+  "config": {
+    "durationSeconds": 10,
+    "clientCount": 40,
+    "opsPerSecond": 5,
+    "cursorHz": 20,
+    "boundedElements": 1280
+  },
+  "operations": 2000,
+  "acknowledged": 2000,
+  "cursorUpdates": 8000,
+  "disconnects": 0,
+  "maxSchedulerLagMs": 87.85570799999982,
+  "actualOpsPerClientPerSecond": 4.995504046358278,
+  "actualCursorsPerClientPerSecond": 19.98201618543311,
+  "roundTripMs": {
+    "p50": 8.00866700000006,
+    "p95": 34.86999999999898,
+    "p99": 47.92316699999992,
+    "max": 78.02820900000006
+  },
+  "cpuPctOneCore": {
+    "mean": 14.232979754761153,
+    "p95": 15.318363526513618,
+    "max": 15.318363526513618
+  },
+  "memory": {
+    "firstRss": 168247296,
+    "lastRss": 199688192,
+    "peakRss": 199688192,
+    "rssSlopeMiBPerMinuteAfterWarmup": 360.3169437212097,
+    "warmupSeconds": 0
+  },
+  "traffic": {
+    "sentBytes": 2682700,
+    "receivedBytes": 100599800,
+    "sentMessages": 10000,
+    "receivedMessages": 33800,
+    "awarenessSent": 8000,
+    "awarenessReceived": 24320,
+    "sentBytesPerSecond": 268028.774103307,
+    "receivedBytesPerSecond": 10050934.159256669,
+    "awarenessMessagesPerSecond": 799.2806474173244
+  },
+  "converged": true,
+  "snapshot": {
+    "type": "snapshot",
+    "documents": [
+      {
+        "name": "s3-load-board",
+        "elements": 1280,
+        "hash": "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2"
+      }
+    ]
+  },
+  "clientHashes": [
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2",
+    "5362cd24f4dfe1b75243a05d1de5086ccf400796e9f876ab584f1c23ad21f7a2"
+  ],
+  "samples": [
+    {
+      "type": "sample",
+      "at": 1790667291379,
+      "elapsedMs": 5039.2393329999995,
+      "cpuPctOneCore": 15.318363526513618,
+      "rss": 168247296,
+      "heapTotal": 63913984,
+      "heapUsed": 35418040,
+      "external": 8167039,
+      "arrayBuffers": 3816551,
+      "changes": 1040,
+      "awarenessMessages": 4040,
+      "inboundMessages": 5080,
+      "inboundBytes": 1384109
+    },
+    {
+      "type": "sample",
+      "at": 1790667296372,
+      "elapsedMs": 4992.7910839999995,
+      "cpuPctOneCore": 13.147595983008689,
+      "rss": 199688192,
+      "heapTotal": 87506944,
+      "heapUsed": 29559920,
+      "external": 7035465,
+      "arrayBuffers": 2684977,
+      "changes": 2000,
+      "awarenessMessages": 8000,
+      "inboundMessages": 10000,
+      "inboundBytes": 2682700
+    }
+  ],
+  "gate": {
+    "duration": false,
+    "workload": true,
+    "latency": true,
+    "cpu": true,
+    "memory": false,
+    "acknowledgements": true,
+    "converged": true
+  },
+  "methodology": {
+    "roundTrip": "Document transaction start to built-in Hocuspocus SyncStatus acknowledgement; no stateless ping substitute.",
+    "cpu": "Child server process cpuUsage delta / wall time; 100% means one logical core.",
+    "memory": "Five-second RSS samples; post-five-minute linear slope <1 MiB/min absolute, bounded 1280-element workload. Not evidence of flat memory for an ever-growing document.",
+    "traffic": "WebSocket application payload bytes excluding TCP/TLS/frame headers; aggregate over all clients.",
+    "target": "This Mac was selected by the user as the initial deployment and benchmark target."
+  }
+}

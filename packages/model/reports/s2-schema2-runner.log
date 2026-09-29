@@ -1,0 +1,34 @@
+
+ RUN  v5.0.2 /Users/mac/threejs-whiteboard
+
+(node:63025) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:63027) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:63026) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:63028) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/model/test/text-layout.test.ts (5 tests) 8ms
+ ✓ packages/model/test/deleted-history.test.ts (5 tests) 16ms
+ ✓ packages/model/test/model.test.ts (18 tests) 107ms
+{"spike":"S2-schema2","completedPairs":1000,"durationMs":4716}
+{"spike":"S2-schema2","completedPairs":2000,"durationMs":11270}
+{"spike":"S2-schema2","completedPairs":3000,"durationMs":18778}
+{"spike":"S2-schema2","completedPairs":4000,"durationMs":25901}
+{"spike":"S2-schema2","completedPairs":5000,"durationMs":32913}
+{"spike":"S2-schema2","completedPairs":6000,"durationMs":41542}
+{"spike":"S2-schema2","completedPairs":7000,"durationMs":49587}
+{"spike":"S2-schema2","completedPairs":8000,"durationMs":57469}
+{"spike":"S2-schema2","completedPairs":9000,"durationMs":66295}
+{"spike":"S2-schema2","completedPairs":10000,"durationMs":77423}
+{"spike":"S2-schema2","seed":334462,"concurrentPairs":10000,"clients":3,"operations":20000,"validatedElements":946710,"invalidElements":0,"divergentPairs":0,"deliveredUpdates":47954,"operationCounts":{"style":1364,"delete":1328,"rotate":1361,"move":1302,"order":1246,"multi-element gesture":1336,"image":1327,"position":2656,"resize":1294,"stroke":1355,"undo":1320,"text":1396,"binding":1297,"create":1340,"redo":78},"durationMs":77423}
+ ✓ packages/model/test/fuzz.test.ts (1 test) 77425ms
+   ✓ S2: 10,000 seeded concurrent operation pairs across three clients converge with zero invalid elements 77425ms
+
+ Test Files  4 passed (4)
+      Tests  29 passed (29)
+   Start at  15:52:01
+   Duration  77.65s (tests 99%)
+
+JSON report written to /Users/mac/threejs-whiteboard/packages/model/reports/s2-schema2-vitest.json

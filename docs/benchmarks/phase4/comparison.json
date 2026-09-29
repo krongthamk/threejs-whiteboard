@@ -1,0 +1,161 @@
+{
+  "fonts": 3,
+  "embedded": true,
+  "width": 1721,
+  "height": 914,
+  "pngVsSvg": 0.006396718614311307,
+  "pngVsScreen": 0.0005009555026910465,
+  "regions": [
+    {
+      "name": "rectangle",
+      "type": "rect",
+      "inkBoundsDifference": null,
+      "foreground": 154848,
+      "rawMismatch": 0.00006457945856581938,
+      "edgeTolerantMismatch": 0.00003874767513949163,
+      "screen": {
+        "name": "rectangle",
+        "type": "rect",
+        "inkBoundsDifference": null,
+        "foreground": 154844,
+        "rawMismatch": 0.000012916225362300122,
+        "edgeTolerantMismatch": 0
+      }
+    },
+    {
+      "name": "ellipse",
+      "type": "ellipse",
+      "inkBoundsDifference": 0,
+      "foreground": 85800,
+      "rawMismatch": 0.023578088578088578,
+      "edgeTolerantMismatch": 0.009871794871794872,
+      "screen": {
+        "name": "ellipse",
+        "type": "ellipse",
+        "inkBoundsDifference": 0,
+        "foreground": 85796,
+        "rawMismatch": 0.004219310923586181,
+        "edgeTolerantMismatch": 0.0018182665858548185
+      }
+    },
+    {
+      "name": "sticky",
+      "type": "sticky",
+      "inkBoundsDifference": 1,
+      "foreground": 171160,
+      "rawMismatch": 0.007139518579107268,
+      "edgeTolerantMismatch": 0.0031315727973825662,
+      "screen": {
+        "name": "sticky",
+        "type": "sticky",
+        "inkBoundsDifference": 0,
+        "foreground": 171158,
+        "rawMismatch": 0.000046740438659016815,
+        "edgeTolerantMismatch": 0
+      }
+    },
+    {
+      "name": "editable",
+      "type": "text",
+      "inkBoundsDifference": 1,
+      "foreground": 11746,
+      "rawMismatch": 0.18082751575004258,
+      "edgeTolerantMismatch": 0.07917588966456666,
+      "screen": {
+        "name": "editable",
+        "type": "text",
+        "inkBoundsDifference": 0,
+        "foreground": 10656,
+        "rawMismatch": 0,
+        "edgeTolerantMismatch": 0
+      }
+    },
+    {
+      "name": "stroke",
+      "type": "stroke",
+      "inkBoundsDifference": null,
+      "foreground": 17141,
+      "rawMismatch": 0,
+      "edgeTolerantMismatch": 0,
+      "screen": {
+        "name": "stroke",
+        "type": "stroke",
+        "inkBoundsDifference": null,
+        "foreground": 17116,
+        "rawMismatch": 0,
+        "edgeTolerantMismatch": 0
+      }
+    },
+    {
+      "name": "connector",
+      "type": "connector",
+      "inkBoundsDifference": 0,
+      "foreground": 1725,
+      "rawMismatch": 0.06028985507246377,
+      "edgeTolerantMismatch": 0.0527536231884058,
+      "screen": {
+        "name": "connector",
+        "type": "connector",
+        "inkBoundsDifference": 0,
+        "foreground": 1722,
+        "rawMismatch": 0.0011614401858304297,
+        "edgeTolerantMismatch": 0
+      }
+    },
+    {
+      "name": "japanese",
+      "type": "text",
+      "inkBoundsDifference": 1,
+      "foreground": 7146,
+      "rawMismatch": 0.22502099076406382,
+      "edgeTolerantMismatch": 0.13546039742513294,
+      "screen": {
+        "name": "japanese",
+        "type": "text",
+        "inkBoundsDifference": 0,
+        "foreground": 6486,
+        "rawMismatch": 0,
+        "edgeTolerantMismatch": 0
+      }
+    }
+  ],
+  "negativeControls": [
+    {
+      "name": "missing Latin",
+      "type": "text",
+      "inkBoundsDifference": null,
+      "foreground": 10656,
+      "rawMismatch": 0.9310247747747747,
+      "edgeTolerantMismatch": 0.9310247747747747
+    },
+    {
+      "name": "shifted 1px Latin",
+      "type": "text",
+      "inkBoundsDifference": 3,
+      "foreground": 13365,
+      "rawMismatch": 0.4573887018331463,
+      "edgeTolerantMismatch": 0.3378226711560045
+    },
+    {
+      "name": "displaced Latin",
+      "type": "text",
+      "inkBoundsDifference": 15,
+      "foreground": 17700,
+      "rawMismatch": 0.776723163841808,
+      "edgeTolerantMismatch": 0.726271186440678
+    },
+    {
+      "name": "missing Japanese",
+      "type": "text",
+      "inkBoundsDifference": null,
+      "foreground": 6486,
+      "rawMismatch": 0.8871415356151712,
+      "edgeTolerantMismatch": 0.8871415356151712
+    }
+  ],
+  "edgeToleranceCssPixels": 0.5,
+  "channelTolerance": 48,
+  "inkMaskMaxChannel": 160,
+  "inkBoundsToleranceOutputPixels": 1,
+  "pageErrors": []
+}

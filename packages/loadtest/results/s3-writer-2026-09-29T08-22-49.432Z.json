@@ -1,0 +1,532 @@
+{
+  "startedAt": 1790670171690,
+  "endedAt": 1790670181691,
+  "measuredSeconds": 10.001,
+  "hardware": {
+    "cpu": "Apple M1 Pro",
+    "logicalCores": 8,
+    "memoryBytes": 34359738368,
+    "platform": "darwin",
+    "release": "25.6.0",
+    "node": "v26.8.1"
+  },
+  "serverPid": 56089,
+  "sourceHashes": {
+    "packages/loadtest/src/run-writer-kv.ts": "58406063ca99e17af7149ab61cb5991e62a5e3aaf57838c4ad66c46b4dc421ad",
+    "packages/loadtest/src/writer-client-worker.ts": "b4300ac439f54816d4a31965dd645a4410ab08eb75dedd57f94bce170fc2f5b7",
+    "packages/server/src/spike-writer-kv.ts": "8c33b605a69085de1773b4b7ac9993fe454b46f6f3bc6da9e52c353ed8ac6f17",
+    "spikes/model-kv/writer-model.ts": "b0d7dc6f642a9ef57c5b4a73ec99a8e32011de9b0c37c343be2e2e013a847b63",
+    "spikes/model-kv/model.ts": "69a0d1e1e85cbbabb4d1ae1f522b658d133f9711bbafd302d20d2a37b693b5cc",
+    "packages/model/src/index.ts": "cbddb305d0bf698524ee19a383ca2a4d9847b71ebb97bfee441de26a41628fe2",
+    "packages/model/src/schema.ts": "4a53a3d9a54c2ad229cf100c51128314bd1ac377a2e6cd27125082433cd961f6",
+    "packages/model/src/types.ts": "0697f1f9f07415ed43e60abb255b1420eba024aeee386dd0fa39f44b254fcb1b",
+    "packages/loadtest/package.json": "7e83b030b1147c61d9ba5705214c83bb867761050d1200135d2d0fbfa8d6e260",
+    "packages/server/package.json": "cadf1943e750604a8ecad8fe0457df80c8788153320b4397d78e54a57acba9ad",
+    "packages/model/package.json": "e26215ec5e8196ca7f5e793fcb532b3c3b36b1d6999413d87e4cf68948d8e10f",
+    "pnpm-lock.yaml": "a54bdd8d67803939d8c9d54d4304f701b3514b0e660e3d1399cc96c7397e3604",
+    "packages/model/src/document.ts": "e84ddd3af30c8e433f4f1e30e594adec2c784d270d4bb56f43cbf3a395c27364",
+    "packages/model/src/geometry.ts": "2c187a2f81d891aff786090d8e812977e6b49fc2751d1730793eb31d4fc29662",
+    "packages/model/src/svg.ts": "4992f8f19de6819591442e32ab306647e35f21ecb64ffa4fc55d467ecf4ec3ae",
+    "packages/model/src/text-layout.ts": "eb16dcd0cf2842c2dcb70a42162e2b1422fa8f2bfd63d77772b5a9f56731114e",
+    "packages/model/src/undo-history.ts": "22a599fa9aa4ec4d44131cf06fce1ae483a994f83e044e9cb97d57d6c1238ff2"
+  },
+  "config": {
+    "durationSeconds": 10,
+    "clientCount": 40,
+    "clientProcesses": 8,
+    "clientsPerProcess": 5,
+    "opsPerSecond": 5,
+    "cursorHz": 20,
+    "boundedElements": 1280,
+    "model": "WriterBoardDocument, default same-transaction clock ledger, undo:false"
+  },
+  "operations": 2000,
+  "acknowledged": 2000,
+  "cursorUpdates": 8000,
+  "documentUpdates": 2000,
+  "documentAcknowledgements": 2000,
+  "disconnects": 0,
+  "maxSchedulerLagMs": 60.387792000000445,
+  "actualOpsPerClientPerSecond": 4.999500049995,
+  "actualCursorsPerClientPerSecond": 19.99800019998,
+  "roundTripMs": {
+    "p50": 5.829666999999972,
+    "p95": 19.641625000000204,
+    "p99": 39.996458000000075,
+    "max": 64.7502499999996
+  },
+  "cpuPctOneCore": {
+    "mean": 9.886786799426348,
+    "p95": 14.875072661139582,
+    "max": 14.875072661139582
+  },
+  "memory": {
+    "firstRss": 145899520,
+    "lastRss": 149045248,
+    "peakRss": 149045248,
+    "rssSlopeMiBPerMinuteAfterWarmup": 34.47355171076961,
+    "heapSlopeMiBPerMinuteAfterWarmup": -15.102581527330022,
+    "warmupSeconds": 0
+  },
+  "traffic": {
+    "sentBytes": 3088866,
+    "receivedBytes": 116843120,
+    "sentMessages": 10000,
+    "receivedMessages": 71360,
+    "awarenessSent": 8000,
+    "awarenessReceived": 57280,
+    "sentBytesPerSecond": 308855.71442855714,
+    "receivedBytesPerSecond": 11683143.685631437,
+    "awarenessMessagesPerSecond": 799.9200079992002
+  },
+  "converged": true,
+  "snapshot": {
+    "type": "snapshot",
+    "documents": [
+      {
+        "name": "s3-writer-board",
+        "elements": 1280,
+        "encodedBytes": 1427065,
+        "hash": "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      }
+    ]
+  },
+  "clientHashes": [
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+    "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+  ],
+  "samples": [
+    {
+      "type": "sample",
+      "at": 1790670176691,
+      "elapsedMs": 6021.53025,
+      "cpuPctOneCore": 14.875072661139582,
+      "rss": 145899520,
+      "heapTotal": 58261504,
+      "heapUsed": 31332504,
+      "external": 7486399,
+      "arrayBuffers": 3135903,
+      "changes": 1000,
+      "awarenessMessages": 4000,
+      "inboundMessages": 5000,
+      "inboundBytes": 1537668,
+      "documentStats": [
+        {
+          "name": "s3-writer-board",
+          "writerArrays": 41,
+          "retainedStructs": 1960,
+          "deletedStructs": 960
+        }
+      ]
+    },
+    {
+      "type": "sample",
+      "at": 1790670181693,
+      "elapsedMs": 5001.331625000001,
+      "cpuPctOneCore": 14.655216949345961,
+      "rss": 149045248,
+      "heapTotal": 61407232,
+      "heapUsed": 29880456,
+      "external": 7201715,
+      "arrayBuffers": 2851219,
+      "changes": 2000,
+      "awarenessMessages": 8000,
+      "inboundMessages": 10000,
+      "inboundBytes": 3088866,
+      "documentStats": [
+        {
+          "name": "s3-writer-board",
+          "writerArrays": 41,
+          "retainedStructs": 2840,
+          "deletedStructs": 1400
+        }
+      ]
+    },
+    {
+      "type": "sample",
+      "at": 1790670182087,
+      "elapsedMs": 394.4006250000002,
+      "cpuPctOneCore": 0.13007078779350303,
+      "rss": 149045248,
+      "heapTotal": 61407232,
+      "heapUsed": 30013224,
+      "external": 7201733,
+      "arrayBuffers": 2851237,
+      "changes": 2000,
+      "awarenessMessages": 8000,
+      "inboundMessages": 10000,
+      "inboundBytes": 3088866,
+      "documentStats": [
+        {
+          "name": "s3-writer-board",
+          "writerArrays": 41,
+          "retainedStructs": 2840,
+          "deletedStructs": 1400
+        }
+      ]
+    }
+  ],
+  "workers": [
+    {
+      "type": "done",
+      "workerIndex": 0,
+      "pid": 56090,
+      "startedAt": 1790670171690,
+      "endedAt": 1790670181691,
+      "operations": 250,
+      "acknowledged": 250,
+      "cursorUpdates": 1000,
+      "documentUpdates": 250,
+      "documentAcknowledgements": 250,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 33.17208399999981,
+      "traffic": {
+        "sentBytes": 384311,
+        "receivedBytes": 14605390,
+        "sentMessages": 1250,
+        "receivedMessages": 8920,
+        "awarenessSent": 1000,
+        "awarenessReceived": 7160
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 236634112,
+        "heapTotal": 126271488,
+        "heapUsed": 72363280,
+        "external": 6699172,
+        "arrayBuffers": 3659826
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-writer-2026-09-29T08-22-49.432Z.worker-0.latencies.f64le",
+      "hashes": [
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      ]
+    },
+    {
+      "type": "done",
+      "workerIndex": 1,
+      "pid": 56091,
+      "startedAt": 1790670171690,
+      "endedAt": 1790670181690,
+      "operations": 250,
+      "acknowledged": 250,
+      "cursorUpdates": 1000,
+      "documentUpdates": 250,
+      "documentAcknowledgements": 250,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 60.347875000000386,
+      "traffic": {
+        "sentBytes": 384190,
+        "receivedBytes": 14605390,
+        "sentMessages": 1250,
+        "receivedMessages": 8920,
+        "awarenessSent": 1000,
+        "awarenessReceived": 7160
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 241074176,
+        "heapTotal": 130727936,
+        "heapUsed": 79983032,
+        "external": 6704644,
+        "arrayBuffers": 3665298
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-writer-2026-09-29T08-22-49.432Z.worker-1.latencies.f64le",
+      "hashes": [
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      ]
+    },
+    {
+      "type": "done",
+      "workerIndex": 2,
+      "pid": 56092,
+      "startedAt": 1790670171690,
+      "endedAt": 1790670181690,
+      "operations": 250,
+      "acknowledged": 250,
+      "cursorUpdates": 1000,
+      "documentUpdates": 250,
+      "documentAcknowledgements": 250,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 48.593417000000045,
+      "traffic": {
+        "sentBytes": 386954,
+        "receivedBytes": 14605390,
+        "sentMessages": 1250,
+        "receivedMessages": 8920,
+        "awarenessSent": 1000,
+        "awarenessReceived": 7160
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 239124480,
+        "heapTotal": 128368640,
+        "heapUsed": 75200936,
+        "external": 7079938,
+        "arrayBuffers": 4040592
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-writer-2026-09-29T08-22-49.432Z.worker-2.latencies.f64le",
+      "hashes": [
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      ]
+    },
+    {
+      "type": "done",
+      "workerIndex": 3,
+      "pid": 56093,
+      "startedAt": 1790670171690,
+      "endedAt": 1790670181690,
+      "operations": 250,
+      "acknowledged": 250,
+      "cursorUpdates": 1000,
+      "documentUpdates": 250,
+      "documentAcknowledgements": 250,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 36.952124999999796,
+      "traffic": {
+        "sentBytes": 386040,
+        "receivedBytes": 14605390,
+        "sentMessages": 1250,
+        "receivedMessages": 8920,
+        "awarenessSent": 1000,
+        "awarenessReceived": 7160
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 237486080,
+        "heapTotal": 126271488,
+        "heapUsed": 75963064,
+        "external": 6699172,
+        "arrayBuffers": 3659826
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-writer-2026-09-29T08-22-49.432Z.worker-3.latencies.f64le",
+      "hashes": [
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      ]
+    },
+    {
+      "type": "done",
+      "workerIndex": 4,
+      "pid": 56094,
+      "startedAt": 1790670171690,
+      "endedAt": 1790670181690,
+      "operations": 250,
+      "acknowledged": 250,
+      "cursorUpdates": 1000,
+      "documentUpdates": 250,
+      "documentAcknowledgements": 250,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 44.285665999999765,
+      "traffic": {
+        "sentBytes": 387019,
+        "receivedBytes": 14605390,
+        "sentMessages": 1250,
+        "receivedMessages": 8920,
+        "awarenessSent": 1000,
+        "awarenessReceived": 7160
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 237551616,
+        "heapTotal": 124960768,
+        "heapUsed": 71692064,
+        "external": 6705437,
+        "arrayBuffers": 3666091
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-writer-2026-09-29T08-22-49.432Z.worker-4.latencies.f64le",
+      "hashes": [
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      ]
+    },
+    {
+      "type": "done",
+      "workerIndex": 5,
+      "pid": 56095,
+      "startedAt": 1790670171690,
+      "endedAt": 1790670181690,
+      "operations": 250,
+      "acknowledged": 250,
+      "cursorUpdates": 1000,
+      "documentUpdates": 250,
+      "documentAcknowledgements": 250,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 60.387792000000445,
+      "traffic": {
+        "sentBytes": 386814,
+        "receivedBytes": 14605390,
+        "sentMessages": 1250,
+        "receivedMessages": 8920,
+        "awarenessSent": 1000,
+        "awarenessReceived": 7160
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 227803136,
+        "heapTotal": 118669312,
+        "heapUsed": 72743296,
+        "external": 6588928,
+        "arrayBuffers": 3549582
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-writer-2026-09-29T08-22-49.432Z.worker-5.latencies.f64le",
+      "hashes": [
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      ]
+    },
+    {
+      "type": "done",
+      "workerIndex": 6,
+      "pid": 56096,
+      "startedAt": 1790670171690,
+      "endedAt": 1790670181690,
+      "operations": 250,
+      "acknowledged": 250,
+      "cursorUpdates": 1000,
+      "documentUpdates": 250,
+      "documentAcknowledgements": 250,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 39.98820799999976,
+      "traffic": {
+        "sentBytes": 386948,
+        "receivedBytes": 14605390,
+        "sentMessages": 1250,
+        "receivedMessages": 8920,
+        "awarenessSent": 1000,
+        "awarenessReceived": 7160
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 230670336,
+        "heapTotal": 119980032,
+        "heapUsed": 65867256,
+        "external": 6568764,
+        "arrayBuffers": 3529418
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-writer-2026-09-29T08-22-49.432Z.worker-6.latencies.f64le",
+      "hashes": [
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      ]
+    },
+    {
+      "type": "done",
+      "workerIndex": 7,
+      "pid": 56097,
+      "startedAt": 1790670171690,
+      "endedAt": 1790670181690,
+      "operations": 250,
+      "acknowledged": 250,
+      "cursorUpdates": 1000,
+      "documentUpdates": 250,
+      "documentAcknowledgements": 250,
+      "disconnects": 0,
+      "maxSchedulerLagMs": 36.95987500000001,
+      "traffic": {
+        "sentBytes": 386590,
+        "receivedBytes": 14605390,
+        "sentMessages": 1250,
+        "receivedMessages": 8920,
+        "awarenessSent": 1000,
+        "awarenessReceived": 7160
+      },
+      "pendingPackets": 0,
+      "memory": {
+        "rss": 229015552,
+        "heapTotal": 118669312,
+        "heapUsed": 72980576,
+        "external": 6651479,
+        "arrayBuffers": 3612133
+      },
+      "latencyFile": "/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-writer-2026-09-29T08-22-49.432Z.worker-7.latencies.f64le",
+      "hashes": [
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166",
+        "ea365c4030844f113dfd5495700328687d32c5acb94617c7ca579a7f9e863166"
+      ]
+    }
+  ],
+  "gate": {
+    "duration": false,
+    "workload": true,
+    "latency": true,
+    "cpu": true,
+    "memory": false,
+    "acknowledgements": true,
+    "serverObservedWorkload": true,
+    "converged": true
+  },
+  "methodology": {
+    "roundTrip": "Gesture start until every generated provider document update is successfully acknowledged by SyncStatus, including clock ledger writes.",
+    "cpu": "Dedicated child server process user+system CPU delta, percentage of one logical core; first sample includes one-second scheduled-start idle period.",
+    "memory": "Five-second RSS, used heap, and retained/deleted struct samples. After five-minute warmup both RSS and used-heap slopes must be below 1 MiB/min in absolute value, with raw structural trace reviewed.",
+    "traffic": "Aggregate WebSocket application payload bytes, excluding TCP/TLS/frame headers.",
+    "clients": "8 processes each hold 5 full independent Y.Doc/provider/socket clients, each 1 GiB V8 heap cap. Server is a ninth isolated process. Distributed client heaps avoid the failed baseline single-heap GC bottleneck without reducing workload.",
+    "target": "User-selected Apple M1 Pro Mac; local network path.",
+    "limitations": "Fixed 40 writer identities. This does not establish bounded storage under indefinitely accumulating new/offline writer identities; no identity reset or retirement is performed."
+  }
+}

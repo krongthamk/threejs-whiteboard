@@ -1,0 +1,28 @@
+{
+  "name": "@whiteboard/app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5174 --strictPort"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/inter": "5.3.0",
+    "@hocuspocus/provider": "4.7.0",
+    "@whiteboard/model": "workspace:*",
+    "@whiteboard/renderer": "workspace:*",
+    "fractional-indexing": "3.2.0",
+    "jspdf": "4.2.1",
+    "lucide-react": "1.48.0",
+    "rbush": "4.0.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "svg2pdf.js": "2.8.1",
+    "y-indexeddb": "9.0.12",
+    "y-protocols": "1.0.7",
+    "yjs": "13.6.33",
+    "zustand": "5.0.15"
+  }
+}

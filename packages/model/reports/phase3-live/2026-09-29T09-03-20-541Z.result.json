@@ -1,0 +1,71 @@
+{
+  "startedAt": "2026-09-29T09:03:20.541Z",
+  "seed": 334462,
+  "requestedPairs": 50,
+  "requestedOfflineMs": 100,
+  "node": "v26.8.1",
+  "sourceHashes": {
+    "packages/model/src/document.ts": "b32785985f5fd1da46ebdbb62e1df0b0ec857328896d5ee4ac1b3975a5b3eb0c",
+    "packages/model/src/schema.ts": "4a53a3d9a54c2ad229cf100c51128314bd1ac377a2e6cd27125082433cd961f6",
+    "packages/model/src/geometry.ts": "2c187a2f81d891aff786090d8e812977e6b49fc2751d1730793eb31d4fc29662",
+    "packages/server/src/server.ts": "9c7414d8ba1419cede2018f65327252b807271457ad63e1a18ce9d6191705df8",
+    "packages/server/src/store.ts": "ceec27946e48df3c490cc36f9dacfd2af79b12e83d1913001b991bb6dd2348df",
+    "packages/loadtest/src/live-model-fuzz.ts": "ffe9f149a41bbe1e3f13626102c25237180f8010401a8e8664bd24644a97f21b",
+    "pnpm-lock.yaml": "6860bf743dbd48a811494b85c98df1d1a7daa3765bcbaa45258d5e7288f2626c"
+  },
+  "passed": true,
+  "acceptanceRun": false,
+  "concurrentPairs": 50,
+  "authenticatedUsers": 3,
+  "operations": 100,
+  "operationCounts": {
+    "style": 9,
+    "multi-element gesture": 7,
+    "stroke": 12,
+    "create": 8,
+    "text": 7,
+    "position": 11,
+    "binding": 9,
+    "order": 7,
+    "rotate": 6,
+    "delete": 6,
+    "image": 6,
+    "move": 3,
+    "undo": 5,
+    "resize": 4
+  },
+  "validatedElements": 4488,
+  "invalidElements": 0,
+  "divergentPairs": 0,
+  "offlineMeasuredMs": 101.01016700000002,
+  "fuzzDurationMs": 323,
+  "durationMs": 863,
+  "scenarios": [
+    "real provisioning, HTTP sessions and membership authorization",
+    "independent move/recolor with per-user undo and redo",
+    "newer peer value survives local undo and stale redo",
+    "undoing a concurrent winning register reveals peer value",
+    "delete/remote-move restoration with repeated native history",
+    "measured socket-offline interval merges local and both peer edits after reconnect",
+    "SQLite snapshot/log reload preserves exact raw and semantic state"
+  ],
+  "finalElements": 35,
+  "finalHash": "baf80b557a803aaa0f1430c6d9be618a8b96734dfb915f4d4d1f234ef26bf6ec",
+  "persistedSnapshotBytes": 39063,
+  "storage": {
+    "updateCount": 134,
+    "updateBytes": 40108,
+    "snapshotBytes": 105
+  },
+  "serverMetrics": {
+    "updates": 134,
+    "awareness": 4,
+    "persistedUpdates": 134,
+    "persistenceMs": 42.730545999999435,
+    "compactions": 0,
+    "windowAt": 1790672600896,
+    "windowUpdates": 134,
+    "windowAwareness": 4
+  },
+  "artifactStem": "packages/model/reports/phase3-live/2026-09-29T09-03-20-541Z"
+}

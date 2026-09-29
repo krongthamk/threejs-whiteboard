@@ -1,0 +1,182 @@
+(node:67023) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67031) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67035) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67034) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67037) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67033) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67032) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67036) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67038) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"event":"started","stem":"/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T09-06-44.867Z","type":"start","startedAt":1790672810318,"durationSeconds":1800,"clientCount":40,"clientProcesses":8,"clientsPerProcess":5,"opsPerSecond":5,"cursorHz":20,"serverPid":67023,"model":"Production BoardDocument, default same-transaction clock ledger, undo:false","workload":"1280 bounded elements; 60% 48-point pressure stroke replacement, 20% x/y movement, 20% recolor; complete model styles and stamped field/base records"}
+{"event":"progress","elapsedSeconds":60,"operations":11040,"acknowledged":11020,"latestSample":{"type":"sample","at":1790672865340,"elapsedMs":5003.054625000004,"cpuPctOneCore":31.08944667978712,"rss":234029056,"heapTotal":100204544,"heapUsed":40538552,"external":8347684,"arrayBuffers":4007997,"changes":11021,"awarenessMessages":44021,"inboundMessages":55042,"inboundBytes":18338188,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":11101,"awareness":44101,"persistedUpdates":11101,"persistenceMs":6553.948041000025,"compactions":1,"windowAt":1790672806267,"windowUpdates":11101,"windowAwareness":44101},"storage":{"updateCount":5249,"updateBytes":4418674,"snapshotBytes":1656554}}}}
+{"event":"progress","elapsedSeconds":120,"operations":23040,"acknowledged":23034,"latestSample":{"type":"sample","at":1790672925418,"elapsedMs":5050.668916999988,"cpuPctOneCore":37.14153572185148,"rss":226508800,"heapTotal":98631680,"heapUsed":54722176,"external":9595553,"arrayBuffers":5255866,"changes":23040,"awarenessMessages":92075,"inboundMessages":115115,"inboundBytes":38369098,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":23120,"awareness":92155,"persistedUpdates":23120,"persistenceMs":18604.419277999645,"compactions":3,"windowAt":1790672866269,"windowUpdates":11840,"windowAwareness":47315},"storage":{"updateCount":4783,"updateBytes":4004458,"snapshotBytes":1658206}}}}
+{"event":"progress","elapsedSeconds":180,"operations":35040,"acknowledged":35040,"latestSample":{"type":"sample","at":1790672985415,"elapsedMs":5053.042165999999,"cpuPctOneCore":32.205648528918296,"rss":227311616,"heapTotal":98631680,"heapUsed":37852088,"external":8853357,"arrayBuffers":4513662,"changes":35040,"awarenessMessages":140074,"inboundMessages":175114,"inboundBytes":58365722,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":35120,"awareness":140154,"persistedUpdates":35120,"persistenceMs":31619.515406000333,"compactions":5,"windowAt":1790672926270,"windowUpdates":11840,"windowAwareness":47313},"storage":{"updateCount":4240,"updateBytes":3566338,"snapshotBytes":1660730}}}}
+{"event":"progress","elapsedSeconds":240.001,"operations":47060,"acknowledged":47048,"latestSample":{"type":"sample","at":1790673045397,"elapsedMs":5005.963541999983,"cpuPctOneCore":29.017870142530995,"rss":227786752,"heapTotal":97845248,"heapUsed":43331216,"external":8924749,"arrayBuffers":4585054,"changes":47040,"awarenessMessages":188080,"inboundMessages":235120,"inboundBytes":78365331,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":47120,"awareness":188160,"persistedUpdates":47120,"persistenceMs":43561.006157000425,"compactions":7,"windowAt":1790672986272,"windowUpdates":11840,"windowAwareness":47315},"storage":{"updateCount":3746,"updateBytes":3129018,"snapshotBytes":1665304}}}}
+{"event":"progress","elapsedSeconds":300.001,"operations":59060,"acknowledged":59059,"latestSample":{"type":"sample","at":1790673105415,"elapsedMs":4999.751290999993,"cpuPctOneCore":31.31773780065017,"rss":227901440,"heapTotal":98107392,"heapUsed":28165536,"external":7993391,"arrayBuffers":3653696,"changes":59040,"awarenessMessages":236080,"inboundMessages":295120,"inboundBytes":98364428,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":59120,"awareness":236160,"persistedUpdates":59120,"persistenceMs":55596.60658299925,"compactions":9,"windowAt":1790673046273,"windowUpdates":11840,"windowAwareness":47310},"storage":{"updateCount":3213,"updateBytes":2689842,"snapshotBytes":1667490}}}}
+{"event":"progress","elapsedSeconds":360.002,"operations":71060,"acknowledged":71060,"latestSample":{"type":"sample","at":1790673165425,"elapsedMs":4999.220542000025,"cpuPctOneCore":30.089090636481718,"rss":232472576,"heapTotal":98369536,"heapUsed":29155296,"external":8124318,"arrayBuffers":3784623,"changes":71040,"awarenessMessages":284115,"inboundMessages":355155,"inboundBytes":118371034,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":71120,"awareness":284195,"persistedUpdates":71120,"persistenceMs":67139.38316599923,"compactions":11,"windowAt":1790673106274,"windowUpdates":11840,"windowAwareness":47335},"storage":{"updateCount":2663,"updateBytes":2252196,"snapshotBytes":1661791}}}}
+{"event":"progress","elapsedSeconds":420.003,"operations":83070,"acknowledged":83065,"latestSample":{"type":"sample","at":1790673225432,"elapsedMs":5000.750624999986,"cpuPctOneCore":31.95302305241435,"rss":237928448,"heapTotal":99418112,"heapUsed":33635832,"external":8676292,"arrayBuffers":4336597,"changes":83040,"awarenessMessages":332120,"inboundMessages":415160,"inboundBytes":138372981,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":83120,"awareness":332200,"persistedUpdates":83120,"persistenceMs":81298.05219699707,"compactions":13,"windowAt":1790673166276,"windowUpdates":11840,"windowAwareness":47330},"storage":{"updateCount":2173,"updateBytes":1813676,"snapshotBytes":1654712}}}}
+{"event":"progress","elapsedSeconds":480.004,"operations":95075,"acknowledged":95070,"latestSample":{"type":"sample","at":1790673285439,"elapsedMs":5000.163082999992,"cpuPctOneCore":27.79475342964533,"rss":241696768,"heapTotal":98369536,"heapUsed":48461768,"external":9069117,"arrayBuffers":4729422,"changes":95040,"awarenessMessages":380120,"inboundMessages":475160,"inboundBytes":158376024,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":95120,"awareness":380200,"persistedUpdates":95120,"persistenceMs":89863.90771799724,"compactions":15,"windowAt":1790673226320,"windowUpdates":11840,"windowAwareness":47320},"storage":{"updateCount":1626,"updateBytes":1376955,"snapshotBytes":1656138}}}}
+{"event":"progress","elapsedSeconds":540.004,"operations":107075,"acknowledged":107070,"latestSample":{"type":"sample","at":1790673345444,"elapsedMs":5000.519124999992,"cpuPctOneCore":27.618892468489502,"rss":241713152,"heapTotal":96796672,"heapUsed":45523120,"external":9016609,"arrayBuffers":4676914,"changes":107040,"awarenessMessages":428120,"inboundMessages":535160,"inboundBytes":178375460,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":107120,"awareness":428200,"persistedUpdates":107120,"persistenceMs":98132.55197599533,"compactions":17,"windowAt":1790673286321,"windowUpdates":11839,"windowAwareness":47319},"storage":{"updateCount":1081,"updateBytes":939104,"snapshotBytes":1656690}}}}
+{"event":"progress","elapsedSeconds":600.004,"operations":119075,"acknowledged":119070,"latestSample":{"type":"sample","at":1790673405447,"elapsedMs":5000.384916999959,"cpuPctOneCore":30.965076203152876,"rss":241352704,"heapTotal":95748096,"heapUsed":34222640,"external":8625881,"arrayBuffers":4286186,"changes":119040,"awarenessMessages":476120,"inboundMessages":595160,"inboundBytes":198376413,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":119120,"awareness":476200,"persistedUpdates":119120,"persistenceMs":105612.10369699835,"compactions":19,"windowAt":1790673346322,"windowUpdates":11839,"windowAwareness":47320},"storage":{"updateCount":596,"updateBytes":501749,"snapshotBytes":1659486}}}}
+{"event":"progress","elapsedSeconds":660.005,"operations":131075,"acknowledged":131073,"latestSample":{"type":"sample","at":1790673465452,"elapsedMs":5000.600041999947,"cpuPctOneCore":33.02403683817786,"rss":244973568,"heapTotal":95485952,"heapUsed":38660400,"external":8830426,"arrayBuffers":4490731,"changes":131040,"awarenessMessages":524120,"inboundMessages":655160,"inboundBytes":218374041,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":131120,"awareness":524200,"persistedUpdates":131120,"persistenceMs":113524.35817100367,"compactions":21,"windowAt":1790673406323,"windowUpdates":11839,"windowAwareness":47319},"storage":{"updateCount":53,"updateBytes":63848,"snapshotBytes":1662319}}}}
+{"event":"progress","elapsedSeconds":720.005,"operations":143075,"acknowledged":143075,"latestSample":{"type":"sample","at":1790673525460,"elapsedMs":5000.8440420000115,"cpuPctOneCore":29.236884568294975,"rss":244219904,"heapTotal":97845248,"heapUsed":47555952,"external":9032727,"arrayBuffers":4693032,"changes":143040,"awarenessMessages":572120,"inboundMessages":715160,"inboundBytes":238374264,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":143120,"awareness":572200,"persistedUpdates":143120,"persistenceMs":121015.18506000799,"compactions":22,"windowAt":1790673466324,"windowUpdates":11837,"windowAwareness":47318},"storage":{"updateCount":5806,"updateBytes":4869698,"snapshotBytes":1655738}}}}
+{"event":"progress","elapsedSeconds":780.006,"operations":155075,"acknowledged":155075,"latestSample":{"type":"sample","at":1790673585468,"elapsedMs":5000.740958999959,"cpuPctOneCore":30.235319373598703,"rss":233570304,"heapTotal":98893824,"heapUsed":47508080,"external":9451527,"arrayBuffers":5111832,"changes":155040,"awarenessMessages":620120,"inboundMessages":775160,"inboundBytes":258407832,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":155120,"awareness":620200,"persistedUpdates":155120,"persistenceMs":129405.5465200071,"compactions":24,"windowAt":1790673526325,"windowUpdates":11838,"windowAwareness":47318},"storage":{"updateCount":5277,"updateBytes":4469159,"snapshotBytes":1658446}}}}
+{"event":"progress","elapsedSeconds":840.007,"operations":167090,"acknowledged":167075,"latestSample":{"type":"sample","at":1790673645476,"elapsedMs":5000.347999999998,"cpuPctOneCore":28.934206179249934,"rss":229834752,"heapTotal":97845248,"heapUsed":32574640,"external":8269191,"arrayBuffers":3929496,"changes":167040,"awarenessMessages":668156,"inboundMessages":835196,"inboundBytes":278461400,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":167120,"awareness":668236,"persistedUpdates":167120,"persistenceMs":136786.0198210094,"compactions":26,"windowAt":1790673586327,"windowUpdates":11837,"windowAwareness":47354},"storage":{"updateCount":4825,"updateBytes":4070230,"snapshotBytes":1660070}}}}
+{"event":"progress","elapsedSeconds":900.007,"operations":179090,"acknowledged":179085,"latestSample":{"type":"sample","at":1790673705475,"elapsedMs":5000.195666999905,"cpuPctOneCore":31.086963461424666,"rss":231882752,"heapTotal":98369536,"heapUsed":33470928,"external":8300513,"arrayBuffers":3960818,"changes":179040,"awarenessMessages":716140,"inboundMessages":895180,"inboundBytes":298542442,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":179120,"awareness":716220,"persistedUpdates":179120,"persistenceMs":143815.946825007,"compactions":28,"windowAt":1790673646328,"windowUpdates":11835,"windowAwareness":47336},"storage":{"updateCount":4375,"updateBytes":3670858,"snapshotBytes":1662370}}}}
+{"event":"progress","elapsedSeconds":960.026,"operations":191095,"acknowledged":189098,"latestSample":{"type":"sample","at":1790673750480,"elapsedMs":4314.521334000048,"cpuPctOneCore":38.53720659340194,"rss":245678080,"heapTotal":97583104,"heapUsed":31741768,"external":8320377,"arrayBuffers":3980682,"changes":188040,"awarenessMessages":752160,"inboundMessages":940200,"inboundBytes":313621948,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":188120,"awareness":752240,"persistedUpdates":188120,"persistenceMs":153639.57155100352,"compactions":30,"windowAt":1790673706329,"windowUpdates":8831,"windowAwareness":35352},"storage":{"updateCount":865,"updateBytes":753664,"snapshotBytes":1665950}}}}
+{"event":"progress","elapsedSeconds":1145.813,"operations":196600,"acknowledged":190258,"latestSample":{"type":"sample","at":1790673750480,"elapsedMs":4314.521334000048,"cpuPctOneCore":38.53720659340194,"rss":245678080,"heapTotal":97583104,"heapUsed":31741768,"external":8320377,"arrayBuffers":3980682,"changes":188040,"awarenessMessages":752160,"inboundMessages":940200,"inboundBytes":313621948,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":188120,"awareness":752240,"persistedUpdates":188120,"persistenceMs":153639.57155100352,"compactions":30,"windowAt":1790673706329,"windowUpdates":8831,"windowAwareness":35352},"storage":{"updateCount":865,"updateBytes":753664,"snapshotBytes":1665950}}}}
+{"event":"progress","elapsedSeconds":1207.143,"operations":240160,"acknowledged":192622,"latestSample":{"type":"sample","at":1790674014069,"elapsedMs":0.12391599989496171,"cpuPctOneCore":100.06778794111293,"rss":1017692160,"heapTotal":133758976,"heapUsed":44884920,"external":44215188,"arrayBuffers":39875493,"changes":206473,"awarenessMessages":800717,"inboundMessages":1007190,"inboundBytes":339477819,"documentStats":[{"name":"275bb57b-3118-4dac-b928-6a8145c9970a","writerArrays":40,"retainedStructs":3363,"deletedStructs":1720}],"persistence":{"metrics":{"updates":206553,"awareness":800797,"persistedUpdates":206553,"persistenceMs":367700.99648500176,"compactions":33,"windowAt":1790673956132,"windowUpdates":15339,"windowAwareness":36237},"storage":{"updateCount":598,"updateBytes":503160,"snapshotBytes":1659276}}}}
+{"event":"failed","stem":"/Users/mac/threejs-whiteboard/packages/loadtest/results/s3-production-2026-09-29T09-06-44.867Z","error":"Coordinator timeout"}
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: WebSocket was closed before the connection was established
+    at MeasuredSocket.close (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:319:7)
+    at HocuspocusProviderWebsocket.disconnect (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:517:19)
+    at HocuspocusProviderWebsocket.destroy (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:604:8)
+    at shutdown (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:60:144)
+    at process.<anonymous> (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:113:38)
+    at process.emit (node:events:514:20)
+    at emit (node:internal/child_process:973:14)
+    at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+Emitted 'error' event on MeasuredSocket instance at:
+    at emitErrorAndClose (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:1074:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v26.8.1
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: WebSocket was closed before the connection was established
+    at MeasuredSocket.close (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:319:7)
+    at HocuspocusProviderWebsocket.disconnect (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:517:19)
+    at HocuspocusProviderWebsocket.destroy (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:604:8)
+    at shutdown (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:60:144)
+    at process.<anonymous> (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:113:38)
+    at process.emit (node:events:514:20)
+    at emit (node:internal/child_process:973:14)
+    at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+Emitted 'error' event on MeasuredSocket instance at:
+    at emitErrorAndClose (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:1074:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v26.8.1
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: WebSocket was closed before the connection was established
+    at MeasuredSocket.close (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:319:7)
+    at HocuspocusProviderWebsocket.disconnect (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:517:19)
+    at HocuspocusProviderWebsocket.destroy (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:604:8)
+    at shutdown (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:60:144)
+    at process.<anonymous> (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:113:38)
+    at process.emit (node:events:514:20)
+    at emit (node:internal/child_process:973:14)
+    at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+Emitted 'error' event on MeasuredSocket instance at:
+    at emitErrorAndClose (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:1074:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v26.8.1
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: WebSocket was closed before the connection was established
+    at MeasuredSocket.close (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:319:7)
+    at HocuspocusProviderWebsocket.disconnect (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:517:19)
+    at HocuspocusProviderWebsocket.destroy (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:604:8)
+    at shutdown (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:60:144)
+    at process.<anonymous> (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:113:38)
+    at process.emit (node:events:514:20)
+    at emit (node:internal/child_process:973:14)
+    at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+Emitted 'error' event on MeasuredSocket instance at:
+    at emitErrorAndClose (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:1074:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v26.8.1
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: WebSocket was closed before the connection was established
+    at MeasuredSocket.close (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:319:7)
+    at HocuspocusProviderWebsocket.disconnect (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:517:19)
+    at HocuspocusProviderWebsocket.destroy (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:604:8)
+    at shutdown (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:60:144)
+    at process.<anonymous> (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:113:38)
+    at process.emit (node:events:514:20)
+    at emit (node:internal/child_process:973:14)
+    at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+Emitted 'error' event on MeasuredSocket instance at:
+    at emitErrorAndClose (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:1074:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v26.8.1
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: WebSocket was closed before the connection was established
+    at MeasuredSocket.close (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:319:7)
+    at HocuspocusProviderWebsocket.disconnect (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:517:19)
+    at HocuspocusProviderWebsocket.destroy (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:604:8)
+    at shutdown (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:60:144)
+    at process.<anonymous> (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:113:38)
+    at process.emit (node:events:514:20)
+    at emit (node:internal/child_process:973:14)
+    at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+Emitted 'error' event on MeasuredSocket instance at:
+    at emitErrorAndClose (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:1074:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v26.8.1
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: WebSocket was closed before the connection was established
+    at MeasuredSocket.close (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:319:7)
+    at HocuspocusProviderWebsocket.disconnect (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:517:19)
+    at HocuspocusProviderWebsocket.destroy (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:604:8)
+    at shutdown (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:60:144)
+    at process.<anonymous> (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:113:38)
+    at process.emit (node:events:514:20)
+    at emit (node:internal/child_process:973:14)
+    at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+Emitted 'error' event on MeasuredSocket instance at:
+    at emitErrorAndClose (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:1074:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v26.8.1
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: WebSocket was closed before the connection was established
+    at MeasuredSocket.close (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:319:7)
+    at HocuspocusProviderWebsocket.disconnect (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:517:19)
+    at HocuspocusProviderWebsocket.destroy (/Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+provider@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/provider/src/HocuspocusProviderWebsocket.ts:604:8)
+    at shutdown (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:60:144)
+    at process.<anonymous> (/Users/mac/threejs-whiteboard/packages/loadtest/src/production-client-worker.ts:113:38)
+    at process.emit (node:events:514:20)
+    at emit (node:internal/child_process:973:14)
+    at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+Emitted 'error' event on MeasuredSocket instance at:
+    at emitErrorAndClose (/Users/mac/threejs-whiteboard/node_modules/.pnpm/ws@8.22.0/node_modules/ws/lib/websocket.js:1074:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v26.8.1

@@ -1,0 +1,112 @@
+
+ RUN  v5.0.2 /Users/mac/threejs-whiteboard
+
+(node:94983) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94981) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94985) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94980) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94979) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94982) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94984) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/model/test/deleted-history.test.ts (5 tests) 42ms
+ ✓ packages/app/src/clipboard-model.test.ts (5 tests) 57ms
+ ✓ packages/server/src/static.test.ts (2 tests) 162ms
+ ✓ packages/model/test/model.test.ts (20 tests) 291ms
+stdout | packages/model/test/writer-storage.test.ts > fails closed after Yjs changes the writer client ID, including undo and redo
+[yjs] Changed the client-id because another client seems to be using it.
+
+ ✓ packages/model/test/writer-storage.test.ts (8 tests) 372ms
+(node:94986) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/model/test/text-layout.test.ts (9 tests) 16ms
+(node:94987) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94988) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/renderer/src/text-atlas.test.ts (3 tests) 6ms
+ ✓ packages/app/test/hit-test.test.ts (9 tests) 9ms
+(node:94990) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94988) [THREE_CJS_DEPRECATED] DeprecationWarning: `require("three")` is deprecated and will be removed.
+Replace `const THREE = require("three")` with `import * as THREE from "three"`.
+ ✓ packages/app/test/transform.test.ts (7 tests) 7ms
+ ✓ packages/app/test/stroke-input.test.ts (3 tests) 5ms
+stderr | packages/server/src/server.test.ts > real WebSocket edits persist, viewers cannot write, and revoked sessions cannot keep editing
+[beforeSync] Read-only changes require an authoritative reset
+
+stderr | packages/server/src/server.test.ts > real WebSocket edits persist, viewers cannot write, and revoked sessions cannot keep editing
+closing connection 89a5c534-1ce0-4e76-bab6-7a1ab1b13ffd (while handling bb84fd25-bc15-42d0-9aab-d6c9569151d4) because of exception Error: Read-only changes require an authoritative reset
+    at Object.beforeSync (/Users/mac/threejs-whiteboard/packages/server/src/server.ts:191:15)
+    at file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:1563:46
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at MessageReceiver.readSyncMessage (file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:251:19)
+    at MessageReceiver.apply (file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:190:5)
+    at Connection.processMessages (file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:460:6)
+    at file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:1056:4
+
+stderr | packages/server/src/server.test.ts > real WebSocket edits persist, viewers cannot write, and revoked sessions cannot keep editing
+[beforeHandleMessage] Session or membership changed
+
+stderr | packages/server/src/server.test.ts > real WebSocket edits persist, viewers cannot write, and revoked sessions cannot keep editing
+closing connection bfe35853-c68f-4878-8b42-c2370822d1c2 (while handling bb84fd25-bc15-42d0-9aab-d6c9569151d4) because of exception Error: Session or membership changed
+    at Object.beforeHandleMessage (/Users/mac/threejs-whiteboard/packages/server/src/server.ts:183:108)
+    at file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:1563:46
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at Connection.processMessages (file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:457:5)
+    at file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:1056:4
+
+stderr | packages/server/src/server.test.ts > live membership changes notify and reset editors; readonly offline edits cannot silently replay
+[beforeSync] Read-only changes require an authoritative reset
+
+stderr | packages/server/src/server.test.ts > live membership changes notify and reset editors; readonly offline edits cannot silently replay
+closing connection 58745d67-1550-46f5-88a5-719f3deadfc7 (while handling c66edb61-8c8d-4fac-9619-53dc972b4ee8) because of exception Error: Read-only changes require an authoritative reset
+    at Object.beforeSync (/Users/mac/threejs-whiteboard/packages/server/src/server.ts:191:15)
+    at file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:1563:46
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at MessageReceiver.readSyncMessage (file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:251:19)
+    at MessageReceiver.apply (file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:190:5)
+    at Connection.processMessages (file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:460:6)
+    at file:///Users/mac/threejs-whiteboard/node_modules/.pnpm/@hocuspocus+server@4.7.0_y-protocols@1.0.7_yjs@13.6.33__yjs@13.6.33/node_modules/@hocuspocus/server/dist/hocuspocus-server.esm.js:1056:4
+
+ ✓ packages/server/src/server.test.ts (13 tests) 41989ms
+   ✓ signed sessions, board membership, title updates, CSRF and logout use one ACL 629ms
+   ✓ assets require source read and target edit permissions, and copies retain the same bytes 373ms
+   ✓ real WebSocket edits persist, viewers cannot write, and revoked sessions cannot keep editing 613ms
+   ✓ HTTP logout immediately removes passive subscriptions for its exact token and invalidates queued writes 456ms
+   ✓ a passive authenticated socket is closed at the exact signed session expiry 927ms
+   ✓ live membership changes notify and reset editors; readonly offline edits cannot silently replay 428ms
+   ✓ real model converges under 1000 concurrent operation pairs and isolates peer changes from undo 1744ms
+   ✓ a measured 30-second offline interval retains local and remote edits on reconnect 30406ms
+   ✓ online backup restores accounts, board state and asset bytes into a fresh store 380ms
+   ✓ router preserves owner mapping, proxies HTTP and WebSockets, and fails closed while draining 412ms
+   ✓ SQLite WAL recovers committed edits after an abrupt server-process exit 806ms
+   ✓ sign-in permits forty distinct accounts behind one address while bounding failed attempts 4589ms
+stdout | packages/model/test/fuzz.test.ts > S2: 10,000 seeded concurrent operation pairs across three clients converge with zero invalid elements
+{"spike":"S2-schema2","completedPairs":1000,"durationMs":5980}
+{"spike":"S2-schema2","completedPairs":2000,"durationMs":13639}
+{"spike":"S2-schema2","completedPairs":3000,"durationMs":23576}
+{"spike":"S2-schema2","completedPairs":4000,"durationMs":34088}
+{"spike":"S2-schema2","completedPairs":5000,"durationMs":43395}
+{"spike":"S2-schema2","completedPairs":6000,"durationMs":54631}
+{"spike":"S2-schema2","completedPairs":7000,"durationMs":63531}
+{"spike":"S2-schema2","completedPairs":8000,"durationMs":72103}
+{"spike":"S2-schema2","completedPairs":9000,"durationMs":81794}
+{"spike":"S2-schema2","completedPairs":10000,"durationMs":93319}
+{"spike":"S2-schema2","seed":334462,"concurrentPairs":10000,"clients":3,"operations":20000,"validatedElements":946710,"invalidElements":0,"divergentPairs":0,"deliveredUpdates":47954,"operationCounts":{"style":1364,"delete":1328,"rotate":1361,"move":1302,"order":1246,"multi-element gesture":1336,"image":1327,"position":2656,"resize":1294,"stroke":1355,"undo":1320,"text":1396,"binding":1297,"create":1340,"redo":78},"durationMs":93320}
+
+ ✓ packages/model/test/fuzz.test.ts (1 test) 93326ms
+   ✓ S2: 10,000 seeded concurrent operation pairs across three clients converge with zero invalid elements 93322ms
+
+ Test Files  12 passed (12)
+      Tests  85 passed (85)
+   Start at  02:30:36
+   Duration  93.89s (tests 97%, import 2%, transform 1%)
+
+JSON report written to /Users/mac/threejs-whiteboard/docs/benchmarks/final/unit.json

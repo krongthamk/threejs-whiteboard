@@ -1,0 +1,76 @@
+{
+  "sampleCount": 361,
+  "maxSamplingGapMs": 6020.870959,
+  "warmRetainedStructRange": [
+    3240,
+    3240
+  ],
+  "warmDeletedStructRange": [
+    1600,
+    1600
+  ],
+  "windows": [
+    {
+      "minutes": [
+        5,
+        10
+      ],
+      "samples": 60,
+      "rssMedianMiB": 173.359375,
+      "rssMinMiB": 163.734375,
+      "rssMaxMiB": 176.796875,
+      "heapMedianMiB": 35.88874053955078,
+      "heapMinMiB": 21.248703002929688
+    },
+    {
+      "minutes": [
+        10,
+        15
+      ],
+      "samples": 60,
+      "rssMedianMiB": 175.3671875,
+      "rssMinMiB": 173.4375,
+      "rssMaxMiB": 176.859375,
+      "heapMedianMiB": 38.20787811279297,
+      "heapMinMiB": 23.553207397460938
+    },
+    {
+      "minutes": [
+        15,
+        20
+      ],
+      "samples": 60,
+      "rssMedianMiB": 171.0390625,
+      "rssMinMiB": 166.6875,
+      "rssMaxMiB": 175.953125,
+      "heapMedianMiB": 35.857154846191406,
+      "heapMinMiB": 23.30469512939453
+    },
+    {
+      "minutes": [
+        20,
+        25
+      ],
+      "samples": 60,
+      "rssMedianMiB": 170.4453125,
+      "rssMinMiB": 163.125,
+      "rssMaxMiB": 174.984375,
+      "heapMedianMiB": 33.992820739746094,
+      "heapMinMiB": 22.296722412109375
+    },
+    {
+      "minutes": [
+        25,
+        30
+      ],
+      "samples": 60,
+      "rssMedianMiB": 173.25,
+      "rssMinMiB": 158.46875,
+      "rssMaxMiB": 175.65625,
+      "heapMedianMiB": 36.31810760498047,
+      "heapMinMiB": 21.262344360351562
+    }
+  ],
+  "maxSchedulerLagMs": 815.562542000087,
+  "scope": "Per-window numeric trace review; GC sawtooth floors and medians remain bounded. Writer/deletion structs plateau; no missing five-second interval."
+}

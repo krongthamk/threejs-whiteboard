@@ -1,0 +1,262 @@
+{
+  "timestamp": "2026-09-29T18:21:02.029Z",
+  "browser": "154.0.8037.58",
+  "result": [
+    {
+      "variant": "baseline",
+      "fps": 60.00200006666889,
+      "cpu": {
+        "median": 8.200000002980232,
+        "p95": 8.699999988079071
+      },
+      "methods": {
+        "presenceZoom": {
+          "median": 0,
+          "p95": 0
+        },
+        "imagesVisible": {
+          "median": 0,
+          "p95": 0.09999999403953552
+        },
+        "visibleTexts": {
+          "median": 0.29999999701976776,
+          "p95": 0.3999999910593033
+        },
+        "webglRender": {
+          "median": 7.899999991059303,
+          "p95": 8.400000005960464
+        }
+      },
+      "stats": {
+        "calls": 511,
+        "triangles": 144289,
+        "geometries": 511,
+        "textures": 1,
+        "elements": 7500,
+        "shapeInstances": 5000,
+        "strokeChunks": 8,
+        "strokeChunkRebuilds": 8,
+        "textInstances": 500,
+        "visibleTexts": 500,
+        "pendingTexts": 0,
+        "textErrors": 0,
+        "presencePeers": 0,
+        "presenceLabels": 0,
+        "pendingPresenceLabels": 0,
+        "presenceErrors": 0,
+        "imageInstances": 0,
+        "visibleImages": 0,
+        "pendingImages": 0,
+        "imageErrors": 0
+      }
+    },
+    {
+      "variant": "presence-fixed-zoom",
+      "fps": 60.00200006666889,
+      "cpu": {
+        "median": 11.299999997019768,
+        "p95": 12
+      },
+      "methods": {
+        "presenceZoom": {
+          "median": 0,
+          "p95": 0
+        },
+        "imagesVisible": {
+          "median": 0,
+          "p95": 0
+        },
+        "visibleTexts": {
+          "median": 0.29999999701976776,
+          "p95": 0.4000000059604645
+        },
+        "webglRender": {
+          "median": 10.900000005960464,
+          "p95": 11.599999994039536
+        },
+        "presenceSet": {
+          "median": 0,
+          "p95": 0.10000000894069672
+        }
+      },
+      "stats": {
+        "calls": 831,
+        "triangles": 148729,
+        "geometries": 633,
+        "textures": 1,
+        "elements": 7500,
+        "shapeInstances": 5000,
+        "strokeChunks": 8,
+        "strokeChunkRebuilds": 16,
+        "textInstances": 500,
+        "visibleTexts": 500,
+        "pendingTexts": 0,
+        "textErrors": 0,
+        "presencePeers": 40,
+        "presenceLabels": 80,
+        "pendingPresenceLabels": 0,
+        "presenceErrors": 0,
+        "imageInstances": 0,
+        "visibleImages": 0,
+        "pendingImages": 0,
+        "imageErrors": 0
+      }
+    },
+    {
+      "variant": "presence-zoom",
+      "fps": 60.00400026668446,
+      "cpu": {
+        "median": 11.5,
+        "p95": 12.100000008940697
+      },
+      "methods": {
+        "presenceZoom": {
+          "median": 0.20000000298023224,
+          "p95": 0.29999999701976776
+        },
+        "imagesVisible": {
+          "median": 0,
+          "p95": 0
+        },
+        "visibleTexts": {
+          "median": 0.29999999701976776,
+          "p95": 0.4000000059604645
+        },
+        "webglRender": {
+          "median": 11,
+          "p95": 11.700000002980232
+        },
+        "presenceSet": {
+          "median": 0,
+          "p95": 0.10000000894069672
+        }
+      },
+      "stats": {
+        "calls": 831,
+        "triangles": 148729,
+        "geometries": 633,
+        "textures": 1,
+        "elements": 7500,
+        "shapeInstances": 5000,
+        "strokeChunks": 8,
+        "strokeChunkRebuilds": 24,
+        "textInstances": 500,
+        "visibleTexts": 500,
+        "pendingTexts": 0,
+        "textErrors": 0,
+        "presencePeers": 40,
+        "presenceLabels": 80,
+        "pendingPresenceLabels": 0,
+        "presenceErrors": 0,
+        "imageInstances": 0,
+        "visibleImages": 0,
+        "pendingImages": 0,
+        "imageErrors": 0
+      }
+    },
+    {
+      "variant": "presence-hidden",
+      "fps": 60.00200006666889,
+      "cpu": {
+        "median": 8.699999988079071,
+        "p95": 9.299999997019768
+      },
+      "methods": {
+        "presenceZoom": {
+          "median": 0.20000000298023224,
+          "p95": 0.29999999701976776
+        },
+        "imagesVisible": {
+          "median": 0,
+          "p95": 0
+        },
+        "visibleTexts": {
+          "median": 0.29999999701976776,
+          "p95": 0.4000000059604645
+        },
+        "webglRender": {
+          "median": 8.099999994039536,
+          "p95": 8.700000002980232
+        },
+        "presenceSet": {
+          "median": 0,
+          "p95": 0.10000000894069672
+        }
+      },
+      "stats": {
+        "calls": 511,
+        "triangles": 144289,
+        "geometries": 633,
+        "textures": 1,
+        "elements": 7500,
+        "shapeInstances": 5000,
+        "strokeChunks": 8,
+        "strokeChunkRebuilds": 32,
+        "textInstances": 500,
+        "visibleTexts": 500,
+        "pendingTexts": 0,
+        "textErrors": 0,
+        "presencePeers": 40,
+        "presenceLabels": 80,
+        "pendingPresenceLabels": 0,
+        "presenceErrors": 0,
+        "imageInstances": 0,
+        "visibleImages": 0,
+        "pendingImages": 0,
+        "imageErrors": 0
+      }
+    },
+    {
+      "variant": "baseline-again",
+      "fps": 60.00400026668439,
+      "cpu": {
+        "median": 8.299999997019768,
+        "p95": 8.900000005960464
+      },
+      "methods": {
+        "presenceZoom": {
+          "median": 0,
+          "p95": 0
+        },
+        "imagesVisible": {
+          "median": 0,
+          "p95": 0
+        },
+        "visibleTexts": {
+          "median": 0.29999999701976776,
+          "p95": 0.4000000059604645
+        },
+        "webglRender": {
+          "median": 8,
+          "p95": 8.599999994039536
+        },
+        "presenceSet": {
+          "median": 0,
+          "p95": 0
+        }
+      },
+      "stats": {
+        "calls": 511,
+        "triangles": 144289,
+        "geometries": 513,
+        "textures": 1,
+        "elements": 7500,
+        "shapeInstances": 5000,
+        "strokeChunks": 8,
+        "strokeChunkRebuilds": 40,
+        "textInstances": 500,
+        "visibleTexts": 500,
+        "pendingTexts": 0,
+        "textErrors": 0,
+        "presencePeers": 0,
+        "presenceLabels": 0,
+        "pendingPresenceLabels": 0,
+        "presenceErrors": 0,
+        "imageInstances": 0,
+        "visibleImages": 0,
+        "pendingImages": 0,
+        "imageErrors": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "representation": "flat YKeyValue",
+  "yjs": "13.6.33",
+  "yUtility": "0.1.4",
+  "gc": true,
+  "clientIds": 40,
+  "methodology": "Before each mutation, the next writer receives the current server state. This tests interleaved multi-writer metadata retention with 14080 per-property keys, not whole-element LWW. CPU includes in-process clients and state-vector exchange, so it is not server-only CPU evidence. No awareness/network/undo.",
+  "samples": [
+    {
+      "operations": 0,
+      "elapsedMs": 5.301792000000091,
+      "cpuMs": 5.077,
+      "liveFields": 12800,
+      "arrayLength": 12800,
+      "encodedBytes": 728465,
+      "retainedStructs": 40,
+      "deletedStructs": 0,
+      "heapUsedBytes": 55395544
+    },
+    {
+      "operations": 5000,
+      "elapsedMs": 15660.049041999999,
+      "cpuMs": 16189.896,
+      "liveFields": 12800,
+      "arrayLength": 12800,
+      "encodedBytes": 1716503,
+      "retainedStructs": 8240,
+      "deletedStructs": 5000,
+      "heapUsedBytes": 599527352
+    },
+    {
+      "operations": 10000,
+      "elapsedMs": 44116.318333999996,
+      "cpuMs": 43711.031,
+      "liveFields": 12800,
+      "arrayLength": 12800,
+      "encodedBytes": 1763168,
+      "retainedStructs": 13240,
+      "deletedStructs": 10000,
+      "heapUsedBytes": 606729872
+    },
+    {
+      "operations": 15000,
+      "elapsedMs": 90582.59220900001,
+      "cpuMs": 86730.871,
+      "liveFields": 12800,
+      "arrayLength": 12800,
+      "encodedBytes": 1813267,
+      "retainedStructs": 18240,
+      "deletedStructs": 15000,
+      "heapUsedBytes": 1051481504
+    },
+    {
+      "operations": 20000,
+      "elapsedMs": 152851.326875,
+      "cpuMs": 144445.803,
+      "liveFields": 12800,
+      "arrayLength": 12800,
+      "encodedBytes": 1862218,
+      "retainedStructs": 23240,
+      "deletedStructs": 20000,
+      "heapUsedBytes": 778561864
+    }
+  ]
+}

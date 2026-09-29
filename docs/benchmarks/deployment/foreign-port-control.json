@@ -1,0 +1,9 @@
+{
+  "at": "2026-09-29T19:32:08.043927+00:00",
+  "fixture": "unrelated ready=true HTTP listener on3001",
+  "exitCode": 1,
+  "refusedForeignListener": true,
+  "listenerStillRunning": true,
+  "deploymentDataExistedBefore": false,
+  "deploymentDataExistsAfter": false
+}

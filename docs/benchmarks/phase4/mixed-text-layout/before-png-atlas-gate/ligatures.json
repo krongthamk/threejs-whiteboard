@@ -1,0 +1,33 @@
+{
+  "text": "日本語 office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi office affinity ffi ffl fffi\n",
+  "png": [
+    5430,
+    180,
+    0,
+    0
+  ],
+  "svg": [
+    61,
+    60,
+    5374,
+    128
+  ],
+  "pdf": [
+    61,
+    60,
+    5374,
+    128
+  ],
+  "pngSvgDelta": 5374,
+  "pdfSvgDelta": 0,
+  "pngSvg": {
+    "foreground": 98570,
+    "edgeTolerantMismatch": 0.9384701227554022
+  },
+  "pdfSvg": {
+    "foreground": 99231,
+    "edgeTolerantMismatch": 0.13495782567947517
+  },
+  "pageWidth": 5430,
+  "pageHeight": 180
+}

@@ -1,0 +1,133 @@
+{
+  "colors": [
+    {
+      "name": "start cap",
+      "png": [
+        32,
+        85,
+        222,
+        102
+      ],
+      "svg": [
+        32,
+        85,
+        222,
+        102
+      ]
+    },
+    {
+      "name": "start body overlap",
+      "png": [
+        32,
+        85,
+        222,
+        102
+      ],
+      "svg": [
+        32,
+        85,
+        222,
+        102
+      ]
+    },
+    {
+      "name": "first round outer join",
+      "png": [
+        32,
+        85,
+        222,
+        102
+      ],
+      "svg": [
+        32,
+        85,
+        222,
+        102
+      ]
+    },
+    {
+      "name": "first inner overlap",
+      "png": [
+        32,
+        85,
+        222,
+        102
+      ],
+      "svg": [
+        32,
+        85,
+        222,
+        102
+      ]
+    },
+    {
+      "name": "vertical body",
+      "png": [
+        32,
+        85,
+        222,
+        102
+      ],
+      "svg": [
+        32,
+        85,
+        222,
+        102
+      ]
+    },
+    {
+      "name": "second outer join",
+      "png": [
+        32,
+        85,
+        222,
+        102
+      ],
+      "svg": [
+        32,
+        85,
+        222,
+        102
+      ]
+    },
+    {
+      "name": "end cap",
+      "png": [
+        32,
+        85,
+        222,
+        102
+      ],
+      "svg": [
+        32,
+        85,
+        222,
+        102
+      ]
+    },
+    {
+      "name": "arrow/body overlap",
+      "png": [
+        32,
+        85,
+        222,
+        102
+      ],
+      "svg": [
+        32,
+        85,
+        222,
+        102
+      ]
+    }
+  ],
+  "foreground": 75696,
+  "mismatch": 0.004201014584654407,
+  "maxAlpha": 102,
+  "tolerance": {
+    "premultipliedChannel": 8,
+    "edgeOutputPixels": 1,
+    "mismatch": 0.02,
+    "probeChannel": 2
+  }
+}

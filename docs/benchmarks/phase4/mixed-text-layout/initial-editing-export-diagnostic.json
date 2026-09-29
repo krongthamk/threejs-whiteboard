@@ -1,0 +1,127 @@
+{
+  "outputs": [
+    {
+      "fontFamily": "Inter",
+      "native": {
+        "scrollWidth": 492,
+        "clientWidth": 492,
+        "scrollHeight": 80,
+        "clientHeight": 80,
+        "caretInInput": true,
+        "overflow": "visible"
+      },
+      "element": {
+        "id": "draft",
+        "type": "text",
+        "x": -300,
+        "y": -100,
+        "w": 440.32000000000005,
+        "h": 80,
+        "rotation": 0,
+        "index": "a0",
+        "style": {
+          "stroke": "#334155",
+          "fill": "#ffffff",
+          "strokeWidth": 2,
+          "opacity": 1,
+          "fontFamily": "Inter",
+          "fontSize": 32,
+          "color": "#111111"
+        },
+        "props": {
+          "text": "日本語 WWWWWWWWWWWW\nWWWWWWWWWWWW!",
+          "align": "left",
+          "autoSize": true
+        }
+      },
+      "width": 981,
+      "height": 260,
+      "positive": [
+        {
+          "row": 0,
+          "pngInk": [
+            61,
+            60,
+            928,
+            118
+          ],
+          "svgInk": [
+            61,
+            58,
+            924,
+            116
+          ],
+          "maxInkDelta": 4,
+          "mismatch": 0.5429914180629342,
+          "foreground": 24470
+        },
+        {
+          "row": 1,
+          "pngInk": [
+            52,
+            146,
+            738,
+            194
+          ],
+          "svgInk": [
+            51,
+            143,
+            735,
+            191
+          ],
+          "maxInkDelta": 3,
+          "mismatch": 0.438996138996139,
+          "foreground": 18130
+        }
+      ],
+      "negative": [
+        {
+          "row": 0,
+          "pngInk": [
+            61,
+            60,
+            928,
+            118
+          ],
+          "svgInk": [
+            62,
+            60,
+            735,
+            117
+          ],
+          "maxInkDelta": 193,
+          "mismatch": 0.6636330689002536,
+          "foreground": 24833
+        },
+        {
+          "row": 1,
+          "pngInk": [
+            52,
+            146,
+            738,
+            194
+          ],
+          "svgInk": [
+            52,
+            146,
+            532,
+            191
+          ],
+          "maxInkDelta": 206,
+          "mismatch": 0.7392683652225637,
+          "foreground": 20174
+        }
+      ],
+      "families": [
+        "Noto Sans JP",
+        "Noto Sans JP"
+      ]
+    }
+  ],
+  "channelTolerance": 48,
+  "edgeAllowanceCssPixels": 0.5,
+  "inkBoundsToleranceOutputPixels": 1,
+  "maxForegroundMismatch": 0.18,
+  "nativeTypography": "Native browser fallback intentionally may return to primary Latin while committed Troika retains Noto; no native glyph pixel parity is asserted.",
+  "errors": []
+}

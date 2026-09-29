@@ -1,0 +1,328 @@
+{
+  "checks": [
+    {
+      "svg": {
+        "name": "696dd1fc-fbe9-441d-9951-bbf3ef7a6003",
+        "type": "image",
+        "foreground": 581952,
+        "mismatch": 0,
+        "inkBoundsDifference": 0
+      },
+      "screen": {
+        "name": "696dd1fc-fbe9-441d-9951-bbf3ef7a6003",
+        "type": "image",
+        "foreground": 581952,
+        "mismatch": 0,
+        "inkBoundsDifference": 0
+      }
+    },
+    {
+      "svg": {
+        "name": "caption",
+        "type": "text",
+        "foreground": 11635,
+        "mismatch": 0.10339492909325311,
+        "inkBoundsDifference": 1
+      },
+      "screen": {
+        "name": "caption",
+        "type": "text",
+        "foreground": 10520,
+        "mismatch": 0,
+        "inkBoundsDifference": 0
+      }
+    },
+    {
+      "svg": {
+        "name": "destination",
+        "type": "ellipse",
+        "foreground": 40242,
+        "mismatch": 0.010511405993737885,
+        "inkBoundsDifference": 0
+      },
+      "screen": {
+        "name": "destination",
+        "type": "ellipse",
+        "foreground": 40242,
+        "mismatch": 0.007032453655384921,
+        "inkBoundsDifference": 0
+      }
+    },
+    {
+      "svg": {
+        "name": "arrow",
+        "type": "connector",
+        "foreground": 1125,
+        "mismatch": 0.060444444444444446,
+        "inkBoundsDifference": 0
+      },
+      "screen": {
+        "name": "arrow",
+        "type": "connector",
+        "foreground": 1122,
+        "mismatch": 0.004456327985739751,
+        "inkBoundsDifference": 0
+      }
+    }
+  ],
+  "controls": [
+    {
+      "kind": "missing",
+      "name": "696dd1fc-fbe9-441d-9951-bbf3ef7a6003",
+      "type": "image",
+      "foreground": 581952,
+      "mismatch": 0.506316672165402,
+      "inkBoundsDifference": null
+    },
+    {
+      "kind": "mirrored",
+      "name": "696dd1fc-fbe9-441d-9951-bbf3ef7a6003",
+      "type": "image",
+      "foreground": 581952,
+      "mismatch": 0.6738751649620587,
+      "inkBoundsDifference": 637
+    }
+  ],
+  "flatCapControl": {
+    "name": "arrow",
+    "type": "connector",
+    "foreground": 1125,
+    "mismatch": 0.052444444444444446,
+    "inkBoundsDifference": 3
+  },
+  "colors": [
+    {
+      "expected": [
+        230,
+        112,
+        94,
+        255
+      ],
+      "png": [
+        230,
+        112,
+        94,
+        255
+      ],
+      "svg": [
+        230,
+        112,
+        94,
+        255
+      ],
+      "screen": [
+        230,
+        112,
+        94,
+        255
+      ]
+    },
+    {
+      "expected": [
+        176,
+        208,
+        150,
+        255
+      ],
+      "png": [
+        176,
+        208,
+        150,
+        255
+      ],
+      "svg": [
+        176,
+        208,
+        150,
+        255
+      ],
+      "screen": [
+        176,
+        208,
+        150,
+        255
+      ]
+    },
+    {
+      "expected": [
+        114,
+        139,
+        209,
+        255
+      ],
+      "png": [
+        114,
+        139,
+        209,
+        255
+      ],
+      "svg": [
+        114,
+        139,
+        209,
+        255
+      ],
+      "screen": [
+        114,
+        139,
+        209,
+        255
+      ]
+    },
+    {
+      "expected": [
+        238,
+        221,
+        187,
+        255
+      ],
+      "png": [
+        238,
+        221,
+        187,
+        255
+      ],
+      "svg": [
+        238,
+        221,
+        187,
+        255
+      ],
+      "screen": [
+        238,
+        221,
+        187,
+        255
+      ]
+    }
+  ],
+  "selectionColors": [
+    {
+      "expected": [
+        224,
+        40,
+        32,
+        153
+      ],
+      "png": [
+        223,
+        40,
+        32,
+        153
+      ],
+      "svg": [
+        223,
+        40,
+        32,
+        153
+      ]
+    },
+    {
+      "expected": [
+        32,
+        179,
+        64,
+        77
+      ],
+      "png": [
+        33,
+        179,
+        63,
+        77
+      ],
+      "svg": [
+        30,
+        179,
+        63,
+        77
+      ]
+    },
+    {
+      "expected": [
+        32,
+        84,
+        223,
+        153
+      ],
+      "png": [
+        32,
+        83,
+        223,
+        153
+      ],
+      "svg": [
+        32,
+        83,
+        223,
+        153
+      ]
+    },
+    {
+      "expected": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "png": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "svg": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "opaqueAlphaMin": 255,
+  "hrefsEmbedded": true,
+  "embeddedBytesEqual": true,
+  "selectedIds": [
+    "696dd1fc-fbe9-441d-9951-bbf3ef7a6003"
+  ],
+  "selectionCorner": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "documentImage": {
+    "id": "696dd1fc-fbe9-441d-9951-bbf3ef7a6003",
+    "type": "image",
+    "x": 100,
+    "y": 80,
+    "w": 384,
+    "h": 256,
+    "rotation": 0.22,
+    "index": "a1",
+    "style": {
+      "stroke": "#334155",
+      "fill": "#ffffff",
+      "strokeWidth": 0,
+      "opacity": 0.6,
+      "fontFamily": "Inter",
+      "fontSize": 24,
+      "color": "#172033"
+    },
+    "props": {
+      "assetId": "a79d23dc-e8c5-49c1-ace4-e4dc883b089b",
+      "naturalW": 768,
+      "naturalH": 512
+    }
+  },
+  "pageErrors": [],
+  "tolerance": {
+    "channel": 48,
+    "edgeOutputPixels": 1,
+    "imageMismatch": 0.02,
+    "ellipseMismatch": 0.02,
+    "textAndConnectorMismatch": 0.18,
+    "inkBoundsOutputPixels": 1,
+    "colorProbeChannel": 2
+  },
+  "diagnostic": "The stricter 2% connector experiment is preserved in strict-connector-before-opaque-alpha-comparison.json. Round caps fixed its 3px geometry error; remaining coverage differences are the existing S4 MSAA/raster tolerance. Flat-cap negative control must still fail the independent 1px ink bound."
+}
