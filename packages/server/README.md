@@ -51,7 +51,7 @@ Board responses use `{ board: { id, title, role, updatedAt } }`, where `role` is
 | `GET /api/boards/:id/assets/:assetId` | Authenticated image bytes; board membership required |
 | `POST /api/boards/:id/assets/copy` | `{sourceBoardId,assetId}`; source read + target edit permission |
 | `GET /api/metrics` | Per-board connections, updates/awareness rates, persistence totals/latency, compactions, and storage; membership only |
-| `GET /health`, `GET /ready` | Liveness and readiness; readiness becomes 503 during drain |
+| `GET /health`, `GET /ready` | Liveness and readiness; readiness becomes 503 during drain or a document persistence failure |
 
 Upload and copy return 201 `{assetId,mimeType,url}`. An asset copy creates a new
 board-scoped reference to the same immutable stored bytes. SVG uploads are not
@@ -73,6 +73,16 @@ the update log is garbage-collected in the same SQLite transaction. Hocuspocus's
 SyncStatus acknowledgement means server document application, not a documented
 disk-fsync acknowledgement. No client should interpret that protocol response
 as a separate durable-commit receipt.
+
+A failed log append, snapshot encode, or compaction is logged with the board ID.
+The server stays alive, retains the affected document in memory, marks readiness
+503, and resets all its connections with reason `persistence-failed`. For this
+reason clients retain their Y.Doc and IndexedDB cache and let the provider
+reconnect. Before accepting that reconnect, the server retries saving the full
+retained document: replaying an already applied update alone would not trigger
+another save. A successful snapshot clears the failure and restores readiness;
+an unavailable store keeps the document loaded and refuses synchronization.
+Unexpected unhandled promise rejections are logged and begin the normal drain.
 
 `src/spike.ts` is the failed original Phase 0 nested-map transport benchmark;
 `src/spike-writer-kv.ts` is the replacement in-memory candidate. Neither is a

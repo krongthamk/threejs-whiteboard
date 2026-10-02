@@ -15,3 +15,7 @@ async function stop() {
 }
 process.on('SIGTERM', () => { void stop(); });
 process.on('SIGINT', () => { void stop(); });
+process.on('unhandledRejection', reason => {
+  console.error({ event: 'unhandled-rejection', error: reason });
+  void stop().catch(error => { console.error({ event: 'drain-failed', error }); });
+});

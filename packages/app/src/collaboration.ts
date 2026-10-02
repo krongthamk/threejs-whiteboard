@@ -44,6 +44,7 @@ export class BoardConnection {
   private sentPresence = '';
   private lastPresenceAt = -Infinity;
   private presenceTimer: ReturnType<typeof setTimeout> | undefined;
+  private persistenceRetry: ReturnType<typeof setTimeout> | undefined;
   private presenceFrame = 0;
   private everLive = false;
   private destroyed = false;
@@ -77,16 +78,37 @@ export class BoardConnection {
       onAuthenticated: ({ scope }) => {
         if (this.destroyed || this.permissionReset) return;
         this.authorizationFailed = false;
+        clearTimeout(this.persistenceRetry);
         callbacks.onReadOnly(scope === 'readonly');
       },
-      onAuthenticationFailed: () => {
+      onAuthenticationFailed: ({ reason }) => {
+        if (this.destroyed || this.permissionReset) return;
+        if (reason === 'persistence-failed') {
+          // Hocuspocus denies authentication without closing the socket. Retry
+          // with the same replica rather than leaving it apparently connected.
+          this.provider.disconnect();
+          callbacks.onStatus('reconnecting');
+          callbacks.onError('The server could not save your changes. They are saved on this device and will retry when it reconnects.');
+          clearTimeout(this.persistenceRetry);
+          this.persistenceRetry = setTimeout(() => {
+            if (!this.destroyed && !this.permissionReset) void this.provider.connect().catch(() => {});
+          }, 1000);
+          return;
+        }
         this.authorizationFailed = true; callbacks.onReadOnly(true); callbacks.onStatus('unauthorized');
         callbacks.onError('Access to this board could not be confirmed. Sign in again or contact its owner.');
       },
       onStateless: ({ payload }) => {
         let message: unknown; try { message = JSON.parse(payload); } catch { return; }
         if (message && typeof message === 'object' && 'type' in message && message.type === 'permission-changed'
-          && 'boardId' in message && message.boardId === info.id && 'resetRequired' in message && message.resetRequired === true) this.resetPermissions(true);
+          && 'boardId' in message && message.boardId === info.id && 'resetRequired' in message && message.resetRequired === true) {
+          if ('reason' in message && message.reason === 'persistence-failed') {
+            // Let the provider reconnect with this Doc and the same durable cache.
+            // Rotating a permission-reset cache here would lose accepted edits.
+            callbacks.onStatus('reconnecting');
+            callbacks.onError('The server could not save your changes. They are saved on this device and will retry when it reconnects.');
+          } else this.resetPermissions(true);
+        }
       },
       onStatus: ({ status }) => {
         if (this.destroyed || this.authorizationFailed) return;
@@ -160,7 +182,7 @@ export class BoardConnection {
 
   async destroy(): Promise<void> {
     if (this.destroyed) return;
-    this.destroyed = true; clearTimeout(this.presenceTimer); cancelAnimationFrame(this.presenceFrame);
+    this.destroyed = true; clearTimeout(this.presenceTimer); clearTimeout(this.persistenceRetry); cancelAnimationFrame(this.presenceFrame);
     window.removeEventListener('storage', this.storageChanged);
     this.provider.awareness?.setLocalState(null); this.provider.destroy();
     await this.persistence.destroy();

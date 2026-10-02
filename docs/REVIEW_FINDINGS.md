@@ -23,7 +23,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 
 ## Tier 1. Fix before relying on the app
 
-### [ ] 1. A storage error inside the Yjs update hook kills the whole server (critical, reproduced)
+### [x] 1. A storage error inside the Yjs update hook kills the whole server (critical, reproduced)
 
 **Where:** `packages/server/src/server.ts:194-200` (`onChange`), also `:154`; `packages/server/src/store.ts:92-108` (`appendUpdate`, `compact`).
 

@@ -20,6 +20,7 @@ export function createWhiteboardServer(options: Options) {
   const websocketPath = options.websocketPath ?? '/collaboration';
   const origins = new Set(options.allowedOrigins ?? [4173, 5173, 5174, 3001].flatMap(port => [`http://localhost:${port}`, `http://127.0.0.1:${port}`]));
   const metrics = new Map<string, Metrics>();
+  const persistenceFailed = new Map<string, unknown>();
   const network = { changes: 0, awarenessMessages: 0, inboundMessages: 0, inboundBytes: 0 };
   const loginAttempts = new Map<string, { since: number; count: number }>();
   const failedLogins = new Map<string, { since: number; count: number }>();
@@ -51,13 +52,25 @@ export function createWhiteboardServer(options: Options) {
   const title = (value: unknown) => { if (typeof value !== 'string' || !value.trim() || value.trim().length > 200) throw new HttpError(400, 'Title must contain 1–200 characters'); return value.trim(); };
   const assetResponse = (boardId: string, assetId: string, mimeType: string) => ({ assetId, mimeType, url: `/api/boards/${boardId}/assets/${assetId}` });
   function resetConnection(connection: Connection<AuthContext>, boardId: string, role: AuthContext['role'] | null, reason = 'permissions-changed') {
-    // A new scope alone cannot remove edits already queued in the client's Doc.
-    // The application discards that replica/cache and opens an authoritative one.
+    // Permission failures discard the rejected replica; storage failures retain it.
     if (connection.context.invalidated) return;
     connection.context.invalidated = true;
     connection.readOnly = true;
     connection.sendStateless(JSON.stringify({ type: 'permission-changed', boardId, role, resetRequired: true, reason }));
-    connection.close({ code: 4403, reason: 'permissions-changed' });
+    connection.close({ code: 4403, reason });
+  }
+  function persistenceFailure(documentName: string, document: onStoreDocumentPayload['document'], error: unknown) {
+    persistenceFailed.set(documentName, error);
+    console.error({ event: 'persistence-failed', boardId: documentName, error });
+    for (const connection of document.getConnections()) {
+      try { resetConnection(connection, documentName, connection.context.role, 'persistence-failed'); }
+      catch (resetError) { console.error({ event: 'persistence-reset-failed', boardId: documentName, error: resetError }); }
+    }
+  }
+  function persistSnapshot(documentName: string, document: onStoreDocumentPayload['document']) {
+    store.compact(documentName, Y.encodeStateAsUpdate(document));
+    metric(documentName).compactions++;
+    persistenceFailed.delete(documentName);
   }
   async function api(request: IncomingMessage, response: ServerResponse) {
     try {
@@ -67,7 +80,7 @@ export function createWhiteboardServer(options: Options) {
       if (origin) { response.setHeader('Access-Control-Allow-Origin', origin); response.setHeader('Access-Control-Allow-Credentials', 'true'); response.setHeader('Vary', 'Origin'); }
       if (method === 'OPTIONS') { response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS'); response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization'); return json(response, 204); }
       if (path === '/health') return json(response, 200, { status: 'ok' });
-      if (path === '/ready') return json(response, draining ? 503 : 200, { ready: !draining });
+      if (path === '/ready') { const ready = !draining && persistenceFailed.size === 0; return json(response, ready ? 200 : 503, { ready }); }
       if (serveStatic && path !== websocketPath && serveStatic(request, response, path)) return;
       if (serveStatic && !path.startsWith('/api/')) throw new HttpError(404, 'Not found');
       if (draining && !['GET', 'HEAD'].includes(method)) throw new HttpError(503, 'Server is draining');
@@ -151,10 +164,14 @@ export function createWhiteboardServer(options: Options) {
     } catch (error) { if (!response.headersSent) json(response, error instanceof HttpError ? error.status : 500, { error: error instanceof HttpError ? error.message : 'Internal server error' }); else response.end(); }
   }
   class PersistentDatabase extends Database {
-    override async onStoreDocument(data: onStoreDocumentPayload) { if (store.needsCompaction(data.documentName)) await super.onStoreDocument(data); }
+    override async onStoreDocument(data: onStoreDocumentPayload) {
+      try {
+        if (persistenceFailed.has(data.documentName) || store.needsCompaction(data.documentName)) persistSnapshot(data.documentName, data.document);
+      } catch (error) { persistenceFailure(data.documentName, data.document, error); }
+    }
   }
   const server = new Server<AuthContext>({ port: options.port ?? 3001, address: options.host ?? '127.0.0.1', quiet: true, stopOnSignals: false,
-    extensions: [new PersistentDatabase({ fetch: async ({ documentName }) => store.loadDocument(documentName), store: async ({ documentName, state }) => { store.compact(documentName, state); metric(documentName).compactions++; } })],
+    extensions: [new PersistentDatabase({ fetch: async ({ documentName }) => store.loadDocument(documentName) })],
     async onAuthenticate({ token, documentName, requestHeaders, requestParameters, connectionConfig }) {
       if (draining) throw new Error('Server is draining');
       const routedBoard = requestParameters.get('boardId');
@@ -163,6 +180,14 @@ export function createWhiteboardServer(options: Options) {
       const sessionToken = token || cookieToken(requestHeaders.get('cookie') ?? '');
       const session = store.authenticate(sessionToken); if (!session) throw new Error('Authentication required');
       const role = store.role(documentName, session.user.id); if (!role) throw new Error('Board access denied');
+      // Replaying an update already applied in memory emits no onChange event.
+      // Save the entire retained Doc before permitting reconnect synchronization.
+      if (persistenceFailed.has(documentName)) {
+        const document = server.hocuspocus.documents.get(documentName);
+        if (!document) throw Object.assign(new Error('Board persistence is unavailable'), { reason: 'persistence-failed' });
+        try { persistSnapshot(documentName, document); }
+        catch (error) { persistenceFailure(documentName, document, error); throw Object.assign(new Error('Board persistence is unavailable'), { reason: 'persistence-failed' }); }
+      }
       connectionConfig.readOnly = role === 'viewer'; return { userId: session.user.id, token: sessionToken, role, expiresAt: session.expiresAt };
     },
     async connected({ connection, context, documentName }) {
@@ -192,12 +217,15 @@ export function createWhiteboardServer(options: Options) {
       }
     },
     async onChange({ documentName, update, document }) {
-      network.changes++;
-      const start = performance.now(), stats = metric(documentName); stats.updates++; stats.windowUpdates++;
-      store.appendUpdate(documentName, update); stats.persistedUpdates++;
-      if (store.needsCompaction(documentName)) { store.compact(documentName, Y.encodeStateAsUpdate(document)); stats.compactions++; }
-      stats.persistenceMs += performance.now() - start;
+      try {
+        network.changes++;
+        const start = performance.now(), stats = metric(documentName); stats.updates++; stats.windowUpdates++;
+        store.appendUpdate(documentName, update); stats.persistedUpdates++;
+        if (persistenceFailed.has(documentName) || store.needsCompaction(documentName)) persistSnapshot(documentName, document);
+        stats.persistenceMs += performance.now() - start;
+      } catch (error) { persistenceFailure(documentName, document, error); }
     },
+    async beforeUnloadDocument({ documentName }) { if (persistenceFailed.has(documentName)) throw null; },
     async beforeHandleAwareness({ documentName }) { network.awarenessMessages++; const stats = metric(documentName); stats.awareness++; stats.windowAwareness++; },
     async onRequest({ request, response }) { await api(request, response); throw null; },
     async onUpgrade({ request, socket }) { if (new URL(request.url ?? '/', 'http://localhost').pathname !== websocketPath) { socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n'); throw null; } },

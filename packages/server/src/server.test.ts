@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -100,6 +100,84 @@ test('real WebSocket edits persist, viewers cannot write, and revoked sessions c
   const restarted = createWhiteboardServer(options); await restarted.listen(); cleanups.push(() => restarted.close());
   const recovered = await client(restarted.port, board.id, tokens.editor!);
   expect(recovered.doc.getMap('test').toJSON()).toEqual({ position: 123 });
+});
+
+test('a failed update keeps the listener and replicas alive, and reconnect persists the retained state', async () => {
+  const { app, board, tokens, request } = await setup();
+  const author = await client(app.port, board.id, tokens.owner!), peer = await client(app.port, board.id, tokens.editor!);
+  const resets: unknown[] = [];
+  for (const replica of [author, peer]) replica.provider.on('stateless', ({ payload }: { payload: string }) => {
+    resets.push(JSON.parse(payload)); replica.socket.disconnect();
+  });
+  const retained = app.server.hocuspocus.documents.get(board.id)!;
+  const append = vi.spyOn(app.store, 'appendUpdate').mockImplementationOnce(() => { throw new Error('SQLITE_FULL'); });
+  // Keep storage unavailable through the immediate store hook, then recover.
+  const compact = vi.spyOn(app.store, 'compact').mockImplementation(() => { throw new Error('SQLITE_FULL'); });
+  cleanups.push(() => { append.mockRestore(); compact.mockRestore(); });
+  author.doc.getMap('storage-error').set('saved-locally', 'must survive');
+  await until(() => resets.length === 2, 1000);
+  expect(resets).toEqual(expect.arrayContaining([
+    expect.objectContaining({ boardId: board.id, reason: 'persistence-failed', role: 'owner', resetRequired: true }),
+    expect.objectContaining({ boardId: board.id, reason: 'persistence-failed', role: 'editor', resetRequired: true }),
+  ]));
+  expect((await request('/health')).status).toBe(200);
+  expect((await request('/ready')).status).toBe(503);
+  await app.server.hocuspocus.unloadDocument(retained);
+  expect(app.server.hocuspocus.documents.get(board.id)).toBe(retained);
+  expect(author.doc.getMap('storage-error').get('saved-locally')).toBe('must survive');
+  // The update is already in the server Doc: replay alone emits no change hook.
+  // Authenticate a fresh socket and require a durable full-state recovery.
+  compact.mockRestore();
+  const reconnected = await client(app.port, board.id, tokens.editor!);
+  expect(reconnected.doc.getMap('storage-error').get('saved-locally')).toBe('must survive');
+  expect((await request('/ready')).status).toBe(200);
+  const persisted = new Y.Doc(); Y.applyUpdate(persisted, app.store.loadDocument(board.id)!);
+  expect(persisted.getMap('storage-error').get('saved-locally')).toBe('must survive'); persisted.destroy();
+});
+
+test('the entry point logs an unhandled rejection and drains instead of crashing', async () => {
+  const path = directory();
+  const child = fork(fileURLToPath(new URL('./rejection-fixture.ts', import.meta.url)), [], {
+    execArgv: ['--import', 'tsx'], stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    env: { ...process.env, WHITEBOARD_DATA_DIR: path, PORT: '0', WHITEBOARD_DRAIN_MS: '2000' },
+  });
+  cleanups.push(async () => {
+    if (child.exitCode === null && child.signalCode === null) { child.kill('SIGTERM'); await until(() => child.exitCode !== null || child.signalCode !== null); }
+  });
+  let output = '', errors = '';
+  child.stdout!.on('data', bytes => { output += bytes.toString(); });
+  child.stderr!.on('data', bytes => { errors += bytes.toString(); });
+  await until(() => output.includes('"event":"ready"'));
+  const ready = JSON.parse(output.trim().split('\n').find(line => line.includes('"event":"ready"'))!);
+  child.send({ type: 'reject' });
+  await until(() => errors.includes('unhandled-rejection') || child.exitCode !== null);
+  expect(errors).toContain('unhandled-rejection');
+  expect((await fetch(`http://127.0.0.1:${ready.port}/ready`)).status).toBe(503);
+  expect((await fetch(`http://127.0.0.1:${ready.port}/health`)).status).toBe(200);
+  await until(() => child.exitCode !== null || child.signalCode !== null);
+  expect(child.exitCode).toBe(0);
+});
+
+test('compaction failures retain the document until storage recovers', async () => {
+  const { app, board, tokens, request } = await setup();
+  const author = await client(app.port, board.id, tokens.owner!);
+  let reset: any;
+  author.provider.on('stateless', ({ payload }: { payload: string }) => { reset = JSON.parse(payload); author.socket.disconnect(); });
+  app.store.db.prepare('UPDATE documents SET update_count=10000 WHERE board_id=?').run(board.id);
+  const compact = vi.spyOn(app.store, 'compact').mockImplementation(() => { throw new Error('SQLITE_IOERR'); });
+  cleanups.push(() => compact.mockRestore());
+  author.doc.getMap('compaction-error').set('retained', true);
+  await until(() => !!reset, 1000);
+  expect(reset.reason).toBe('persistence-failed');
+  const retained = app.server.hocuspocus.documents.get(board.id)!;
+  await app.server.hocuspocus.unloadDocument(retained);
+  expect(app.server.hocuspocus.documents.get(board.id)).toBe(retained);
+  expect((await request('/ready')).status).toBe(503);
+  await expect(client(app.port, board.id, tokens.owner!)).rejects.toThrow('Authentication failed: persistence-failed');
+  compact.mockRestore();
+  const reconnected = await client(app.port, board.id, tokens.owner!);
+  expect(reconnected.doc.getMap('compaction-error').get('retained')).toBe(true);
+  expect((await request('/ready')).status).toBe(200);
 });
 
 test('snapshot and update-log compaction preserve the original clocks and offline edits', () => {
