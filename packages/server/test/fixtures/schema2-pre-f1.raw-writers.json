@@ -1,0 +1,352 @@
+[
+  {
+    "name": "element-properties:101",
+    "records": [
+      {
+        "key": "[\"legacy-rect\",\"$base\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 1
+          },
+          "value": {
+            "element": {
+              "h": 100,
+              "id": "legacy-rect",
+              "index": "a0",
+              "props": {},
+              "rotation": 0,
+              "style": {
+                "color": "#172033",
+                "fill": "#dbeafe",
+                "fontFamily": "Inter",
+                "fontSize": 24,
+                "opacity": 1,
+                "stroke": "#334155",
+                "strokeWidth": 2
+              },
+              "type": "rect",
+              "w": 180,
+              "x": 20,
+              "y": 30
+            },
+            "generation": "101:0"
+          }
+        }
+      },
+      {
+        "key": "[\"legacy-ellipse\",\"$base\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 2
+          },
+          "value": {
+            "element": {
+              "h": 110,
+              "id": "legacy-ellipse",
+              "index": "a1",
+              "props": {},
+              "rotation": 0.15,
+              "style": {
+                "color": "#172033",
+                "fill": "#dcfce7",
+                "fontFamily": "Inter",
+                "fontSize": 24,
+                "opacity": 1,
+                "stroke": "#334155",
+                "strokeWidth": 2
+              },
+              "type": "ellipse",
+              "w": 150,
+              "x": 320,
+              "y": 40
+            },
+            "generation": "101:2"
+          }
+        }
+      },
+      {
+        "key": "[\"legacy-sticky\",\"$base\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 3
+          },
+          "value": {
+            "element": {
+              "h": 145,
+              "id": "legacy-sticky",
+              "index": "a2",
+              "props": {
+                "align": "center",
+                "autoSize": false,
+                "text": "Legacy note\n日本語とLatin"
+              },
+              "rotation": 0,
+              "style": {
+                "color": "#172033",
+                "fill": "#fff0a8",
+                "fontFamily": "Inter",
+                "fontSize": 24,
+                "opacity": 1,
+                "stroke": "#334155",
+                "strokeWidth": 2
+              },
+              "type": "sticky",
+              "w": 210,
+              "x": 25,
+              "y": 210
+            },
+            "generation": "101:4"
+          }
+        }
+      },
+      {
+        "key": "[\"legacy-text\",\"$base\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 4
+          },
+          "value": {
+            "element": {
+              "h": 55,
+              "id": "legacy-text",
+              "index": "a3",
+              "props": {
+                "align": "left",
+                "autoSize": true,
+                "text": "Hello legacy!\nこんにちは世界"
+              },
+              "rotation": 0,
+              "style": {
+                "color": "#172033",
+                "fill": "#ffffff",
+                "fontFamily": "IBM Plex Mono",
+                "fontSize": 22,
+                "opacity": 1,
+                "stroke": "#334155",
+                "strokeWidth": 2
+              },
+              "type": "text",
+              "w": 171.59999999999997,
+              "x": 285,
+              "y": 235
+            },
+            "generation": "101:6"
+          }
+        }
+      },
+      {
+        "key": "[\"legacy-stroke\",\"$base\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 5
+          },
+          "value": {
+            "element": {
+              "h": 40,
+              "id": "legacy-stroke",
+              "index": "a4",
+              "props": {
+                "points": [
+                  35,
+                  405,
+                  0.2,
+                  70,
+                  380,
+                  0.6,
+                  115,
+                  420,
+                  1,
+                  165,
+                  390,
+                  0.4
+                ],
+                "simplified": false
+              },
+              "rotation": 0,
+              "style": {
+                "color": "#172033",
+                "fill": "#ffffff",
+                "fontFamily": "Inter",
+                "fontSize": 24,
+                "opacity": 1,
+                "stroke": "#7c3aed",
+                "strokeWidth": 5
+              },
+              "type": "stroke",
+              "w": 130,
+              "x": 35,
+              "y": 380
+            },
+            "generation": "101:8"
+          }
+        }
+      },
+      {
+        "key": "[\"legacy-connector\",\"$base\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 6
+          },
+          "value": {
+            "element": {
+              "h": 100,
+              "id": "legacy-connector",
+              "index": "a5",
+              "props": {
+                "end": {
+                  "elementId": "legacy-ellipse",
+                  "fallback": {
+                    "x": 320.8421691547968,
+                    "y": 83.79214006448007
+                  },
+                  "nx": 0,
+                  "ny": 0.5
+                },
+                "kind": "curve",
+                "start": {
+                  "elementId": "legacy-rect",
+                  "fallback": {
+                    "x": 200,
+                    "y": 80
+                  },
+                  "nx": 1,
+                  "ny": 0.5
+                }
+              },
+              "rotation": 0,
+              "style": {
+                "color": "#172033",
+                "fill": "#ffffff",
+                "fontFamily": "Inter",
+                "fontSize": 24,
+                "opacity": 1,
+                "stroke": "#b45309",
+                "strokeWidth": 3
+              },
+              "type": "connector",
+              "w": 160,
+              "x": 0,
+              "y": 0
+            },
+            "generation": "101:10"
+          }
+        }
+      },
+      {
+        "key": "[\"legacy-image\",\"$base\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 7
+          },
+          "value": {
+            "element": {
+              "h": 64,
+              "id": "legacy-image",
+              "index": "a6",
+              "props": {
+                "assetId": "legacy-image-1",
+                "naturalH": 1,
+                "naturalW": 1
+              },
+              "rotation": -0.1,
+              "style": {
+                "color": "#172033",
+                "fill": "#ffffff",
+                "fontFamily": "Inter",
+                "fontSize": 24,
+                "opacity": 1,
+                "stroke": "#334155",
+                "strokeWidth": 2
+              },
+              "type": "image",
+              "w": 64,
+              "x": 390,
+              "y": 390
+            },
+            "generation": "101:12"
+          }
+        }
+      },
+      {
+        "key": "[\"legacy-rect\",\"101:0\",\"x\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 8
+          },
+          "value": 36
+        }
+      },
+      {
+        "key": "[\"legacy-deleted\",\"$base\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 10
+          },
+          "value": null
+        }
+      },
+      {
+        "key": "[\"$clock\"]",
+        "val": {
+          "stamp": {
+            "actor": "101",
+            "clock": 10
+          },
+          "value": 10
+        }
+      }
+    ]
+  },
+  {
+    "name": "element-properties:202",
+    "records": [
+      {
+        "key": "[\"legacy-sticky\",\"101:4\",\"rotation\"]",
+        "val": {
+          "stamp": {
+            "actor": "202",
+            "clock": 11
+          },
+          "value": -0.05
+        }
+      },
+      {
+        "key": "[\"legacy-ellipse\",\"101:2\",\"style\"]",
+        "val": {
+          "stamp": {
+            "actor": "202",
+            "clock": 12
+          },
+          "value": {
+            "color": "#172033",
+            "fill": "#dcfce7",
+            "fontFamily": "Inter",
+            "fontSize": 24,
+            "opacity": 1,
+            "stroke": "#166534",
+            "strokeWidth": 2
+          }
+        }
+      },
+      {
+        "key": "[\"$clock\"]",
+        "val": {
+          "stamp": {
+            "actor": "202",
+            "clock": 12
+          },
+          "value": 12
+        }
+      }
+    ]
+  }
+]

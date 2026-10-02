@@ -1,0 +1,207 @@
+{
+  "boardId": "legacy-board-seven-types",
+  "elements": [
+    {
+      "h": 100,
+      "id": "legacy-rect",
+      "index": "a0",
+      "props": {},
+      "rotation": 0,
+      "style": {
+        "color": "#172033",
+        "fill": "#dbeafe",
+        "fontFamily": "Inter",
+        "fontSize": 24,
+        "opacity": 1,
+        "stroke": "#334155",
+        "strokeWidth": 2
+      },
+      "type": "rect",
+      "w": 180,
+      "x": 36,
+      "y": 30
+    },
+    {
+      "h": 110,
+      "id": "legacy-ellipse",
+      "index": "a1",
+      "props": {},
+      "rotation": 0.15,
+      "style": {
+        "color": "#172033",
+        "fill": "#dcfce7",
+        "fontFamily": "Inter",
+        "fontSize": 24,
+        "opacity": 1,
+        "stroke": "#166534",
+        "strokeWidth": 2
+      },
+      "type": "ellipse",
+      "w": 150,
+      "x": 320,
+      "y": 40
+    },
+    {
+      "h": 145,
+      "id": "legacy-sticky",
+      "index": "a2",
+      "props": {
+        "align": "center",
+        "autoSize": false,
+        "text": "Legacy note\n日本語とLatin"
+      },
+      "rotation": -0.05,
+      "style": {
+        "color": "#172033",
+        "fill": "#fff0a8",
+        "fontFamily": "Inter",
+        "fontSize": 24,
+        "opacity": 1,
+        "stroke": "#334155",
+        "strokeWidth": 2
+      },
+      "type": "sticky",
+      "w": 210,
+      "x": 25,
+      "y": 210
+    },
+    {
+      "h": 55,
+      "id": "legacy-text",
+      "index": "a3",
+      "props": {
+        "align": "left",
+        "autoSize": true,
+        "text": "Hello legacy!\nこんにちは世界"
+      },
+      "rotation": 0,
+      "style": {
+        "color": "#172033",
+        "fill": "#ffffff",
+        "fontFamily": "IBM Plex Mono",
+        "fontSize": 22,
+        "opacity": 1,
+        "stroke": "#334155",
+        "strokeWidth": 2
+      },
+      "type": "text",
+      "w": 171.59999999999997,
+      "x": 285,
+      "y": 235
+    },
+    {
+      "h": 40,
+      "id": "legacy-stroke",
+      "index": "a4",
+      "props": {
+        "points": [
+          35,
+          405,
+          0.2,
+          70,
+          380,
+          0.6,
+          115,
+          420,
+          1,
+          165,
+          390,
+          0.4
+        ],
+        "simplified": false
+      },
+      "rotation": 0,
+      "style": {
+        "color": "#172033",
+        "fill": "#ffffff",
+        "fontFamily": "Inter",
+        "fontSize": 24,
+        "opacity": 1,
+        "stroke": "#7c3aed",
+        "strokeWidth": 5
+      },
+      "type": "stroke",
+      "w": 130,
+      "x": 35,
+      "y": 380
+    },
+    {
+      "h": 100,
+      "id": "legacy-connector",
+      "index": "a5",
+      "props": {
+        "end": {
+          "elementId": "legacy-ellipse",
+          "fallback": {
+            "x": 320.8421691547968,
+            "y": 83.79214006448007
+          },
+          "nx": 0,
+          "ny": 0.5
+        },
+        "kind": "curve",
+        "start": {
+          "elementId": "legacy-rect",
+          "fallback": {
+            "x": 200,
+            "y": 80
+          },
+          "nx": 1,
+          "ny": 0.5
+        }
+      },
+      "rotation": 0,
+      "style": {
+        "color": "#172033",
+        "fill": "#ffffff",
+        "fontFamily": "Inter",
+        "fontSize": 24,
+        "opacity": 1,
+        "stroke": "#b45309",
+        "strokeWidth": 3
+      },
+      "type": "connector",
+      "w": 160,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "h": 64,
+      "id": "legacy-image",
+      "index": "a6",
+      "props": {
+        "assetId": "legacy-image-1",
+        "naturalH": 1,
+        "naturalW": 1
+      },
+      "rotation": -0.1,
+      "style": {
+        "color": "#172033",
+        "fill": "#ffffff",
+        "fontFamily": "Inter",
+        "fontSize": 24,
+        "opacity": 1,
+        "stroke": "#334155",
+        "strokeWidth": 2
+      },
+      "type": "image",
+      "w": 64,
+      "x": 390,
+      "y": 390
+    }
+  ],
+  "emptyBoard": {
+    "elements": [],
+    "id": "legacy-board-empty",
+    "metadata": {
+      "createdAt": 1735787045000,
+      "schemaVersion": 2,
+      "title": "Legacy empty board"
+    }
+  },
+  "metadata": {
+    "createdAt": 1735787045000,
+    "schemaVersion": 2,
+    "title": "Legacy Latin 日本語 board"
+  }
+}
