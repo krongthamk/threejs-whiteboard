@@ -206,3 +206,60 @@ handled by another process is visible on the next incoming packet or at expiry,
 but proactive cross-process subscription invalidation is not implemented.
 Multi-owner deployments must add shared revocation notifications before promising
 immediate logout across all passive subscriptions.
+
+## Collaboration resource limits
+
+Each process enforces these positive integer settings before accepting an update:
+
+| Environment setting | Default | Accounting |
+| --- | ---: | --- |
+| `WHITEBOARD_MAX_UPDATE_BYTES` | 4 MiB | Entire WebSocket message, plus an independent decoded document-update byte check |
+| `WHITEBOARD_MAX_BOARD_BYTES` | 64 MiB | Stored document snapshot bytes plus uncompacted update-log bytes and the exact newly accepted delta |
+| `WHITEBOARD_MAX_INBOUND_BYTES` | 8 MiB | Bytes waiting or processing per authenticated document connection; also at most 256 messages |
+| `WHITEBOARD_MAX_BUFFERED_BYTES` | 1 MiB | WebSocket outbound `bufferedAmount` high-water mark |
+| `WHITEBOARD_SLOW_SOCKET_GRACE_MS` | 3000 | Time allowed above the outbound high-water mark |
+| `WHITEBOARD_MAX_CLOCK_GROWTH` | 1,000,000 | New Yjs logical ticks in one update and maximum unresolved struct/delete span |
+
+WebSocket framing and the document address count toward the transport ceiling, so
+an update just below 4 MiB can still exceed the transport limit. Board accounting
+excludes assets and SQLite page/WAL overhead. A replay that adds neither structs
+nor deletions uses no additional quota. The isolated validator captures the exact
+Yjs update that live integration would emit; old deletion history in an offline
+retry consumes no additional quota. A capacity refusal discards the proposed
+staged state, so the next attempt starts from the saved live document. Compaction frees log capacity while
+preserving original clocks. The store also checks append, board creation and
+compaction atomically as defense against callers outside the transport.
+
+Updates for each board are serialized through validation, live application and
+persistence, preventing concurrent peers from independently passing the same
+remaining-capacity check. A bounded walk of pinned Yjs v1 bytes checks safe ranges
+before Yjs decodes or integrates them, including compressed GC/deleted spans. It
+also limits each packet to 20,000 structs, client groups and deletion ranges,
+200,000 encoded values, and 32 nested container levels. Legacy JSON embeds/formats
+receive the same depth/value checks. Subdocuments are unsupported. Ordinary
+compacted GC, delete-only updates, Unicode, shared types and a full 5,000-stroke
+offline state remain compatible with these limits.
+
+A retained isolated validator checks new records and affected projections without
+rescanning all unchanged elements. Rejected validation destroys that staged state
+and rebuilds it from the live document. Updates with unresolved structs or delete
+sets are refused before live application, storage or broadcast; an honest offline
+client can retry its complete state after missing dependencies arrive. Validators
+are disposed when their live documents are destroyed and at shutdown.
+
+Capacity refusal sends `{ "type": "board-full", "boardId": "…", "reason":
+"board-full", "retryable": true, "maxBytes": 67108864 }`. Other resource refusals
+send `type: "sync-rejected"` with reason `update-too-large` (not retryable),
+`inbound-overload` (retryable), or `incomplete-update` (retryable), and `maxBytes`
+when applicable. The document closes with code 4409 and that reason; a transport
+payload violation closes the WebSocket with code 1009. These refusals leave
+readiness healthy and preserve the client's local document/cache for export or
+explicit recovery. They do not report a storage failure. Unsafe structural ranges
+use the existing `invalid-document-update` authoritative-reset protocol.
+
+Above the outbound high-water mark, stale awareness messages are dropped. Document
+updates are also skipped to prevent further queue growth; if one was skipped, the
+socket is terminated after the grace period even if it later drains, forcing a
+fresh synchronization. A socket that remains above the mark is terminated too.
+These network reconnects preserve the local cache. Control notices remain small
+and can pass through while the grace timer is active.

@@ -10,11 +10,13 @@ export interface User { id: string; username: string }
 export interface Board { id: string; title: string; role: Role; updatedAt: number }
 export interface Session { user: User; token: string; expiresAt: number; sessionId: string }
 export interface Asset { id: string; boardId: string; mimeType: string; size: number; storageKey: string }
+export class BoardFullError extends Error { constructor(readonly maxBytes: number) { super('Board storage limit exceeded'); } }
 
 export class Store {
   readonly db: Sqlite.Database;
-  constructor(readonly filename: string, private secret: string) {
+  constructor(readonly filename: string, private secret: string, readonly maxBoardBytes = 64 * 1024 * 1024) {
     if (secret.length < 32) throw new Error('Session secret must contain at least 32 characters');
+    if (!Number.isSafeInteger(maxBoardBytes) || maxBoardBytes <= 0) throw new Error('maxBoardBytes must be a positive safe integer');
     if (filename !== ':memory:') mkdirSync(dirname(filename), { recursive: true });
     this.db = new Sqlite(filename);
     this.db.pragma('journal_mode = WAL'); this.db.pragma('foreign_keys = ON'); this.db.pragma('synchronous = FULL');
@@ -75,6 +77,7 @@ export class Store {
     const doc = new Y.Doc();
     doc.transact(() => { const meta = doc.getMap('meta'); meta.set('title', title); meta.set('createdAt', board.updatedAt); meta.set('schemaVersion', SCHEMA_VERSION); });
     const snapshot = Y.encodeStateAsUpdate(doc); doc.destroy();
+    if (snapshot.byteLength > this.maxBoardBytes) throw new BoardFullError(this.maxBoardBytes);
     this.db.transaction(() => {
       this.db.prepare('INSERT INTO boards VALUES (?,?,?)').run(board.id, title, board.updatedAt);
       this.db.prepare('INSERT INTO members VALUES (?,?,?)').run(board.id, userId, 'owner');
@@ -91,6 +94,7 @@ export class Store {
   }
   appendUpdate(boardId: string, update: Uint8Array): void {
     this.db.transaction(() => {
+      this.assertUpdateFits(boardId, update.byteLength);
       this.db.prepare('INSERT INTO updates(board_id,data) VALUES (?,?)').run(boardId, Buffer.from(update));
       this.db.prepare('UPDATE documents SET update_count=update_count+1,update_bytes=update_bytes+? WHERE board_id=?').run(update.byteLength, boardId);
       this.db.prepare('UPDATE boards SET updated_at=? WHERE id=?').run(Date.now(), boardId);
@@ -100,8 +104,13 @@ export class Store {
     return this.db.prepare('SELECT update_count AS updateCount,update_bytes AS updateBytes,length(snapshot) AS snapshotBytes FROM documents WHERE board_id=?').get(boardId) as { updateCount: number; updateBytes: number; snapshotBytes: number };
   }
   needsCompaction(boardId: string): boolean { const stats = this.stats(boardId); return stats.updateCount >= 10_000 || stats.updateBytes >= 5 * 1024 * 1024; }
+  assertUpdateFits(boardId: string, bytes: number): void {
+    const stats = this.stats(boardId);
+    if (stats.snapshotBytes + stats.updateBytes + bytes > this.maxBoardBytes) throw new BoardFullError(this.maxBoardBytes);
+  }
   compact(boardId: string, state?: Uint8Array): void {
     const snapshot = state ?? this.loadDocument(boardId); if (!snapshot) throw new Error('Unknown board');
+    if (snapshot.byteLength > this.maxBoardBytes) throw new BoardFullError(this.maxBoardBytes);
     this.db.transaction(() => {
       this.db.prepare('UPDATE documents SET snapshot=?,update_count=0,update_bytes=0 WHERE board_id=?').run(Buffer.from(snapshot), boardId);
       this.db.prepare('DELETE FROM updates WHERE board_id=?').run(boardId);

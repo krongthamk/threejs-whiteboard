@@ -5,23 +5,44 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { Store, type Session } from './store.js';
+import { Store, BoardFullError, type Session } from './store.js';
 import { staticHandler } from './static.js';
-import { inspectBoardDocument, assertValidBoardDocument } from '../../model/src/document-validation.js';
+import { BoardUpdateValidator, IncompleteBoardUpdateError } from '../../model/src/document-validation.js';
+import { checkUpdateResources, UpdateResourceError } from './update-limits.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
-interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; staticDirectory?: string }
+interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
 interface AuthContext { token: string; userId: string; role: 'owner' | 'editor' | 'viewer'; expiresAt: number; invalidated?: boolean }
 type Metrics = { updates: number; awareness: number; persistedUpdates: number; persistenceMs: number; compactions: number; windowAt: number; windowUpdates: number; windowAwareness: number };
 
 export function createWhiteboardServer(options: Options) {
+  const limits = { maxUpdateBytes: options.maxUpdateBytes ?? 4 * 1024 * 1024, maxBoardBytes: options.maxBoardBytes ?? 64 * 1024 * 1024,
+    maxBufferedBytes: options.maxBufferedBytes ?? 1024 * 1024, slowSocketGraceMs: options.slowSocketGraceMs ?? 3000,
+    maxInboundBytes: options.maxInboundBytes ?? 8 * 1024 * 1024, maxClockGrowth: options.maxClockGrowth ?? 1_000_000 };
+  for (const [name, value] of Object.entries(limits)) if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive safe integer`);
   const serveStatic = options.staticDirectory ? staticHandler(options.staticDirectory) : undefined;
-  const store = new Store(options.databasePath, options.sessionSecret);
+  const store = new Store(options.databasePath, options.sessionSecret, limits.maxBoardBytes);
   mkdirSync(options.assetDirectory, { recursive: true });
   const websocketPath = options.websocketPath ?? '/collaboration';
   const origins = new Set(options.allowedOrigins ?? [4173, 5173, 5174, 3001].flatMap(port => [`http://localhost:${port}`, `http://127.0.0.1:${port}`]));
   const metrics = new Map<string, Metrics>();
   const persistenceFailed = new Map<string, unknown>();
+  const updateLocks = new Map<string, Promise<void>>();
+  const releaseLocks = new Map<Connection<AuthContext>, () => void>();
+  const inbound = new Map<Connection<AuthContext>, { bytes: number; messages: number }>();
+  const validators = new Map<Y.Doc, BoardUpdateValidator>();
+  const validatorCleanup = new WeakSet<Y.Doc>();
+  function validator(document: Y.Doc) {
+    let value = validators.get(document);
+    if (!value) {
+      value = new BoardUpdateValidator(document); validators.set(document, value);
+      if (!validatorCleanup.has(document)) {
+        validatorCleanup.add(document);
+        document.once('destroy', () => { validators.get(document)?.dispose(); validators.delete(document); });
+      }
+    }
+    return value;
+  }
   const network = { changes: 0, awarenessMessages: 0, inboundMessages: 0, inboundBytes: 0 };
   const loginAttempts = new Map<string, { since: number; count: number }>();
   const failedLogins = new Map<string, { since: number; count: number }>();
@@ -72,6 +93,26 @@ export function createWhiteboardServer(options: Options) {
     store.compact(documentName, Y.encodeStateAsUpdate(document));
     metric(documentName).compactions++;
     persistenceFailed.delete(documentName);
+  }
+  function refuseUpdate(connection: Connection<AuthContext>, boardId: string, reason: 'board-full' | 'update-too-large' | 'inbound-overload' | 'incomplete-update', retryable: boolean, maxBytes?: number) {
+    if (connection.context.invalidated) return;
+    connection.context.invalidated = true; connection.readOnly = true;
+    console.warn({ event: 'sync-rejected', boardId, reason, maxBytes });
+    connection.sendStateless(JSON.stringify({ type: reason === 'board-full' ? 'board-full' : 'sync-rejected', boardId, reason, retryable, ...(maxBytes === undefined ? {} : { maxBytes }) }));
+    connection.close({ code: 4409, reason });
+  }
+  async function lockUpdate(documentName: string, connection: Connection<AuthContext>) {
+    const previous = updateLocks.get(documentName) ?? Promise.resolve();
+    let unlock!: () => void;
+    const held = new Promise<void>(resolve => { unlock = resolve; }), tail = previous.then(() => held);
+    updateLocks.set(documentName, tail); await previous;
+    let released = false;
+    releaseLocks.set(connection, () => { if (released) return; released = true; unlock(); releaseLocks.delete(connection); if (updateLocks.get(documentName) === tail) updateLocks.delete(documentName); });
+  }
+  function messageType(message: Uint8Array): number {
+    let position = 0;
+    const uint = () => { let value = 0, factor = 1; while (position < message.length) { const byte = message[position++]!; value += (byte & 127) * factor; if (!(byte & 128)) return value; factor *= 128; } return -1; };
+    const addressLength = uint(); position += addressLength; return uint();
   }
   async function api(request: IncomingMessage, response: ServerResponse) {
     try {
@@ -172,6 +213,7 @@ export function createWhiteboardServer(options: Options) {
     }
   }
   const server = new Server<AuthContext>({ port: options.port ?? 3001, address: options.host ?? '127.0.0.1', quiet: true, stopOnSignals: false,
+    websocketOptions: { maxPayload: limits.maxUpdateBytes },
     extensions: [new PersistentDatabase({ fetch: async ({ documentName }) => store.loadDocument(documentName) })],
     async onAuthenticate({ token, documentName, requestHeaders, requestParameters, connectionConfig }) {
       if (draining) throw new Error('Server is draining');
@@ -193,13 +235,41 @@ export function createWhiteboardServer(options: Options) {
     },
     async connected({ connection, context, documentName }) {
       let expiration: ReturnType<typeof setTimeout> | undefined;
+      let slowTimer: ReturnType<typeof setTimeout> | undefined, droppedDocumentUpdate = false;
+      const socket = connection.webSocket as typeof connection.webSocket & { bufferedAmount?: number; terminate?: () => void };
+      const send = connection.send.bind(connection);
+      connection.send = message => {
+        if (!connection.document.hasConnection(connection)) { send(message); return; }
+        if ((socket.bufferedAmount ?? 0) > limits.maxBufferedBytes) {
+          if (!slowTimer) {
+            slowTimer = setTimeout(() => {
+              slowTimer = undefined;
+              if (droppedDocumentUpdate || (socket.bufferedAmount ?? 0) > limits.maxBufferedBytes) {
+                console.warn({ event: 'slow-socket', boardId: documentName });
+                socket.terminate?.(); connection.close({ code: 4409, reason: 'slow-consumer' });
+              }
+            }, limits.slowSocketGraceMs); slowTimer.unref();
+          }
+          const type = messageType(message);
+          if (type === 1) return; // Awareness is ephemeral; stale states never queue.
+          if (type === 0 || type === 4) { droppedDocumentUpdate = true; return; } // Reconnect restores the skipped document diff.
+        }
+        send(message);
+      };
+      const handle = connection.handleMessage.bind(connection), queue = { bytes: 0, messages: 0 }; inbound.set(connection, queue);
+      connection.handleMessage = data => {
+        if (context.invalidated) return;
+        if (data.byteLength > limits.maxUpdateBytes) { refuseUpdate(connection, documentName, 'update-too-large', false, limits.maxUpdateBytes); return; }
+        if (queue.bytes + data.byteLength > limits.maxInboundBytes || queue.messages >= 256) { refuseUpdate(connection, documentName, 'inbound-overload', true, limits.maxInboundBytes); return; }
+        queue.bytes += data.byteLength; queue.messages++; handle(data);
+      };
       const schedule = () => {
         const remaining = context.expiresAt - Date.now();
         if (remaining <= 0) { resetConnection(connection, documentName, null, 'session-expired'); return; }
         // Recheck the signed deadline if the system wall clock moves backward.
         expiration = setTimeout(schedule, Math.min(remaining, 2_147_483_647)); expiration.unref();
       };
-      connection.onClose(() => { clearTimeout(expiration); }); schedule();
+      connection.onClose(() => { clearTimeout(expiration); clearTimeout(slowTimer); releaseLocks.get(connection)?.(); inbound.delete(connection); }); schedule();
     },
     async beforeHandleMessage({ context, documentName, connection, update }) {
       network.inboundMessages++; network.inboundBytes += update.byteLength;
@@ -207,6 +277,7 @@ export function createWhiteboardServer(options: Options) {
       const role = session ? store.role(documentName, session.user.id) : undefined;
       if (context.invalidated) throw new Error('Connection requires an authoritative reset');
       if (!role || role !== context.role) { resetConnection(connection, documentName, role ?? null); throw new Error('Session or membership changed'); }
+      if (update.byteLength > limits.maxUpdateBytes) { refuseUpdate(connection, documentName, 'update-too-large', false, limits.maxUpdateBytes); throw new Error('Update exceeds the size limit'); }
     },
     async beforeSync({ connection, context, document, documentName, type, payload }) {
       if (context.invalidated) throw new Error('Connection requires an authoritative reset');
@@ -217,21 +288,33 @@ export function createWhiteboardServer(options: Options) {
         throw new Error('Read-only changes require an authoritative reset');
       }
       if (!connection.readOnly && (type === 1 || type === 2)) {
-        const candidate = new Y.Doc();
+        await lockUpdate(documentName, connection);
         try {
-          Y.applyUpdate(candidate, Y.encodeStateAsUpdate(document));
-          const previous = inspectBoardDocument(candidate);
-          Y.applyUpdate(candidate, payload);
-          assertValidBoardDocument(candidate, previous);
+          if (context.invalidated) throw new Error('Connection is no longer active');
+          if (payload.byteLength > limits.maxUpdateBytes) throw new UpdateResourceError('update-too-large', 'Update exceeds the size limit');
+          checkUpdateResources(payload, document, limits.maxClockGrowth);
+          const accepted = validator(document).validate(payload);
+          if (accepted.byteLength !== 2 || accepted[0] !== 0 || accepted[1] !== 0) store.assertUpdateFits(documentName, accepted.byteLength);
         } catch (error) {
-          console.error({ event: 'invalid-document-update', boardId: documentName, error });
-          resetConnection(connection, documentName, context.role, 'invalid-document-update');
+          releaseLocks.get(connection)?.();
+          if (error instanceof BoardFullError) {
+            validators.get(document)?.dispose(); validators.delete(document);
+            refuseUpdate(connection, documentName, 'board-full', true, limits.maxBoardBytes);
+          }
+          else if (error instanceof IncompleteBoardUpdateError) refuseUpdate(connection, documentName, 'incomplete-update', true);
+          else if (error instanceof UpdateResourceError && error.reason === 'update-too-large') refuseUpdate(connection, documentName, 'update-too-large', false, limits.maxUpdateBytes);
+          else { console.error({ event: 'invalid-document-update', boardId: documentName, error }); resetConnection(connection, documentName, context.role, 'invalid-document-update'); }
           throw new Error('Invalid document changes require an authoritative reset');
-        } finally { candidate.destroy(); }
+        }
       }
+    },
+    async afterHandleMessage({ connection, update }) {
+      const queue = inbound.get(connection); if (queue) { queue.bytes = Math.max(0, queue.bytes - update.byteLength); queue.messages = Math.max(0, queue.messages - 1); }
+      releaseLocks.get(connection)?.();
     },
     async onChange({ documentName, update, document }) {
       try {
+        validators.get(document)?.syncLive(update);
         network.changes++;
         const start = performance.now(), stats = metric(documentName); stats.updates++; stats.windowUpdates++;
         store.appendUpdate(documentName, update); stats.persistedUpdates++;
@@ -247,7 +330,7 @@ export function createWhiteboardServer(options: Options) {
   return { server, store, metrics, network, websocketPath,
     get port() { const address = server.httpServer.address(); return address && typeof address === 'object' ? address.port : options.port ?? 3001; },
     async listen() { await server.listen(); },
-    async close() { if (!closed) closed = (async () => { draining = true; await server.destroy(); store.close(); })(); return closed; },
+    async close() { if (!closed) closed = (async () => { draining = true; await server.destroy(); for (const value of validators.values()) value.dispose(); validators.clear(); store.close(); })(); return closed; },
     beginDrain() { draining = true; },
   };
 }

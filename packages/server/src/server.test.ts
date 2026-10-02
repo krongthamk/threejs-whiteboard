@@ -20,8 +20,8 @@ const password = 'a-long-test-password';
 const cleanups: (() => Promise<void> | void)[] = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
 function directory() { const path = mkdtempSync(join(tmpdir(), 'whiteboard-server-')); cleanups.push(() => rmSync(path, { recursive: true, force: true })); return path; }
-async function setup() {
-  const path = directory(), options = { databasePath: join(path, 'board.sqlite'), assetDirectory: join(path, 'assets'), sessionSecret: secret, port: 0 };
+async function setup(overrides: Partial<Parameters<typeof createWhiteboardServer>[0]> = {}) {
+  const path = directory(), options = { databasePath: join(path, 'board.sqlite'), assetDirectory: join(path, 'assets'), sessionSecret: secret, port: 0, ...overrides };
   const app = createWhiteboardServer(options); await app.listen(); cleanups.push(() => app.close());
   const owner = app.store.createUser('owner', password), editor = app.store.createUser('editor', password), viewer = app.store.createUser('viewer', password), stranger = app.store.createUser('stranger', password);
   const tokens = Object.fromEntries([owner, editor, viewer, stranger].map(user => [user.username, app.store.login(user.username, password)!.token]));
@@ -292,6 +292,159 @@ test('historical poison allows healthy edits and pruning, but cannot be replaced
   expect(repair.readAll().map(element => element.id)).toEqual(['new-healthy']);
   expect((serverDoc.getArray<any>(WRITER_PREFIX + actor).get(0).val.value.element as any).x).toBe('old poison');
   expect(owner.doc.getArray(WRITER_PREFIX + actor).length).toBe(1);
+});
+
+test('oversized WebSocket updates close before changing the live document or log', async () => {
+  const { app, board, tokens } = await setup({ maxUpdateBytes: 1024 });
+  const owner = await client(app.port, board.id, tokens.owner!), editor = await client(app.port, board.id, tokens.editor!);
+  const before = app.store.stats(board.id);
+  let closeCode = 0;
+  editor.socket.on('close', ({ event }: { event: { code: number } }) => { closeCode = event.code; editor.socket.disconnect(); });
+  editor.doc.getMap('limits').set('oversized', 'x'.repeat(2048));
+  await until(() => closeCode === 1009, 1000);
+  expect(app.store.stats(board.id)).toEqual(before);
+  expect(owner.doc.getMap('limits').get('oversized')).toBeUndefined();
+  owner.doc.getMap('limits').set('healthy', true);
+  await until(() => !owner.provider.hasUnsyncedChanges);
+  expect((await fetch(`http://127.0.0.1:${app.port}/ready`)).status).toBe(200);
+});
+
+test('board storage refusal happens before apply and sends a recoverable capacity notice', async () => {
+  const { app, board, tokens } = await setup({ maxBoardBytes: 2048 });
+  const owner = await client(app.port, board.id, tokens.owner!), editor = await client(app.port, board.id, tokens.editor!);
+  owner.doc.getMap('limits').set('near-capacity', 'x'.repeat(1700));
+  await until(() => !owner.provider.hasUnsyncedChanges);
+  const before = app.store.stats(board.id); let refusal: any;
+  editor.provider.on('stateless', ({ payload }: { payload: string }) => { refusal = JSON.parse(payload); editor.socket.disconnect(); });
+  editor.doc.getMap('limits').set('too-much', 'x'.repeat(700));
+  await until(() => !!refusal, 1000);
+  expect(refusal).toMatchObject({ type: 'board-full', reason: 'board-full', boardId: board.id, retryable: true, maxBytes: 2048 });
+  expect(owner.doc.getMap('limits').get('too-much')).toBeUndefined();
+  expect(app.store.stats(board.id)).toEqual(before);
+  expect((await fetch(`http://127.0.0.1:${app.port}/ready`)).status).toBe(200);
+});
+
+test('a compressed forged GC span is rejected before integration and healthy followup remains possible', async () => {
+  const { app, board, tokens } = await setup();
+  const owner = await client(app.port, board.id, tokens.owner!), editor = await client(app.port, board.id, tokens.editor!);
+  let reset: any; editor.provider.on('stateless', ({ payload }: { payload: string }) => { reset = JSON.parse(payload); editor.socket.disconnect(); });
+  const before = app.store.stats(board.id);
+  editor.doc.transact(transaction => { new Y.GC(Y.createID(777, 0), Number.MAX_SAFE_INTEGER - 10).integrate(transaction, 0); });
+  await until(() => !!reset, 1000);
+  expect(reset.reason).toBe('invalid-document-update');
+  expect(Y.decodeStateVector(Y.encodeStateVector(app.server.hocuspocus.documents.get(board.id)!)).has(777)).toBe(false);
+  expect(app.store.stats(board.id)).toEqual(before);
+  owner.doc.getMap('limits').set('after-attack', true);
+  await until(() => !owner.provider.hasUnsyncedChanges);
+  expect(owner.doc.getMap('limits').get('after-attack')).toBe(true);
+});
+
+test('a socket that never drains drops awareness and is terminated after its grace period', async () => {
+  const { app, board, tokens } = await setup({ maxBufferedBytes: 1024, slowSocketGraceMs: 50 });
+  const owner = await client(app.port, board.id, tokens.owner!), slow = await client(app.port, board.id, tokens.editor!);
+  const connection = app.server.hocuspocus.documents.get(board.id)!.getConnections().find(value => value.context.userId === app.store.authenticate(tokens.editor!)!.user.id)!;
+  const socket = connection.webSocket as WebSocket;
+  const original = Object.getOwnPropertyDescriptor(socket, 'bufferedAmount');
+  Object.defineProperty(socket, 'bufferedAmount', { configurable: true, get: () => 2048 });
+  const sent = vi.spyOn(socket, 'send'), terminated = vi.spyOn(socket, 'terminate');
+  cleanups.push(() => { sent.mockRestore(); terminated.mockRestore(); if (original) Object.defineProperty(socket, 'bufferedAmount', original); else delete (socket as any).bufferedAmount; });
+  slow.socket.on('close', () => slow.socket.disconnect());
+  owner.provider.awareness!.setLocalState({ userId: 'owner', name: 'Owner' });
+  await until(() => terminated.mock.calls.length === 1, 1000);
+  expect(sent).not.toHaveBeenCalled();
+  expect(app.server.hocuspocus.documents.get(board.id)!.getConnections().some(value => value === connection)).toBe(false);
+});
+
+function syncPacket(boardId: string, update: Uint8Array) {
+  const uint = (value: number) => { const bytes: number[] = []; while (value >= 128) { bytes.push((value % 128) | 128); value = Math.floor(value / 128); } bytes.push(value); return bytes; };
+  const name = new TextEncoder().encode(boardId);
+  return new Uint8Array([...uint(name.length), ...name, 0, 2, ...uint(update.length), ...update]);
+}
+
+test('bounded queue overload refuses queued writes without mutating or marking storage unavailable', async () => {
+  const { app, board, tokens } = await setup({ maxUpdateBytes: 4096, maxInboundBytes: 4096 });
+  const owner = await client(app.port, board.id, tokens.owner!), editor = await client(app.port, board.id, tokens.editor!);
+  const connection = app.server.hocuspocus.documents.get(board.id)!.getConnections().find(value => value.context.token === tokens.editor)!;
+  const before = connection.callbacks.beforeHandleMessage;
+  let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
+  cleanups.push(() => release());
+  connection.callbacks.beforeHandleMessage = async (...args) => { await gate; await before(...args); };
+  let refusal: any; editor.provider.on('stateless', ({ payload }: { payload: string }) => { refusal = JSON.parse(payload); editor.socket.disconnect(); });
+  const source = new Y.Doc(); source.getMap('limits').set('queued', 'x'.repeat(2000));
+  const packet = syncPacket(board.id, Y.encodeStateAsUpdate(source)); source.destroy();
+  const stats = app.store.stats(board.id);
+  connection.handleMessage(packet); connection.handleMessage(packet); connection.handleMessage(packet);
+  await until(() => !!refusal, 1000); release();
+  expect(refusal).toMatchObject({ type: 'sync-rejected', reason: 'inbound-overload', retryable: true, maxBytes: 4096 });
+  await new Promise(resolve => setTimeout(resolve, 20));
+  expect(owner.doc.getMap('limits').get('queued')).toBeUndefined(); expect(app.store.stats(board.id)).toEqual(stats);
+  expect((await fetch(`http://127.0.0.1:${app.port}/ready`)).status).toBe(200);
+});
+
+test('concurrent updates reserve board capacity before either peer can overshoot it', async () => {
+  const { app, board, tokens } = await setup({ maxBoardBytes: 1700 });
+  const owner = await client(app.port, board.id, tokens.owner!), editor = await client(app.port, board.id, tokens.editor!);
+  const refused: any[] = [];
+  for (const peer of [owner, editor]) peer.provider.on('stateless', ({ payload }: { payload: string }) => { refused.push(JSON.parse(payload)); peer.socket.disconnect(); });
+  owner.doc.getMap('limits').set('left', 'x'.repeat(1000)); editor.doc.getMap('limits').set('right', 'y'.repeat(1000));
+  await until(() => refused.length === 1, 1000);
+  expect(refused[0].reason).toBe('board-full');
+  const persisted = new Y.Doc(); Y.applyUpdate(persisted, app.store.loadDocument(board.id)!);
+  expect(Object.keys(persisted.getMap('limits').toJSON())).toHaveLength(1); persisted.destroy();
+  const stats = app.store.stats(board.id); expect(stats.snapshotBytes + stats.updateBytes).toBeLessThanOrEqual(1700);
+  expect((await fetch(`http://127.0.0.1:${app.port}/ready`)).status).toBe(200);
+});
+
+test('an unresolved suffix is never stored and the same offline document converges after full retry', async () => {
+  const { app, board, tokens } = await setup();
+  const owner = await client(app.port, board.id, tokens.owner!), editor = await client(app.port, board.id, tokens.editor!);
+  const connection = app.server.hocuspocus.documents.get(board.id)!.getConnections().find(value => value.context.token === tokens.editor)!;
+  const source = new Y.Doc(); source.getMap('offline').set('prefix', 1); const vector = Y.encodeStateVector(source);
+  source.getMap('offline').set('suffix', 2); const suffix = Y.encodeStateAsUpdate(source, vector), stats = app.store.stats(board.id);
+  let refusal: any; editor.provider.on('stateless', ({ payload }: { payload: string }) => { refusal = JSON.parse(payload); editor.socket.disconnect(); });
+  connection.handleMessage(syncPacket(board.id, suffix)); await until(() => !!refusal, 1000);
+  expect(refusal).toMatchObject({ reason: 'incomplete-update', retryable: true }); expect(app.store.stats(board.id)).toEqual(stats);
+  expect(app.server.hocuspocus.documents.get(board.id)!.store.pendingStructs).toBeNull();
+  const retried = await client(app.port, board.id, tokens.editor!, source);
+  await until(() => !retried.provider.hasUnsyncedChanges && owner.doc.getMap('offline').get('suffix') === 2);
+  expect(owner.doc.getMap('offline').toJSON()).toEqual({ prefix: 1, suffix: 2 });
+});
+
+test('quota charges only newly emitted changes when an honest offline retry includes historical deletions', async () => {
+  const { app, board, tokens } = await setup({ maxBoardBytes: 1024 });
+  const history = new Y.Doc(); history.getArray('history').push(Array.from({ length: 40 }, () => 'value'));
+  for (let index = 38; index >= 0; index -= 2) history.getArray('history').delete(index, 1);
+  app.store.compact(board.id, Y.encodeStateAsUpdate(history)); history.destroy();
+  const editor = await client(app.port, board.id, tokens.editor!); editor.doc.off('update', editor.provider.documentUpdateHandler);
+  editor.doc.getArray('history').push(['new']);
+  const incoming = Y.encodeStateAsUpdate(editor.doc, Y.encodeStateVector(app.server.hocuspocus.documents.get(board.id)!));
+  const receiver = new Y.Doc(); Y.applyUpdate(receiver, app.store.loadDocument(board.id)!); let acceptedBytes = 0;
+  receiver.on('update', update => { acceptedBytes = update.byteLength; }); Y.applyUpdate(receiver, incoming); receiver.destroy();
+  expect(incoming.byteLength).toBeGreaterThan(acceptedBytes);
+  const stats = app.store.stats(board.id), fill = 1024 - stats.snapshotBytes - stats.updateBytes - acceptedBytes;
+  expect(fill).toBeGreaterThan(0);
+  // Storage accounting includes all log rows. Reserve the remaining capacity
+  // with a valid already-known packet, leaving exactly the real new delta.
+  const empty = new Uint8Array([0, 0]);
+  for (let index = 0; index < Math.floor(fill / 2); index++) app.store.appendUpdate(board.id, empty);
+  const connection = app.server.hocuspocus.documents.get(board.id)!.getConnections().find(value => value.context.token === tokens.editor)!;
+  let refusal: any; editor.provider.on('stateless', ({ payload }: { payload: string }) => { refusal = JSON.parse(payload); editor.socket.disconnect(); });
+  connection.handleMessage(syncPacket(board.id, incoming));
+  await until(() => app.store.stats(board.id).updateBytes > stats.updateBytes + Math.floor(fill / 2) * 2 || !!refusal, 1000);
+  expect(refusal).toBeUndefined();
+  expect(app.server.hocuspocus.documents.get(board.id)!.getArray('history').toArray()).toContain('new');
+  expect((await fetch(`http://127.0.0.1:${app.port}/ready`)).status).toBe(200);
+});
+
+test('storage capacity guards append and compaction atomically even outside the WebSocket server', () => {
+  const store = new Store(':memory:', secret, 512); cleanups.push(() => store.close());
+  const user = store.createUser('quota-owner', password), board = store.createBoard(user.id, 'Capacity'), before = store.stats(board.id), snapshot = store.loadDocument(board.id)!;
+  expect(() => store.appendUpdate(board.id, new Uint8Array(512))).toThrow('Board storage limit');
+  expect(() => store.compact(board.id, new Uint8Array(513))).toThrow('Board storage limit');
+  expect(store.stats(board.id)).toEqual(before); expect(store.loadDocument(board.id)).toEqual(snapshot);
+  const tiny = new Store(':memory:', secret, 1); cleanups.push(() => tiny.close());
+  const tinyUser = tiny.createUser('tiny-owner', password); expect(() => tiny.createBoard(tinyUser.id, 'Too big')).toThrow('Board storage limit');
+  expect(tiny.boards(tinyUser.id)).toEqual([]);
 });
 
 test('snapshot and update-log compaction preserve the original clocks and offline edits', () => {

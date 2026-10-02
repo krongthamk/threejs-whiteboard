@@ -3,6 +3,11 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 export function serverConfig() {
+  const limit = (name: string, fallback: number) => {
+    const value = Number(process.env[name] ?? fallback);
+    if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive safe integer`);
+    return value;
+  };
   const dataDirectory = resolve(process.env.WHITEBOARD_DATA_DIR ?? 'data');
   mkdirSync(dataDirectory, { recursive: true, mode: 0o700 });
   const secretPath = join(dataDirectory, 'session-secret');
@@ -25,6 +30,12 @@ export function serverConfig() {
     port, host: process.env.HOST ?? '127.0.0.1',
     websocketPath: process.env.WHITEBOARD_WEBSOCKET_PATH ?? '/collaboration',
     secureCookies: process.env.WHITEBOARD_SECURE_COOKIES === '1',
+    maxUpdateBytes: limit('WHITEBOARD_MAX_UPDATE_BYTES', 4 * 1024 * 1024),
+    maxBoardBytes: limit('WHITEBOARD_MAX_BOARD_BYTES', 64 * 1024 * 1024),
+    maxBufferedBytes: limit('WHITEBOARD_MAX_BUFFERED_BYTES', 1024 * 1024),
+    slowSocketGraceMs: limit('WHITEBOARD_SLOW_SOCKET_GRACE_MS', 3000),
+    maxInboundBytes: limit('WHITEBOARD_MAX_INBOUND_BYTES', 8 * 1024 * 1024),
+    maxClockGrowth: limit('WHITEBOARD_MAX_CLOCK_GROWTH', 1_000_000),
     ...(process.env.WHITEBOARD_STATIC_DIR ? { staticDirectory: resolve(process.env.WHITEBOARD_STATIC_DIR) } : {}),
     ...(process.env.WHITEBOARD_ORIGINS ? { allowedOrigins: process.env.WHITEBOARD_ORIGINS.split(',').map(value => value.trim()).filter(Boolean) } : {}),
   };

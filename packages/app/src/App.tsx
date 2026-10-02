@@ -11,7 +11,7 @@ import { EditorRuntime, type BoardDiagnostics } from './runtime';
 import type { Tool } from './session';
 import { Modal } from './modal';
 import { AccountAccess, type BoardAccess } from './account';
-import { BoardConnection, type ConnectionStatus, type RemotePresence } from './collaboration';
+import { BoardConnection, type ConnectionStatus, type RemotePresence, type SyncBlockedState } from './collaboration';
 import { api } from './api';
 import { ExportDialog } from './export-dialog';
 import { Minimap } from './minimap';
@@ -43,6 +43,8 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
   const [diagnostics, setDiagnostics] = useState<BoardDiagnostics | null>(null);
+  const [syncBlocked, setSyncBlocked] = useState<SyncBlockedState | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [connectionRevision, setConnectionRevision] = useState(0);
   const [shortcuts, setShortcuts] = useState(false);
@@ -60,6 +62,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     let latestPresence: RemotePresence[] = [];
     let currentReadOnly = access?.board.role === 'viewer';
     setDiagnostics(null);
+    setSyncBlocked(null); setConfirmDiscard(false);
     const presence = () => {
       if (!instance || !connection) return;
       const { camera, selectedIds } = instance.session.getState(), bounds = canvas.getBoundingClientRect();
@@ -83,12 +86,18 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
             setPeers(previous => JSON.stringify(previous) === JSON.stringify(roster) ? previous : roster);
           },
           onError: message => { if (!cancelled) setError(message); },
-          onPermissionChange: () => {
+          onSyncBlocked: value => { if (!cancelled) setSyncBlocked(value); },
+          onPermissionChange: reason => {
             if (cancelled) return;
             currentReadOnly = true; setReadOnly(true); setStatus('reconnecting');
             if (instance) { instance.readOnly = true; instance.destroy(); }
             setRuntime(null); void connection?.destroy();
-            setError('Your board permissions changed. Unaccepted local changes were discarded while the board refreshes.');
+            setSyncBlocked(null); setConfirmDiscard(false);
+            setError(reason === 'invalid-document-update'
+              ? 'The server rejected invalid board changes. Unaccepted local changes were discarded while the board refreshes.'
+              : reason === 'local-changes-discarded' || reason === 'cache-reset'
+                ? 'Local changes were discarded. Reopening the saved board.'
+                : 'Your board permissions changed. Unaccepted local changes were discarded while the board refreshes.');
             void api.board(access.board.id).then(board => {
               if (!cancelled) { access.onBoardChange(board); setConnectionRevision(value => value + 1); }
             }).catch(cause => { if (!cancelled) { setStatus('unauthorized'); setError(cause instanceof Error ? cause.message : 'The board could not reopen.'); } });
@@ -119,12 +128,12 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
   }, [access?.board.id, access?.session.user.id, connectionRevision]);
 
   const unsupportedSchema = diagnostics !== null && diagnostics.schemaVersion !== undefined && diagnostics.schemaVersion !== SCHEMA_VERSION;
-  const effectiveReadOnly = readOnly || unsupportedSchema;
+  const effectiveReadOnly = readOnly || unsupportedSchema || !!syncBlocked;
   const hiddenItems = diagnostics ? [
     diagnostics.invalidIds.size ? `${diagnostics.invalidIds.size} invalid element${diagnostics.invalidIds.size === 1 ? '' : 's'}` : '',
     diagnostics.malformedRecords ? `${diagnostics.malformedRecords} malformed record${diagnostics.malformedRecords === 1 ? '' : 's'}` : '',
   ].filter(Boolean).join(' and ') : '';
-  const statusLabel = !access ? 'Local board' : status === 'live' ? 'Connected' : status === 'offline' ? 'Offline · edits on this device' : status === 'unauthorized' ? 'Access unavailable' : status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…';
+  const statusLabel = !access ? 'Local board' : status === 'limited' ? 'Sync paused' : status === 'live' ? 'Connected' : status === 'offline' ? 'Offline · edits on this device' : status === 'unauthorized' ? 'Access unavailable' : status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…';
   return <main className="workspace">
     <canvas ref={canvasRef} className="board-canvas" aria-label="Whiteboard canvas" tabIndex={0} />
     <input ref={fileInputRef} type="file" hidden multiple accept="image/png,image/jpeg,image/webp" aria-label="Import images" onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (runtime && files.length) void runtime.assets.importFiles(files); }} />
@@ -145,10 +154,23 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     {!runtime && !error && <div className="board-loading" role="status">Opening board…</div>}
     {uploading && <div className="upload-status surface" role="status">Adding images…</div>}
     {runtime && <BoardChrome runtime={runtime} revision={revision} readOnly={effectiveReadOnly} />}
-    {(hiddenItems || unsupportedSchema) && <div className="board-data-notice surface" role="status" aria-label="Board data notice">
+    {(hiddenItems || unsupportedSchema || syncBlocked) && <div className="board-data-notice surface" role="status" aria-label="Board data notice">
       {hiddenItems && <p>{hiddenItems} {diagnostics!.invalidIds.size + diagnostics!.malformedRecords === 1 ? 'was' : 'were'} hidden. Other items remain available.</p>}
       {unsupportedSchema && <p>This board uses an unsupported format. Editing is disabled. Reload after updating the app.</p>}
+      {syncBlocked && <>
+        <p>{syncBlocked.reason === 'board-full' ? 'This board has reached its storage limit.' : syncBlocked.reason === 'update-too-large' ? 'Your pending changes exceed the server’s update limit.' : syncBlocked.reason === 'incomplete-update' ? 'The server needs a complete copy of your pending changes. Retry sync to resend them.' : 'The server could not handle your pending changes right now.'} Sync and editing are paused. Your local work is kept on this device and can still be exported.</p>
+        {syncBlocked.reason === 'update-too-large' && <p>Export your work before discarding local changes to reopen the saved board.</p>}
+        <div className="sync-recovery-actions">
+          <button className="board-reload" disabled={!runtime} onClick={() => setDialog('export')}>Export local work</button>
+          {syncBlocked.retryable && <button className="board-reload" disabled={syncBlocked.retrying} onClick={() => connectionRef.current?.retrySync()}>{syncBlocked.retrying ? 'Retrying sync…' : 'Retry sync'}</button>}
+          <button className="board-reload" disabled={syncBlocked.retrying} onClick={() => setConfirmDiscard(true)}>Discard local changes and reopen</button>
+        </div>
+      </>}
     </div>}
+    {confirmDiscard && <Modal title="Discard local changes?" onClose={() => setConfirmDiscard(false)}>
+      <p>Unsynced changes on this device will be permanently discarded. The board will reopen from the server’s saved version. Export your local work first if you want to keep it.</p>
+      <div className="sync-recovery-actions"><button className="board-reload" onClick={() => setConfirmDiscard(false)}>Keep local changes</button><button className="board-reload" onClick={() => { setConfirmDiscard(false); connectionRef.current?.discardLocalChanges(); }}>Discard and reopen saved board</button></div>
+    </Modal>}
     {dialog === 'export' && runtime && <ExportDialog runtime={runtime} title={access?.board.title ?? 'Untitled board'} onClose={() => setDialog(null)} />}
     {dialog && dialog !== 'export' && access && <BoardSettings access={access} kind={dialog} onClose={() => setDialog(null)} />}
     {error && <div className="error-banner" role="alert"><span>{error}</span><button className="board-reload" onClick={() => window.location.reload()}>Reload board</button><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss error"><X size={16} /></button></div>}
