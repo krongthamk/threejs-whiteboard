@@ -6,8 +6,8 @@ import {
   Copy, Trash2, X, Keyboard, Check, ArrowLeft, LogOut, Users, Pencil,
   Type, PenLine, Eraser, ArrowUpRight, Download, ImagePlus,
 } from 'lucide-react';
-import type { ElementStyle } from '@whiteboard/model';
-import { EditorRuntime } from './runtime';
+import { SCHEMA_VERSION, type ElementStyle } from '@whiteboard/model';
+import { EditorRuntime, type BoardDiagnostics } from './runtime';
 import type { Tool } from './session';
 import { Modal } from './modal';
 import { AccountAccess, type BoardAccess } from './account';
@@ -15,6 +15,7 @@ import { BoardConnection, type ConnectionStatus, type RemotePresence } from './c
 import { api } from './api';
 import { ExportDialog } from './export-dialog';
 import { Minimap } from './minimap';
+import { BoardErrorBoundary } from './error-boundary';
 
 const tools = [
   { id: 'select', name: 'Select', key: 'V', icon: MousePointer2 },
@@ -31,8 +32,8 @@ const fills = ['#ffffff', '#fff0ad', '#dbe9ff', '#dff3e5', '#f9dfe9', '#e8e1fa']
 
 export function App() {
   const localTest = import.meta.env.VITE_TEST_HOOKS === '1' && new URLSearchParams(location.search).has('local');
-  if (localTest) return <EditorBoard />;
-  return <AccountAccess>{access => <EditorBoard key={access.board.id} access={access} />}</AccountAccess>;
+  if (localTest) return <BoardErrorBoundary><EditorBoard /></BoardErrorBoundary>;
+  return <AccountAccess>{access => <BoardErrorBoundary key={access.board.id}><EditorBoard access={access} /></BoardErrorBoundary>}</AccountAccess>;
 }
 
 function EditorBoard({ access }: { access?: BoardAccess }) {
@@ -41,6 +42,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
   const [runtime, setRuntime] = useState<EditorRuntime | null>(null);
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
+  const [diagnostics, setDiagnostics] = useState<BoardDiagnostics | null>(null);
   const [uploading, setUploading] = useState(false);
   const [connectionRevision, setConnectionRevision] = useState(0);
   const [shortcuts, setShortcuts] = useState(false);
@@ -57,6 +59,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     let unsubscribe: (() => void) | undefined;
     let latestPresence: RemotePresence[] = [];
     let currentReadOnly = access?.board.role === 'viewer';
+    setDiagnostics(null);
     const presence = () => {
       if (!instance || !connection) return;
       const { camera, selectedIds } = instance.session.getState(), bounds = canvas.getBoundingClientRect();
@@ -95,9 +98,10 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
         connectionRef.current = connection ?? null;
         instance = new EditorRuntime({ canvas, board: connection?.board, boardId: access?.board.id,
           resolveAsset: access ? assetId => api.assetUrl(access.board.id, assetId) : undefined,
-          onChange: () => setRevision(value => value + 1), onError: setError, onEditText: () => {},
+          onChange: () => setRevision(value => value + 1), onError: message => { if (!cancelled) setError(message); }, onEditText: () => {},
           onEditingChange: id => connection?.setPresence({ editingTextId: id }),
           onAssetBusy: setUploading,
+          onDiagnosticsChange: value => { if (!cancelled) setDiagnostics(value); },
         });
         instance.readOnly = currentReadOnly;
         instance.renderer.setPresence(latestPresence);
@@ -114,6 +118,12 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     };
   }, [access?.board.id, access?.session.user.id, connectionRevision]);
 
+  const unsupportedSchema = diagnostics !== null && diagnostics.schemaVersion !== undefined && diagnostics.schemaVersion !== SCHEMA_VERSION;
+  const effectiveReadOnly = readOnly || unsupportedSchema;
+  const hiddenItems = diagnostics ? [
+    diagnostics.invalidIds.size ? `${diagnostics.invalidIds.size} invalid element${diagnostics.invalidIds.size === 1 ? '' : 's'}` : '',
+    diagnostics.malformedRecords ? `${diagnostics.malformedRecords} malformed record${diagnostics.malformedRecords === 1 ? '' : 's'}` : '',
+  ].filter(Boolean).join(' and ') : '';
   const statusLabel = !access ? 'Local board' : status === 'live' ? 'Connected' : status === 'offline' ? 'Offline · edits on this device' : status === 'unauthorized' ? 'Access unavailable' : status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…';
   return <main className="workspace">
     <canvas ref={canvasRef} className="board-canvas" aria-label="Whiteboard canvas" tabIndex={0} />
@@ -121,23 +131,27 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     <header className="board-header surface">
       {access ? <button className="icon-button board-back" aria-label="Back to boards" title="Back to boards" onClick={access.onBack}><ArrowLeft size={20} /></button> : <div className="brand-mark" aria-hidden="true"><SquarePen size={22} strokeWidth={1.7} /></div>}
       <div className="board-heading"><span className="workspace-label">YOUR WORKSPACE</span><h1>{access?.board.title ?? 'Untitled board'}</h1></div>
-      <div className={`board-status status-${status}`} role="status"><span className="status-dot" />{statusLabel}{readOnly && <span className="view-only">View only</span>}</div>
+      <div className={`board-status status-${status}`} role="status"><span className="status-dot" />{statusLabel}{effectiveReadOnly && <span className="view-only">View only</span>}</div>
       <button className="icon-button help-button" onClick={() => setShortcuts(true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts"><Keyboard size={19} /></button>
     </header>
     <div className="board-actions surface">
       <div className="peer-roster" aria-label="Other people on this board">{peers.slice(0, 4).map(peer => <span key={peer.clientId} className="peer-avatar" style={{ background: peer.color }} title={peer.name} aria-label={peer.name}>{peer.name.slice(0, 1).toUpperCase()}</span>)}{peers.length > 4 && <span className="more-peers">+{peers.length - 4}</span>}</div>
-      {access && !readOnly && <button className="icon-button" aria-label="Rename board" title="Rename board" onClick={() => setDialog('rename')}><Pencil size={17} /></button>}
+      {access && !effectiveReadOnly && <button className="icon-button" aria-label="Rename board" title="Rename board" onClick={() => setDialog('rename')}><Pencil size={17} /></button>}
       {access?.board.role === 'owner' && <button className="share-button" onClick={() => setDialog('share')}><Users size={16} />Share</button>}
-      {access && !readOnly && <button className="icon-button" aria-label="Add images" title="Add images" disabled={uploading || !runtime} onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /></button>}
+      {access && !effectiveReadOnly && <button className="icon-button" aria-label="Add images" title="Add images" disabled={uploading || !runtime} onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /></button>}
       <button className="icon-button" aria-label="Export board" title="Export board" disabled={!runtime} onClick={() => setDialog('export')}><Download size={18} /></button>
       {access && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={access.onSignOut}><LogOut size={17} /></button>}
     </div>
     {!runtime && !error && <div className="board-loading" role="status">Opening board…</div>}
     {uploading && <div className="upload-status surface" role="status">Adding images…</div>}
-    {runtime && <BoardChrome runtime={runtime} revision={revision} readOnly={readOnly} />}
+    {runtime && <BoardChrome runtime={runtime} revision={revision} readOnly={effectiveReadOnly} />}
+    {(hiddenItems || unsupportedSchema) && <div className="board-data-notice surface" role="status" aria-label="Board data notice">
+      {hiddenItems && <p>{hiddenItems} {diagnostics!.invalidIds.size + diagnostics!.malformedRecords === 1 ? 'was' : 'were'} hidden. Other items remain available.</p>}
+      {unsupportedSchema && <p>This board uses an unsupported format. Editing is disabled. Reload after updating the app.</p>}
+    </div>}
     {dialog === 'export' && runtime && <ExportDialog runtime={runtime} title={access?.board.title ?? 'Untitled board'} onClose={() => setDialog(null)} />}
     {dialog && dialog !== 'export' && access && <BoardSettings access={access} kind={dialog} onClose={() => setDialog(null)} />}
-    {error && <div className="error-banner" role="alert"><span>{error}</span><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss error"><X size={16} /></button></div>}
+    {error && <div className="error-banner" role="alert"><span>{error}</span><button className="board-reload" onClick={() => window.location.reload()}>Reload board</button><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss error"><X size={16} /></button></div>}
     {shortcuts && <Modal title="Keep your ideas moving" className="shortcut-dialog" onClose={() => setShortcuts(false)}>
       <dl className="shortcut-list"><dt>Select</dt><dd><kbd>V</kbd></dd><dt>Rectangle / Ellipse / Note</dt><dd><kbd>R</kbd> <kbd>O</kbd> <kbd>N</kbd></dd><dt>Pan</dt><dd><kbd>Space</kbd> + drag</dd><dt>Zoom</dt><dd><kbd>⌘</kbd> + scroll</dd><dt>Undo / Redo</dt><dd><kbd>⌘ Z</kbd> / <kbd>⌘ ⇧ Z</kbd></dd><dt>Duplicate</dt><dd><kbd>⌘ D</kbd></dd><dt>Move / Move 10 px</dt><dd><kbd>↑</kbd> / <kbd>⇧ ↑</kbd></dd><dt>Delete</dt><dd><kbd>⌫</kbd></dd></dl>
     </Modal>}

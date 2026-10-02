@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { serverConfig } from './config.js';
 import { Store } from './store.js';
-import { createBackup, restoreBackup } from './operations.js';
+import { createBackup, restoreBackup, pruneElement } from './operations.js';
 
 const [mode, source, target] = process.argv.slice(2);
 if (mode === 'backup' && source) {
@@ -10,4 +10,8 @@ if (mode === 'backup' && source) {
   finally { store.close(); }
 } else if (mode === 'restore' && source && target) {
   const manifest = restoreBackup(resolve(source), resolve(target)); console.log(JSON.stringify({ event: 'restore-complete', destination: resolve(target), boards: manifest.boards, assets: manifest.assets }));
-} else throw new Error('Usage: operations backup <new-directory> | operations restore <backup-directory> <new-data-directory>');
+} else if (mode === 'prune-element' && source && target) {
+  const config = serverConfig(), store = new Store(config.databasePath, config.sessionSecret);
+  try { console.log(JSON.stringify({ event: 'prune-element-complete', boardId: source, elementId: target, ...pruneElement(store, source, target) })); }
+  finally { store.close(); }
+} else throw new Error('Usage: operations backup <new-directory> | operations restore <backup-directory> <new-data-directory> | operations prune-element <boardId> <elementId>');

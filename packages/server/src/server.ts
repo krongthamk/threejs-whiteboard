@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Store, type Session } from './store.js';
 import { staticHandler } from './static.js';
+import { inspectBoardDocument, assertValidBoardDocument } from '../../model/src/document-validation.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
 interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; staticDirectory?: string }
@@ -214,6 +215,19 @@ export function createWhiteboardServer(options: Options) {
       if (connection.readOnly && (type === 1 || type === 2) && !Y.snapshotContainsUpdate(Y.snapshot(document), payload)) {
         resetConnection(connection, documentName, 'viewer', 'read-only-write-rejected');
         throw new Error('Read-only changes require an authoritative reset');
+      }
+      if (!connection.readOnly && (type === 1 || type === 2)) {
+        const candidate = new Y.Doc();
+        try {
+          Y.applyUpdate(candidate, Y.encodeStateAsUpdate(document));
+          const previous = inspectBoardDocument(candidate);
+          Y.applyUpdate(candidate, payload);
+          assertValidBoardDocument(candidate, previous);
+        } catch (error) {
+          console.error({ event: 'invalid-document-update', boardId: documentName, error });
+          resetConnection(connection, documentName, context.role, 'invalid-document-update');
+          throw new Error('Invalid document changes require an authoritative reset');
+        } finally { candidate.destroy(); }
       }
     },
     async onChange({ documentName, update, document }) {

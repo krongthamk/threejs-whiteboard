@@ -1,32 +1,93 @@
 import * as Y from 'yjs';
 import { generateKeyBetween } from 'fractional-indexing';
 import { nanoid } from 'nanoid';
-import { YKeyValue } from 'y-utility/y-keyvalue';
 import { assertValidElement, compareElements, createElement } from './schema.js';
 import { deriveElementGeometry, resolveBinding } from './geometry.js';
+import { CLOCK_KEY, SCHEMA_VERSION, WRITER_PREFIX, REGISTER_FIELDS, causalClockBound, projectedElement, registerKey, validWriterRecord, type StampedValue, type WriterRecord } from './document-validation.js';
+export { CLOCK_KEY, SCHEMA_VERSION, WRITER_PREFIX, type StampedValue, type WriterRecord } from './document-validation.js';
 import type { Binding, Element, ElementInput, ElementOf, ElementPatch, ElementStyle, ElementType, Point } from './types.js';
 
 /** Local origins are not transmitted; providers use their own origin for incoming updates. */
 export const LOCAL_ORIGIN = Symbol('whiteboard.local');
 
-const FIELDS = ['x', 'y', 'w', 'h', 'rotation', 'index', 'style', 'props'] as const;
+const FIELDS = REGISTER_FIELDS;
 type BaseRecord = { generation: string; element: Element };
 const baseKey = (id: string): string => JSON.stringify([id, '$base']);
 const fieldKey = (id: string, generation: string, field: string): string => JSON.stringify([id, generation, field]);
 
-export const WRITER_PREFIX = 'element-properties:';
-export const CLOCK_KEY = JSON.stringify(['$clock']);
-export type StampedValue = { stamp: { clock: number; actor: string }; value: unknown };
-export type WriterRecord = { key: string; val: StampedValue };
 export interface WriterOptions {
   undo?: boolean;
   /** Provider-backed empty documents receive board metadata from persistence or the server. */
   initializeMetadata?: boolean;
 }
-export const SCHEMA_VERSION = 2;
-export type DocumentChange = { ids: ReadonlySet<string>; transaction: Y.Transaction };
-interface Writer { records: Y.Array<WriterRecord>; kv: YKeyValue<StampedValue> }
+export type DocumentChange = { ids: ReadonlySet<string>; transaction: Y.Transaction; invalidIds: ReadonlySet<string>; malformedRecords: number; schemaVersion: unknown };
+interface Writer { records: Y.Array<WriterRecord>; kv: SafeWriterRegisters }
 const compare = (a: StampedValue, b: StampedValue): number => a.stamp.clock - b.stamp.clock || (a.stamp.actor < b.stamp.actor ? -1 : a.stamp.actor > b.stamp.actor ? 1 : 0);
+
+/** Same array wire format and last-record rule as YKeyValue, with guarded input. */
+class SafeWriterRegisters {
+  readonly map = new Map<string, WriterRecord>();
+  malformedRecords = 0;
+  private listeners = new Set<(changes: Map<string, unknown>, transaction: Y.Transaction) => void>();
+  constructor(readonly records: Y.Array<WriterRecord>, private actor: string, private initializationTransaction?: Y.Transaction) { this.scan(); records.observe(this.observe); }
+  private scan(): void {
+    const values: unknown[] = this.records.toArray();
+    const clockBound = causalClockBound(this.records.doc!);
+    this.map.clear(); this.malformedRecords = 0;
+    this.records.doc!.transact(() => {
+      for (let i = values.length - 1; i >= 0; i--) {
+        const value = values[i];
+        if (!validWriterRecord(value, this.actor, clockBound)) { this.malformedRecords++; continue; }
+        if (value.key === CLOCK_KEY && value.val.value !== value.val.stamp.clock) { this.malformedRecords++; continue; }
+        if (this.map.has(value.key)) this.records.delete(i);
+        else this.map.set(value.key, value);
+      }
+    });
+  }
+  private observe = (_event: Y.YArrayEvent<WriterRecord>, transaction: Y.Transaction): void => {
+    // A writer discovered in beforeObserverCalls is already scanned through
+    // this transaction; Yjs will still invoke its freshly attached observer.
+    if (transaction === this.initializationTransaction) { this.initializationTransaction = undefined; return; }
+    const changes = new Map<string, unknown>();
+    const clockBound = causalClockBound(this.records.doc!);
+    const acceptable = (value: unknown): value is WriterRecord => validWriterRecord(value, this.actor, clockBound) && (value.key !== CLOCK_KEY || value.val.value === value.val.stamp.clock);
+    for (const item of _event.changes.deleted) for (const value of item.content.getContent()) {
+      if (!acceptable(value)) { this.malformedRecords--; continue; }
+      if (this.map.get(value.key) === value) { this.map.delete(value.key); changes.set(value.key, true); }
+    }
+    const added = new Map<string, WriterRecord>();
+    for (const item of _event.changes.added) for (const value of item.content.getContent()) {
+      if (acceptable(value)) added.set(value.key, value);
+      else this.malformedRecords++;
+    }
+    const remove = new Set<string>(), values: unknown[] = this.records.toArray();
+    this.records.doc!.transact(() => {
+      for (let i = values.length - 1; i >= 0 && (added.size || remove.size); i--) {
+        const value = values[i];
+        if (!acceptable(value)) continue;
+        if (remove.has(value.key)) { remove.delete(value.key); this.records.delete(i); }
+        else if (added.get(value.key) === value) {
+          if (this.map.has(value.key)) remove.add(value.key);
+          changes.set(value.key, true); added.delete(value.key); this.map.set(value.key, value);
+        } else if (added.has(value.key)) { remove.add(value.key); added.delete(value.key); }
+      }
+    });
+    for (const listener of this.listeners) listener(changes, transaction);
+  };
+  get(key: string): StampedValue | undefined { return this.map.get(key)?.val; }
+  set(key: string, val: StampedValue): void {
+    this.records.doc!.transact(() => {
+      const values: unknown[] = this.records.toArray();
+      for (let i = values.length - 1; i >= 0; i--) {
+        const value = values[i];
+        if (value && typeof value === 'object' && 'key' in value && value.key === key) this.records.delete(i);
+      }
+      this.records.push([{ key, val }]);
+    });
+  }
+  on(_event: 'change', listener: (changes: Map<string, unknown>, transaction: Y.Transaction) => void): void { this.listeners.add(listener); }
+  destroy(): void { this.records.unobserve(this.observe); this.listeners.clear(); }
+}
 
 /** Schema 2: writer-owned Yjs registers with coherent values, native local undo, and offline merge. */
 export class BoardDocument {
@@ -36,6 +97,11 @@ export class BoardDocument {
   readonly undoManager: Y.UndoManager;
   readonly writers = new Map<string, Writer>();
   readonly own: Writer;
+  readonly invalidIds = new Set<string>();
+  get malformedRecords(): number { return this.malformedRoots.size + [...this.writers.values()].reduce((count, writer) => count + writer.kv.malformedRecords, 0); }
+  get schemaVersion(): unknown { return this.meta.get('schemaVersion'); }
+  private malformedRoots = new Set<string>();
+  private diagnosticTransactions = new Set<Y.Transaction>();
   private winners = new Map<string, StampedValue>();
   private candidates = new Map<string, Map<string, StampedValue>>();
   private activeIds = new Set<string>();
@@ -51,7 +117,6 @@ export class BoardDocument {
   constructor(doc = new Y.Doc(), options: WriterOptions = {}) {
     this.doc = doc; this.actor = String(doc.clientID);
     this.meta = doc.getMap('meta');
-    this.assertSchemaVersion();
     const version = this.meta.get('schemaVersion');
     if (version === undefined && options.initializeMetadata !== false) doc.transact(() => {
       this.meta.set('schemaVersion', SCHEMA_VERSION);
@@ -79,11 +144,14 @@ export class BoardDocument {
       if (item) { Y.getItemCleanStart(transaction, item); Y.getItemCleanEnd(transaction, this.doc.store, item); }
     });
     doc.on('beforeObserverCalls', this.discover);
+    this.meta.observe(event => { this.diagnosticTransactions.add(event.transaction); });
     doc.on('afterTransaction', transaction => {
       this.pending.clear();
       const ids = this.changes.get(transaction);
       this.changes.delete(transaction);
-      if (ids?.size) for (const listener of this.listeners) listener({ ids, transaction });
+      for (const id of ids ?? []) this.read(id);
+      const diagnosticsChanged = this.diagnosticTransactions.delete(transaction);
+      if (ids?.size || diagnosticsChanged) for (const listener of this.listeners) listener({ ids: ids ?? new Set(), transaction, invalidIds: new Set(this.invalidIds), malformedRecords: this.malformedRecords, schemaVersion: this.schemaVersion });
     });
   }
 
@@ -104,17 +172,24 @@ export class BoardDocument {
         if (!name.startsWith(WRITER_PREFIX)) continue;
         const actor = name.slice(WRITER_PREFIX.length);
         if (this.writers.has(actor)) continue;
-        const records = this.doc.getArray<WriterRecord>(name), kv = new YKeyValue(records);
+        let records: Y.Array<WriterRecord>;
+        try { records = this.doc.getArray<WriterRecord>(name); if (records._map.size) this.malformedRoots.add(name); }
+        catch { this.malformedRoots.add(name); if (transaction) this.diagnosticTransactions.add(transaction); continue; }
+        const kv = new SafeWriterRegisters(records, actor, transaction);
         this.writers.set(actor, { records, kv });
+        if (transaction) this.diagnosticTransactions.add(transaction);
         for (const key of kv.map.keys()) this.refresh(key, actor, kv.get(key), transaction);
         kv.on('change', (changes: Map<string, unknown>, transaction: Y.Transaction) => {
           for (const key of changes.keys()) this.refresh(key, actor, kv.get(key), transaction);
+          this.diagnosticTransactions.add(transaction);
         });
       }
     } finally { this.discovering = false; }
   };
 
   private refresh(key: string, actor: string, value: StampedValue | undefined, transaction?: Y.Transaction): void {
+    const parts = registerKey(key);
+    if (!parts || value && !validWriterRecord({ key, val: value }, actor)) return;
     let candidates = this.candidates.get(key);
     if (!candidates) { candidates = new Map(); this.candidates.set(key, candidates); }
     const oldValue = candidates.get(actor);
@@ -130,12 +205,12 @@ export class BoardDocument {
     if (winner) this.winners.set(key, winner); else this.winners.delete(key);
     if (candidates.size === 0) this.candidates.delete(key);
     if (previous === winner || key === CLOCK_KEY) return;
-    const [id, field] = JSON.parse(key) as string[];
+    const [id, field] = parts;
     if (!id) return;
     if (field === '$base') {
-      if (winner?.value) this.activeIds.add(id); else this.activeIds.delete(id);
+      if (winner && winner.value !== null && winner.value !== undefined) this.activeIds.add(id); else this.activeIds.delete(id);
       this.maxIndexDirty = true;
-    } else if ((JSON.parse(key) as string[])[2] === 'index') this.maxIndexDirty = true;
+    } else if (parts[2] === 'index') this.maxIndexDirty = true;
     if (transaction) {
       let changed = this.changes.get(transaction);
       if (!changed) { changed = new Set(); this.changes.set(transaction, changed); }
@@ -150,8 +225,8 @@ export class BoardDocument {
       const ids = new Set(this.activeIds);
       for (const key of this.pending.keys()) { const parts = JSON.parse(key) as string[]; if (parts[1] === '$base') ids.add(parts[0]!); }
       for (const id of ids) {
-        const base = this.base(id); if (!base) continue;
-        const index = this.get(fieldKey(id, base.generation, 'index')) as string | undefined ?? base.element.index;
+        const element = this.read(id); if (!element) continue;
+        const index = element.index;
         if (this.maxIndex === null || index > this.maxIndex) this.maxIndex = index;
       }
       this.maxIndexDirty = false;
@@ -203,18 +278,12 @@ export class BoardDocument {
     return element;
   }
   read(id: string): Element | undefined {
-    this.assertSchemaVersion();
-    const base = this.base(id);
-    if (!base) return undefined;
-    const element = base.element;
-    for (const field of FIELDS) {
-      const value = this.get(fieldKey(id, base.generation, field));
-      if (value !== undefined) Object.assign(element, { [field]: structuredClone(value) });
-    }
-    assertValidElement(element); return deriveElementGeometry(element);
+    try {
+      const element = projectedElement(id, key => this.get(key));
+      this.invalidIds.delete(id); return element;
+    } catch { this.invalidIds.add(id); return undefined; }
   }
   readAll(): Element[] {
-    this.assertSchemaVersion();
     const ids = new Set(this.activeIds);
     for (const key of this.pending.keys()) { const parts = JSON.parse(key) as string[]; if (parts[1] === '$base') ids.add(parts[0]!); }
     return [...ids].flatMap(id => {
@@ -270,7 +339,7 @@ export class BoardDocument {
     const prepared = updates.map(({ id, patch }) => this.preparePatch(id, patch)).filter(value => value !== undefined);
     this.transact(() => {
       for (const update of prepared) for (const [key, value] of Object.entries(update.patch)) this.set(fieldKey(update.id, update.generation, key), value);
-      for (const id of deleted) if (this.base(id)) this.set(baseKey(id), null);
+      for (const id of deleted) if (this.get(baseKey(id)) !== undefined) this.set(baseKey(id), null);
     });
   }
   duplicate(ids: readonly string[], delta: Point = { x: 24, y: 24 }): string[] {

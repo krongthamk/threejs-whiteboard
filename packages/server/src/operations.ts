@@ -3,6 +3,49 @@ import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { Store } from './store.js';
+import * as Y from 'yjs';
+import { CLOCK_KEY, WRITER_PREFIX, plainRecord, causalClockBound, validWriterRecord } from '../../model/src/document-validation.js';
+
+/** Repair a poisoned element offline without constructing a projection or resetting Yjs clocks. */
+export function pruneElement(store: Store, boardId: string, elementId: string): { removedRecords: number } {
+  if (!elementId) throw new Error('An element ID is required');
+  const snapshot = store.loadDocument(boardId);
+  if (!snapshot) throw new Error('Board not found');
+  const doc = new Y.Doc();
+  try {
+    Y.applyUpdate(doc, snapshot);
+    const clockBound = causalClockBound(doc);
+    const removals: { records: Y.Array<unknown>; indices: number[] }[] = [];
+    let clock = 0, removedRecords = 0;
+    for (const name of doc.share.keys()) {
+      if (!name.startsWith(WRITER_PREFIX)) continue;
+      let records: Y.Array<unknown>;
+      try { records = doc.getArray(name); } catch { continue; }
+      const indices: number[] = [];
+      records.toArray().forEach((record, index) => {
+        if (!plainRecord(record)) return;
+        if (validWriterRecord(record, name.slice(WRITER_PREFIX.length), clockBound)) clock = Math.max(clock, record.val.stamp.clock);
+        let keyId: unknown;
+        try { const parts: unknown = typeof record.key === 'string' ? JSON.parse(record.key) : undefined; if (Array.isArray(parts)) keyId = parts[0]; } catch { /* Fall back to the base's embedded ID. */ }
+        const base = plainRecord(record.val) && plainRecord(record.val.value) ? record.val.value : undefined;
+        // A malformed key may still identify its damaged base through element.id.
+        if (keyId === elementId || plainRecord(base?.element) && base.element.id === elementId) indices.push(index);
+      });
+      removals.push({ records, indices }); removedRecords += indices.length;
+    }
+    if (!removedRecords) throw new Error('Element records not found');
+    const actor = String(doc.clientID), stamp = { actor, clock: clock + 1 };
+    doc.transact(() => {
+      for (const { records, indices } of removals) for (const index of indices.reverse()) records.delete(index, 1);
+      doc.getArray(WRITER_PREFIX + actor).push([
+        { key: JSON.stringify([elementId, '$base']), val: { stamp, value: null } },
+        { key: CLOCK_KEY, val: { stamp, value: stamp.clock } },
+      ]);
+    }, 'prune-element');
+    store.compact(boardId, Y.encodeStateAsUpdate(doc));
+    return { removedRecords };
+  } finally { doc.destroy(); }
+}
 
 interface Manifest { version: 1; createdAt: string; files: Record<string, string>; boards: number; assets: number }
 const hash = (path: string) => createHash('sha256').update(readFileSync(path)).digest('hex');

@@ -1,10 +1,16 @@
-import { BoardDocument, type ElementStyle } from '@whiteboard/model';
+import { BoardDocument, SCHEMA_VERSION, type ElementStyle } from '@whiteboard/model';
 import { createRenderer, type ThreeRenderer } from '@whiteboard/renderer';
 import { EditorController } from './controller';
 import { createSession, type SessionStore } from './session';
 import { BoardTextEditor } from './text-editor';
 import { BoardExporter } from './export';
 import { BoardAssets } from './assets';
+
+export interface BoardDiagnostics {
+  invalidIds: ReadonlySet<string>;
+  malformedRecords: number;
+  schemaVersion: unknown;
+}
 
 export interface RuntimeOptions {
   canvas: HTMLCanvasElement;
@@ -15,6 +21,7 @@ export interface RuntimeOptions {
   onEditText(id: string): void;
   onEditingChange?(id: string | null): void;
   onAssetBusy?(busy: boolean): void;
+  onDiagnosticsChange?(diagnostics: BoardDiagnostics): void;
   onError(message: string): void;
 }
 
@@ -26,7 +33,12 @@ export class EditorRuntime {
   readonly textEditor: BoardTextEditor;
   readonly exporter: BoardExporter;
   readonly assets: BoardAssets;
-  readOnly = false;
+  private permissionReadOnly = false;
+  get readOnly(): boolean {
+    const version = this.board.schemaVersion;
+    return this.permissionReadOnly || version !== undefined && version !== SCHEMA_VERSION;
+  }
+  set readOnly(value: boolean) { this.permissionReadOnly = value; }
   private elementIds = new Set<string>();
   get elementCount(): number { return this.elementIds.size; }
   private stopped = false;
@@ -49,21 +61,33 @@ export class EditorRuntime {
       resolveAsset: options.resolveAsset,
     });
     const initialElements = this.board.readAll();
+    const reportDiagnostics = () => options.onDiagnosticsChange?.({
+      invalidIds: new Set(this.board.invalidIds), malformedRecords: this.board.malformedRecords,
+      schemaVersion: this.board.schemaVersion,
+    });
+    reportDiagnostics();
     this.elementIds = new Set(initialElements.map(element => element.id));
     this.renderer.setElements(initialElements);
     this.renderer.setCamera(this.session.getState().camera);
     this.unsubscribe = this.board.subscribe(({ ids }) => {
-      const upserts = [...ids].flatMap(id => { const element = this.board.read(id); return element ? [element] : []; });
-      const removals = [...ids].filter(id => !this.board.read(id));
-      for (const element of upserts) this.elementIds.add(element.id);
-      for (const id of removals) this.elementIds.delete(id);
-      this.renderer.applyDiff(upserts, removals);
-      const selectedIds = this.session.getState().selectedIds.filter(id => !!this.board.read(id));
-      if (selectedIds.length !== this.session.getState().selectedIds.length) this.session.setState({ selectedIds });
-      options.onChange();
+      try {
+        if (this.readOnly) this.textEditor?.cancel();
+        const projected = [...ids].map(id => ({ id, element: this.board.read(id) }));
+        const upserts = projected.flatMap(({ element }) => element ? [element] : []);
+        const removals = projected.filter(({ element }) => !element).map(({ id }) => id);
+        for (const element of upserts) this.elementIds.add(element.id);
+        for (const id of removals) this.elementIds.delete(id);
+        this.renderer.applyDiff(upserts, removals);
+        const selectedIds = this.session.getState().selectedIds.filter(id => !!this.board.read(id));
+        if (selectedIds.length !== this.session.getState().selectedIds.length) this.session.setState({ selectedIds });
+        options.onChange();
+      } catch (error) {
+        options.onError(error instanceof Error ? error.message : 'The board could not update. Reload the board.');
+      } finally { reportDiagnostics(); }
     });
     this.unsubscribeSession = this.session.subscribe((state, previous) => {
-      if (state.camera !== previous.camera) this.renderer.setCamera(state.camera);
+      try { if (state.camera !== previous.camera) this.renderer.setCamera(state.camera); }
+      catch (error) { options.onError(error instanceof Error ? error.message : 'The canvas could not update. Reload the board.'); }
     });
     this.textEditor = new BoardTextEditor({
       canvas: options.canvas, board: this.board, renderer: this.renderer, session: this.session,
@@ -77,8 +101,10 @@ export class EditorRuntime {
     this.assets = new BoardAssets({ canvas: options.canvas, boardId: options.boardId ?? 'local', board: this.board, session: this.session,
       isReadOnly: () => this.readOnly, maxImageDimension: () => this.renderer.getMaxImageDimension(), onError: options.onError, onBusy: options.onAssetBusy });
     this.observer = new ResizeObserver(() => {
-      const bounds = options.canvas.getBoundingClientRect();
-      this.renderer.resize(Math.max(1, bounds.width), Math.max(1, bounds.height));
+      try {
+        const bounds = options.canvas.getBoundingClientRect();
+        this.renderer.resize(Math.max(1, bounds.width), Math.max(1, bounds.height));
+      } catch (error) { options.onError(error instanceof Error ? error.message : 'The canvas could not resize. Reload the board.'); }
     });
     this.observer.observe(options.canvas);
     const bounds = options.canvas.getBoundingClientRect();

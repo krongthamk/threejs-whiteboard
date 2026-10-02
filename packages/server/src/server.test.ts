@@ -11,7 +11,7 @@ import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/pro
 import WebSocket from 'ws';
 import { createWhiteboardServer } from './server.js';
 import { Store } from './store.js';
-import { BoardDocument, assertValidElement } from '../../model/src/index.js';
+import { BoardDocument, assertValidElement, createElement, WRITER_PREFIX } from '../../model/src/index.js';
 import { createBackup, restoreBackup } from './operations.js';
 import { createRouter, shardFor } from './router.js';
 
@@ -178,6 +178,120 @@ test('compaction failures retain the document until storage recovers', async () 
   const reconnected = await client(app.port, board.id, tokens.owner!);
   expect(reconnected.doc.getMap('compaction-error').get('retained')).toBe(true);
   expect((await request('/ready')).status).toBe(200);
+});
+
+test.each(['element', 'key', 'stamp', 'primitive', 'schema', 'clock'] as const)('rejects an editor update with malformed %s before it enters the live document', async malformed => {
+  const { app, board, tokens } = await setup();
+  const owner = await client(app.port, board.id, tokens.owner!), editor = await client(app.port, board.id, tokens.editor!);
+  const healthy = new BoardDocument(owner.doc); cleanups.push(() => healthy.destroy());
+  healthy.create('rect', { id: 'healthy' });
+  await until(() => !owner.provider.hasUnsyncedChanges);
+  const before = app.store.stats(board.id).updateCount;
+  let reset: any;
+  editor.provider.on('stateless', ({ payload }: { payload: string }) => { reset = JSON.parse(payload); editor.socket.disconnect(); });
+  const actor = String(editor.doc.clientID);
+  const record: any = { key: JSON.stringify(['bad', '$base']), val: { stamp: { actor, clock: 1 }, value: { generation: `${actor}:0`, element: createElement('rect', { id: 'bad' }) } } };
+  editor.doc.transact(() => {
+    if (malformed === 'schema') editor.doc.getMap('meta').set('schemaVersion', 99);
+    else {
+      if (malformed === 'element') record.val.value.element.x = 'nope';
+      if (malformed === 'key') record.key = 'not-json';
+      if (malformed === 'stamp') delete record.val.stamp;
+      if (malformed === 'clock') record.val.stamp.clock = Number.MAX_SAFE_INTEGER;
+      editor.doc.getArray(WRITER_PREFIX + actor).push([malformed === 'primitive' ? null : record]);
+    }
+  });
+  await until(() => !!reset, 1000);
+  expect(reset).toMatchObject({ boardId: board.id, role: 'editor', resetRequired: true, reason: 'invalid-document-update' });
+  expect(app.store.stats(board.id).updateCount).toBe(before);
+  expect(healthy.readAll().map(element => element.id)).toEqual(['healthy']);
+  const live = app.server.hocuspocus.documents.get(board.id)!;
+  expect(live.getMap('meta').get('schemaVersion')).toBe(2);
+  expect(live.share.has(WRITER_PREFIX + actor)).toBe(false);
+  healthy.create('ellipse', { id: 'follow-up' });
+  await until(() => !owner.provider.hasUnsyncedChanges);
+  expect(healthy.readAll().map(element => element.id)).toEqual(['healthy', 'follow-up']);
+});
+
+test('prune-element repairs malformed raw bases offline and stale replicas cannot resurrect them', async () => {
+  const path = directory(), store = new Store(join(path, 'whiteboard.sqlite'), secret);
+  cleanups.push(() => store.close());
+  const user = store.createUser('repair-owner', password), board = store.createBoard(user.id, 'Repair');
+  const doc = new Y.Doc(); Y.applyUpdate(doc, store.loadDocument(board.id)!);
+  const model = new BoardDocument(doc); model.create('rect', { id: 'healthy' });
+  const actor = 'poison-writer', records = doc.getArray(WRITER_PREFIX + actor);
+  const bad = { key: JSON.stringify(['bad', '$base']), val: { stamp: { actor, clock: Number.MAX_SAFE_INTEGER }, value: { generation: `${actor}:0`, element: { ...createElement('rect', { id: 'bad' }), x: 'invalid' } } } };
+  records.push([
+    bad,
+    { key: JSON.stringify(['bad', `${actor}:0`, 'x']), val: { stamp: { actor, clock: 2 }, value: 'still invalid' } },
+    { key: '["bad", "invalid-field"]', val: { value: null } },
+  ]);
+  doc.getMap('custom').set('untouched', true);
+  const originalClock = Y.decodeStateVector(Y.encodeStateVector(doc));
+  store.compact(board.id, Y.encodeStateAsUpdate(doc));
+  const offline = new Y.Doc(); Y.applyUpdate(offline, Y.encodeStateAsUpdate(doc));
+  const child = fork(fileURLToPath(new URL('./backup-cli.ts', import.meta.url)), ['prune-element', board.id, 'bad'], {
+    execArgv: ['--import', 'tsx'], stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    env: { ...process.env, WHITEBOARD_DATA_DIR: path, WHITEBOARD_SESSION_SECRET: secret },
+  });
+  cleanups.push(() => { if (child.exitCode === null && child.signalCode === null) child.kill(); });
+  let errors = ''; child.stderr!.on('data', bytes => { errors += bytes.toString(); });
+  await until(() => child.exitCode !== null || child.signalCode !== null);
+  expect(child.exitCode, errors).toBe(0);
+  const repaired = new Y.Doc(); Y.applyUpdate(repaired, store.loadDocument(board.id)!);
+  const repairedClock = Y.decodeStateVector(Y.encodeStateVector(repaired));
+  for (const [clientId, clock] of originalClock) expect(repairedClock.get(clientId)).toBeGreaterThanOrEqual(clock);
+  expect(repaired.getMap('custom').get('untouched')).toBe(true);
+  expect(repaired.getArray(WRITER_PREFIX + actor).length).toBe(0);
+  // This update predates the repair and carries its old base and an offline field.
+  offline.getArray(WRITER_PREFIX + actor).push([{ key: JSON.stringify(['bad', `${actor}:0`, 'y']), val: { stamp: { actor, clock: 3 }, value: 5 } }]);
+  Y.applyUpdate(repaired, Y.encodeStateAsUpdate(offline));
+  const projection = new BoardDocument(repaired);
+  expect(projection.readAll().map(element => element.id)).toEqual(['healthy']);
+  projection.create('ellipse', { id: 'after-repair' });
+  expect(projection.readAll().map(element => element.id)).toEqual(['healthy', 'after-repair']);
+  projection.destroy(); model.destroy(); offline.destroy();
+});
+
+test('initial sync rejects poison queued while offline', async () => {
+  const { app, board, tokens } = await setup();
+  const doc = new Y.Doc(), actor = String(doc.clientID);
+  doc.getArray(WRITER_PREFIX + actor).push([null]);
+  let reset: any;
+  const socket = new HocuspocusProviderWebsocket({ url: `ws://127.0.0.1:${app.port}/collaboration`, WebSocketPolyfill: WebSocket });
+  const provider = new HocuspocusProvider({ websocketProvider: socket, name: board.id, token: tokens.editor!, document: doc,
+    onStateless: ({ payload }) => { reset = JSON.parse(payload); socket.disconnect(); } });
+  cleanups.push(() => { provider.destroy(); socket.destroy(); doc.destroy(); }); provider.attach();
+  await until(() => !!reset);
+  expect(reset.reason).toBe('invalid-document-update');
+  expect(app.store.stats(board.id).updateCount).toBe(0);
+  expect(app.server.hocuspocus.documents.get(board.id)?.share.has(WRITER_PREFIX + actor) ?? false).toBe(false);
+});
+
+test('historical poison allows healthy edits and pruning, but cannot be replaced with new poison', async () => {
+  const { app, board, tokens } = await setup();
+  const owner = await client(app.port, board.id, tokens.owner!);
+  const actor = 'historical-poison', serverDoc = app.server.hocuspocus.documents.get(board.id)!;
+  const bad = { key: JSON.stringify(['bad', '$base']), val: { stamp: { actor, clock: 1 }, value: { generation: `${actor}:0`, element: { ...createElement('rect', { id: 'bad' }), x: 'old poison' } } } };
+  serverDoc.getArray(WRITER_PREFIX + actor).push([bad]);
+  const editor = await client(app.port, board.id, tokens.editor!);
+  const model = new BoardDocument(editor.doc); cleanups.push(() => model.destroy());
+  let reset: any;
+  editor.provider.on('stateless', ({ payload }: { payload: string }) => { reset = JSON.parse(payload); editor.socket.disconnect(); });
+  model.create('rect', { id: 'new-healthy' });
+  await until(() => !editor.provider.hasUnsyncedChanges);
+  expect(reset).toBeUndefined();
+  // Replacing a known issue at the same key changes its fingerprint and is rejected.
+  const records = editor.doc.getArray(WRITER_PREFIX + actor);
+  editor.doc.transact(() => { records.delete(0, 1); records.push([{ ...bad, val: { ...bad.val, value: { ...bad.val.value, element: { ...bad.val.value.element, x: 'new poison' } } } }]); });
+  await until(() => !!reset);
+  expect(reset.reason).toBe('invalid-document-update');
+  const fresh = await client(app.port, board.id, tokens.editor!), repair = new BoardDocument(fresh.doc); cleanups.push(() => repair.destroy());
+  repair.delete('bad');
+  await until(() => !fresh.provider.hasUnsyncedChanges);
+  expect(repair.readAll().map(element => element.id)).toEqual(['new-healthy']);
+  expect((serverDoc.getArray<any>(WRITER_PREFIX + actor).get(0).val.value.element as any).x).toBe('old poison');
+  expect(owner.doc.getArray(WRITER_PREFIX + actor).length).toBe(1);
 });
 
 test('snapshot and update-log compaction preserve the original clocks and offline edits', () => {

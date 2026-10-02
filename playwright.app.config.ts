@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
+const testPort = Number(process.env.WHITEBOARD_TEST_PORT ?? 3001);
+if (!Number.isInteger(testPort) || testPort < 1 || testPort > 65535) throw new Error('WHITEBOARD_TEST_PORT must be an integer from 1 to 65535.');
+
 export default defineConfig({
   testDir: './tests/app',
   timeout: 30_000,
@@ -18,7 +21,7 @@ export default defineConfig({
   },
   webServer: [{
     command: 'pnpm exec tsx scripts/app-test-server.ts',
-    url: 'http://127.0.0.1:3001/health',
+    url: `http://127.0.0.1:${testPort}/health`,
     reuseExistingServer: false,
     timeout: 30_000,
   }, {

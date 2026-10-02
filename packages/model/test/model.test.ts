@@ -28,22 +28,24 @@ describe('document contract', () => {
     board.destroy(); server.destroy();
   });
 
-  it('rejects schema1 that arrives after an initially empty provider document', () => {
+  it('keeps reads available but rejects writes when schema1 arrives after an empty provider document', () => {
     const board = new BoardDocument(new Y.Doc(), { initializeMetadata: false });
     const legacy = new Y.Doc(); legacy.getMap('meta').set('schemaVersion', 1);
     Y.applyUpdate(board.doc, Y.encodeStateAsUpdate(legacy), 'network');
     const before = Y.encodeStateAsUpdate(board.doc);
-    expect(() => board.readAll()).toThrow('Unsupported board schema 1');
+    expect(board.readAll()).toEqual([]); expect(board.schemaVersion).toBe(1);
     expect(() => board.create('rect')).toThrow('Unsupported board schema 1');
     expect(Y.encodeStateAsUpdate(board.doc)).toEqual(before);
     board.destroy(); legacy.destroy();
   });
 
-  it('rejects a prior schema explicitly without resetting its document', () => {
+  it('exposes a prior schema for recovery without resetting its document or allowing edits', () => {
     const doc = new Y.Doc(); doc.getMap('meta').set('schemaVersion', 1);
     const before = Y.encodeStateAsUpdate(doc);
-    expect(() => new BoardDocument(doc)).toThrow('Unsupported board schema 1');
-    expect(Y.encodeStateAsUpdate(doc)).toEqual(before); doc.destroy();
+    const board = new BoardDocument(doc);
+    expect(board.schemaVersion).toBe(1); expect(board.readAll()).toEqual([]);
+    expect(() => board.create('rect')).toThrow('Unsupported board schema 1');
+    expect(Y.encodeStateAsUpdate(doc)).toEqual(before); board.destroy();
   });
 
   it('reports a new remote writer and batches its affected IDs once per transaction', () => {

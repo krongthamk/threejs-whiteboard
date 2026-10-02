@@ -8,7 +8,9 @@ import { createRouter } from '../packages/server/src/router.js';
 // Disposable browser fixture: these accounts and bytes never enter deployment storage.
 const directory = mkdtempSync(join(tmpdir(), 'whiteboard-browser-'));
 const routed = process.env.WHITEBOARD_TEST_SHARDS === '2';
-const options = { databasePath: join(directory, 'test.sqlite'), assetDirectory: join(directory, 'assets'), sessionSecret: randomBytes(40).toString('hex'), port: routed ? 0 : 3001 };
+const testPort = Number(process.env.WHITEBOARD_TEST_PORT ?? 3001);
+if (!Number.isInteger(testPort) || testPort < 1 || testPort > 65535) throw new Error('WHITEBOARD_TEST_PORT must be an integer from 1 to 65535.');
+const options = { databasePath: join(directory, 'test.sqlite'), assetDirectory: join(directory, 'assets'), sessionSecret: randomBytes(40).toString('hex'), port: routed ? 0 : testPort };
 const app = createWhiteboardServer(options);
 for (const username of ['alice', 'bob', 'viewer', 'outsider']) app.store.createUser(username, 'browser-test-only-password');
 await app.listen();
@@ -16,9 +18,9 @@ await app.listen();
 // shared transactional storage. Each board still has exactly one live owner.
 const second = routed ? createWhiteboardServer(options) : undefined;
 await second?.listen();
-const router = second ? createRouter([{ id: 'a', url: `http://127.0.0.1:${app.port}` }, { id: 'b', url: `http://127.0.0.1:${second.port}` }], { port: 3001 }) : undefined;
+const router = second ? createRouter([{ id: 'a', url: `http://127.0.0.1:${app.port}` }, { id: 'b', url: `http://127.0.0.1:${second.port}` }], { port: testPort }) : undefined;
 await router?.listen();
-console.log('Disposable browser fixture ready on 127.0.0.1:3001');
+console.log(`Disposable browser fixture ready on 127.0.0.1:${testPort}`);
 let closing = false;
 async function close() {
   if (closing) return; closing = true;

@@ -84,6 +84,13 @@ another save. A successful snapshot clears the failure and restores readiness;
 an unavailable store keeps the document loaded and refuses synchronization.
 Unexpected unhandled promise rejections are logged and begin the normal drain.
 
+Editor document updates, including queued offline edits during initial sync, are
+validated on a disposable clone before reaching the live document or log. Invalid
+registers, element values, or metadata reset the sender with reason
+`invalid-document-update`; the client opens a fresh authoritative replica. Existing
+malformed records remain quarantined while healthy edits and repairs are allowed.
+Replacing an existing malformed record with different malformed content is rejected.
+
 `src/spike.ts` is the failed original Phase 0 nested-map transport benchmark;
 `src/spike-writer-kv.ts` is the replacement in-memory candidate. Neither is a
 production authentication or persistence implementation. See
@@ -112,6 +119,7 @@ before draining an owner; drain alone does not transfer its ownership.
 ```sh
 pnpm --filter @whiteboard/server operations backup /absolute/new-backup-directory
 pnpm --filter @whiteboard/server operations restore /absolute/backup /absolute/new-data-directory
+pnpm --filter @whiteboard/server operations prune-element <boardId> <elementId>
 ```
 
 Backup uses SQLite's online backup API, then copies precisely the immutable
@@ -121,6 +129,12 @@ data and credentials. Restore verifies hashes and SQLite integrity, refuses an
 existing destination, and publishes the restored directory atomically. Point
 `WHITEBOARD_DATA_DIR` at that fresh directory only while the old server is
 stopped. No document/client clock reset occurs.
+
+Run `prune-element` with the server stopped. It removes the specified element's
+raw base and field records, writes a higher-clock deletion marker, and saves the
+repaired snapshot while preserving unrelated records and Yjs history. This can
+repair a malformed element without loading it into the editor. Reconnecting stale
+replicas cannot restore the deleted base from their old snapshots.
 
 `pnpm --filter @whiteboard/loadtest history` generates 100,000 schema2 updates,
 compacts at the production thresholds, times reload plus full projection, and
