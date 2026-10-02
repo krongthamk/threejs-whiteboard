@@ -20,6 +20,27 @@ async function draw(page: Page, name: string, x: number, y: number) {
 }
 const contents = (page: Page) => page.evaluate(() => window.whiteboard.board.readAll());
 
+test('token-free sign-in and reload authenticate collaboration with the HttpOnly cookie', async ({ page }) => {
+  const loginResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/session' && response.request().method() === 'POST');
+  await signIn(page, 'alice');
+  expect(await (await loginResponse).json()).not.toHaveProperty('token');
+  expect(await page.evaluate(async () => (await fetch('/api/session')).json())).not.toHaveProperty('token');
+  expect(await page.evaluate(() => document.cookie)).not.toContain('board_session=');
+  const back = page.getByRole('button', { name: 'Back to boards', exact: true });
+  await expect(back.or(page.getByRole('button', { name: 'New board', exact: true }))).toBeVisible();
+  if (await back.isVisible()) await back.click();
+  await page.getByRole('button', { name: 'New board', exact: true }).click();
+  await page.getByLabel('Board name', { exact: true }).fill('Cookie authentication');
+  await page.getByRole('button', { name: 'Create board', exact: true }).click();
+  await connected(page);
+  expect(await page.evaluate(async () => {
+    const token = window.whiteboardConnection!.provider.configuration.token;
+    return typeof token === 'function' ? token() : token;
+  })).toBe('');
+  await page.reload(); await connected(page);
+  expect(await page.evaluate(async () => (await fetch('/api/session')).json())).not.toHaveProperty('token');
+});
+
 test('an already revoked session can return to sign-in without reloading the page', async ({ page }) => {
   await signIn(page, 'alice');
   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();

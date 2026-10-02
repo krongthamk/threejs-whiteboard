@@ -24,7 +24,8 @@ export function createWhiteboardServer(options: Options) {
   const store = new Store(options.databasePath, options.sessionSecret, limits.maxBoardBytes);
   mkdirSync(options.assetDirectory, { recursive: true });
   const websocketPath = options.websocketPath ?? '/collaboration';
-  const origins = new Set(options.allowedOrigins ?? [4173, 5173, 5174, 3001].flatMap(port => [`http://localhost:${port}`, `http://127.0.0.1:${port}`]));
+  const originPorts = options.staticDirectory ? [options.port || 3001] : [4173, 5173, 5174, 3001];
+  const origins = new Set(options.allowedOrigins ?? originPorts.flatMap(port => [`http://localhost:${port}`, `http://127.0.0.1:${port}`]));
   const metrics = new Map<string, Metrics>();
   const persistenceFailed = new Map<string, unknown>();
   const updateLocks = new Map<string, Promise<void>>();
@@ -62,7 +63,7 @@ export function createWhiteboardServer(options: Options) {
     const board = store.board(boardId, userId); if (!board) throw new HttpError(404, 'Board not found');
     if (write && board.role === 'viewer') throw new HttpError(403, 'This board is read-only'); return board;
   }
-  const publicSession = ({ user, token, expiresAt }: Session) => ({ user, token, expiresAt });
+  const publicSession = ({ user, expiresAt }: Session) => ({ user, expiresAt });
   const cookie = (token: string, maxAge = 43200) => `board_session=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${options.secureCookies ? '; Secure' : ''}`;
   function json(response: ServerResponse, status: number, data?: unknown) { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(data === undefined ? undefined : JSON.stringify(data)); }
   async function body(request: IncomingMessage, limit = 65536): Promise<Buffer> {
@@ -222,6 +223,8 @@ export function createWhiteboardServer(options: Options) {
       const origin = requestHeaders.get('origin'); if (origin && !origins.has(origin)) throw new Error('Origin is not allowed');
       const sessionToken = token || cookieToken(requestHeaders.get('cookie') ?? '');
       const session = store.authenticate(sessionToken); if (!session) throw new Error('Authentication required');
+      const expectedUserId = requestParameters.get('expectedUserId');
+      if (expectedUserId !== null && expectedUserId !== session.user.id) throw Object.assign(new Error('The signed-in account changed'), { reason: 'session-identity-changed' });
       const role = store.role(documentName, session.user.id); if (!role) throw new Error('Board access denied');
       // Replaying an update already applied in memory emits no onChange event.
       // Save the entire retained Doc before permitting reconnect synchronization.

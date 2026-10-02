@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { BoardConnection } from './collaboration';
+import { api } from './api';
 
 const transport = vi.hoisted(() => ({
   options: {} as Record<string, any>,
@@ -46,19 +47,19 @@ beforeEach(() => {
 });
 afterEach(async () => {
   for (const connection of connections.splice(0)) { await connection.destroy(); connection.board.destroy(); }
-  vi.unstubAllGlobals(); vi.clearAllMocks(); vi.useRealTimers();
+  vi.unstubAllGlobals(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.useRealTimers();
 });
 async function open() {
   const callbacks = { onPermissionChange: vi.fn(), onError: vi.fn(), onStatus: vi.fn(), onPresence: vi.fn(), onReadOnly: vi.fn(), onSyncBlocked: vi.fn() };
   const connection = await BoardConnection.open({ id: 'board-id', title: 'Board', role: 'owner', updatedAt: 0 },
-    { user: { id: 'owner-id', username: 'owner' }, token: 'token', expiresAt: Date.now() + 60000 }, callbacks);
+    { user: { id: 'owner-id', username: 'owner' }, expiresAt: Date.now() + 120000 }, callbacks);
   connections.push(connection); return { connection, callbacks };
 }
 
 test('persistence-failed keeps the same document and IndexedDB cache for provider reconnect', async () => {
   const onPermissionChange = vi.fn(), onError = vi.fn();
   const connection = await BoardConnection.open({ id: 'board-id', title: 'Board', role: 'owner', updatedAt: 0 },
-    { user: { id: 'owner-id', username: 'owner' }, token: 'token', expiresAt: Date.now() + 60000 },
+    { user: { id: 'owner-id', username: 'owner' }, expiresAt: Date.now() + 120000 },
     { onPermissionChange, onError, onStatus: vi.fn(), onPresence: vi.fn(), onReadOnly: vi.fn() });
   const doc = connection.board.doc, epoch = cache.get('whiteboard:owner-id:board-id:cache-epoch');
   doc.getMap('retained').set('edit', 'saved locally');
@@ -79,6 +80,49 @@ test('persistence-failed keeps the same document and IndexedDB cache for provide
   await connection.destroy();
   expect(transport.clearData).not.toHaveBeenCalled();
   connection.board.destroy(); doc.destroy();
+});
+
+test('a cookie-bootstrapped session sends an empty WebSocket authentication token', async () => {
+  await open();
+  const session = vi.spyOn(api, 'session');
+  expect(await transport.options.token()).toBe('');
+  expect(session).not.toHaveBeenCalled();
+});
+
+test('the cookie-authenticated socket is bound to the account that owns its cached replica', async () => {
+  await open();
+  expect(new URL(transport.socketOptions.url).searchParams.get('expectedUserId')).toBe('owner-id');
+});
+
+test('a still-fresh cached session stops after a different cookie account is detected without discarding its work', async () => {
+  vi.useFakeTimers(); const { connection, callbacks } = await open(), doc = connection.board.doc, epoch = cache.get(cacheKey);
+  doc.getMap('retained').set('work', 'account A local changes'); transport.connect.mockClear();
+  transport.options.onAuthenticationFailed({ reason: 'session-identity-changed' });
+  expect(transport.disconnect).toHaveBeenCalledOnce();
+  expect(callbacks.onStatus).toHaveBeenLastCalledWith('unauthorized');
+  expect(callbacks.onReadOnly).toHaveBeenLastCalledWith(true);
+  expect(callbacks.onError).toHaveBeenCalledWith(expect.stringContaining('signed-in account changed'));
+  expect(callbacks.onPermissionChange).not.toHaveBeenCalled(); expect(cache.get(cacheKey)).toBe(epoch);
+  transport.options.onStatus({ status: 'disconnected' }); transport.options.onSynced({ state: true });
+  await vi.advanceTimersByTimeAsync(5000); expect(transport.connect).not.toHaveBeenCalled();
+  expect(callbacks.onStatus).toHaveBeenLastCalledWith('unauthorized');
+  expect(doc.getMap('retained').get('work')).toBe('account A local changes');
+  await connection.destroy(); expect(transport.clearData).not.toHaveBeenCalled();
+});
+
+test('near-expiry cookie session verification does not require a JSON bearer token', async () => {
+  vi.useFakeTimers(); const { callbacks } = await open();
+  vi.advanceTimersByTime(90000);
+  const session = vi.spyOn(api, 'session').mockResolvedValue({ user: { id: 'owner-id', username: 'owner' }, expiresAt: Date.now() + 120000 });
+  expect(await transport.options.token()).toBe('');
+  expect(session).toHaveBeenCalledOnce(); expect(callbacks.onError).not.toHaveBeenCalled();
+});
+
+test('a changed cookie account fails authentication instead of silently using the new cookie', async () => {
+  vi.useFakeTimers(); const { callbacks } = await open(); vi.advanceTimersByTime(90000);
+  vi.spyOn(api, 'session').mockResolvedValue({ user: { id: 'other-id', username: 'other' }, expiresAt: Date.now() + 120000 });
+  await expect(transport.options.token()).rejects.toThrow('signed-in account changed');
+  expect(callbacks.onError).toHaveBeenCalledWith(expect.stringContaining('signed-in account changed'));
 });
 
 test.each([

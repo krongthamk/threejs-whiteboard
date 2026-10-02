@@ -33,9 +33,10 @@ async function setup(overrides: Partial<Parameters<typeof createWhiteboardServer
   return { app, options, owner, editor, viewer, stranger, tokens, board, url, request };
 }
 async function until(check: () => boolean, timeout = 8000) { const start = performance.now(); while (!check()) { if (performance.now() - start > timeout) throw new Error('Synchronization timed out'); await new Promise(resolve => setTimeout(resolve, 10)); } }
-async function client(port: number, board: string, token: string, doc = new Y.Doc()) {
+async function client(port: number, board: string, token: string, doc = new Y.Doc(), headers?: Record<string, string>, parameters?: Record<string, string>) {
   let authenticationFailure = '';
-  const socket = new HocuspocusProviderWebsocket({ url: `ws://127.0.0.1:${port}/collaboration`, WebSocketPolyfill: WebSocket });
+  const WebSocketPolyfill = headers ? class extends WebSocket { constructor(url: string | URL, protocols?: string | string[]) { super(url, protocols, { headers }); } } : WebSocket;
+  const socket = new HocuspocusProviderWebsocket({ url: `ws://127.0.0.1:${port}/collaboration?${new URLSearchParams(parameters)}`, WebSocketPolyfill });
   const provider = new HocuspocusProvider({ websocketProvider: socket, name: board, token, document: doc, onAuthenticationFailed: ({ reason }) => { authenticationFailure = reason; } });
   provider.attach();
   cleanups.push(() => { provider.destroy(); socket.destroy(); doc.destroy(); });
@@ -53,15 +54,72 @@ test('signed sessions, board membership, title updates, CSRF and logout use one 
   expect((await request(`/api/boards/${board.id}/members`, tokens.editor, { method: 'POST', body: JSON.stringify({ username: 'stranger', role: 'viewer' }) })).status).toBe(403);
   expect((await request('/api/boards', tokens.owner, { method: 'POST', headers: { Origin: 'https://evil.invalid' }, body: JSON.stringify({ title: 'Cross origin' }) })).status).toBe(403);
   const signedIn = await fetch(`${url}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4173' }, body: JSON.stringify({ username: 'owner', password }) });
-  const session = await signedIn.json() as { token: string; user: { username: string }; expiresAt: number };
+  const session = await signedIn.json() as { user: { username: string }; expiresAt: number };
   expect(session.user.username).toBe('owner'); expect(session.expiresAt).toBeGreaterThan(Date.now());
   const cookie = signedIn.headers.get('set-cookie')!.split(';')[0]!;
+  const sessionToken = decodeURIComponent(cookie.slice('board_session='.length));
   expect(signedIn.headers.get('set-cookie')).toContain('HttpOnly');
   expect((await fetch(`${url}/api/boards`, { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Missing origin' }) })).status).toBe(403);
   expect((await fetch(`${url}/api/boards`, { method: 'POST', headers: { Cookie: cookie, Origin: 'http://localhost:4173', 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Cookie board' }) })).status).toBe(201);
-  expect((await request('/api/session', `${session.token}tampered`)).status).toBe(401);
-  expect((await request('/api/session/logout', session.token, { method: 'POST' })).status).toBe(204);
-  expect((await request('/api/session', session.token)).status).toBe(401);
+  expect((await request('/api/session', `${sessionToken}tampered`)).status).toBe(401);
+  expect((await request('/api/session/logout', sessionToken, { method: 'POST' })).status).toBe(204);
+  expect((await request('/api/session', sessionToken)).status).toBe(401);
+});
+
+test('static production defaults deny development origins while approved cookie sessions remain usable', async () => {
+  const staticDirectory = directory(); writeFileSync(join(staticDirectory, 'index.html'), '<html>Static</html>');
+  const { url, tokens } = await setup({ staticDirectory }); const cookie = `board_session=${encodeURIComponent(tokens.owner!)}`;
+  const denied = await fetch(`${url}/api/session`, { headers: { Cookie: cookie, Origin: 'http://localhost:5173' } });
+  expect(denied.status).toBe(403); expect(denied.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  const approved = await fetch(`${url}/api/session`, { headers: { Cookie: cookie, Origin: 'http://localhost:3001' } });
+  expect(approved.status).toBe(200); expect(approved.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:3001');
+});
+
+test('credential and restored session JSON expose identity and expiry without any bearer token', async () => {
+  const { url, tokens } = await setup();
+  const login = await fetch(`${url}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4173' }, body: JSON.stringify({ username: 'owner', password }) });
+  expect(login.status).toBe(200); const data = await login.json(); expect(data).not.toHaveProperty('token');
+  expect(data).toMatchObject({ user: { username: 'owner' }, expiresAt: expect.any(Number) });
+  const cookie = login.headers.get('set-cookie')!.split(';')[0]!;
+  expect(login.headers.get('set-cookie')).toContain('HttpOnly');
+  const sessionHeaders: Record<string, string>[] = [{ Cookie: cookie, Origin: 'http://localhost:4173' }, { Authorization: `Bearer ${tokens.owner}` }];
+  for (const headers of sessionHeaders) {
+    const restored = await fetch(`${url}/api/session`, { headers }); expect(restored.status).toBe(200);
+    const restoredData = await restored.json(); expect(restoredData).not.toHaveProperty('token');
+    expect(restoredData).toMatchObject({ user: data.user, expiresAt: expect.any(Number) });
+  }
+});
+
+test('empty provider authentication frames use approved cookies through direct and routed WebSockets', async () => {
+  const { app, board, tokens } = await setup();
+  const headers = { Cookie: `board_session=${encodeURIComponent(tokens.owner!)}`, Origin: 'http://localhost:4173' };
+  const direct = await client(app.port, board.id, '', new Y.Doc(), headers);
+  direct.doc.getMap('cookie-auth').set('direct', true); await until(() => !direct.provider.hasUnsyncedChanges);
+  const router = createRouter([{ id: 'local', url: `http://127.0.0.1:${app.port}` }], { port: 0 }); await router.listen(); cleanups.push(() => router.close());
+  const routed = await client(router.port, board.id, '', new Y.Doc(), headers);
+  expect(routed.doc.getMap('cookie-auth').get('direct')).toBe(true);
+  routed.doc.getMap('cookie-auth').set('routed', true); await until(() => direct.doc.getMap('cookie-auth').get('routed') === true);
+  await expect(client(app.port, board.id, '', new Y.Doc(), { Origin: 'http://localhost:4173' })).rejects.toThrow('Authentication failed');
+  await expect(client(app.port, board.id, '', new Y.Doc(), { ...headers, Origin: 'https://evil.invalid' })).rejects.toThrow('Authentication failed');
+});
+
+test('a cookie account switch cannot replay another unexpired principal cache, which survives correct-account retry', async () => {
+  const { app, board, owner, editor, tokens } = await setup();
+  const online = await client(app.port, board.id, tokens.owner!);
+  const cachedOwner = new Y.Doc(); Y.applyUpdate(cachedOwner, Y.encodeStateAsUpdate(online.doc)); cachedOwner.getMap('principal-cache').set('owner-pending', 'private local work');
+  const before = app.store.stats(board.id);
+  const changedCookie = { Cookie: `board_session=${encodeURIComponent(tokens.editor!)}`, Origin: 'http://localhost:4173' };
+  // Both accounts are authorized for this board; the replica's principal is
+  // nevertheless still the owner whose unexpired session opened this cache.
+  expect(app.store.authenticate(tokens.owner!)!.expiresAt).toBeGreaterThan(Date.now() + 60_000);
+  expect(app.store.role(board.id, editor.id)).toBe('editor');
+  const attempted = await client(app.port, board.id, '', cachedOwner, changedCookie, { expectedUserId: owner.id }).then(() => 'authenticated', error => String(error));
+  expect(attempted).toContain('session-identity-changed');
+  expect(app.store.stats(board.id)).toEqual(before); expect(online.doc.getMap('principal-cache').size).toBe(0);
+  expect(cachedOwner.getMap('principal-cache').get('owner-pending')).toBe('private local work');
+  const correctCookie = { ...changedCookie, Cookie: `board_session=${encodeURIComponent(tokens.owner!)}` };
+  const recovered = await client(app.port, board.id, '', cachedOwner, correctCookie, { expectedUserId: owner.id });
+  await until(() => !recovered.provider.hasUnsyncedChanges && online.doc.getMap('principal-cache').get('owner-pending') === 'private local work');
 });
 
 test('assets require source read and target edit permissions, and copies retain the same bytes', async () => {

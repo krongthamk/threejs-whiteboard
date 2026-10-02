@@ -70,6 +70,7 @@ export class BoardConnection {
   private everLive = false;
   private destroyed = false;
   private authorizationFailed = false;
+  private identityChanged = false;
   private session: Session;
   private permissionReset = false;
   private discardPersistence = false;
@@ -106,27 +107,46 @@ export class BoardConnection {
     if (this.blocked) callbacks.onSyncBlocked?.(this.blocked);
     const url = new URL('/collaboration', location.href); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     url.searchParams.set('boardId', info.id);
+    url.searchParams.set('expectedUserId', session.user.id);
     // Attach before connecting so a retained blocked cache never reaches the wire.
     this.socket = new HocuspocusProviderWebsocket({ url: url.href, autoConnect: false });
     this.provider = new HocuspocusProvider({
       websocketProvider: this.socket, name: info.id, document: board.doc,
       token: async () => {
-        if (this.session.expiresAt > Date.now() + 60_000) return this.session.token;
+        if (this.session.expiresAt > Date.now() + 60_000) return '';
         try {
           const next = await api.session();
-          if (next.user.id !== session.user.id) throw new Error('The signed-in account changed. Reopen the board.');
-          this.session = next; return next.token;
-        } catch { callbacks.onError('Your session could not be renewed. Sign in again to reconnect.'); return ''; }
+          if (next.user.id !== session.user.id) {
+            this.identityChanged = true;
+            throw new Error('The signed-in account changed. Reopen the board.');
+          }
+          this.session = next; return '';
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Your session could not be confirmed. Sign in again to reconnect.';
+          callbacks.onError(message);
+          // Returning an empty token after a failed identity check would still
+          // authenticate with a different account's ambient browser cookie.
+          throw new Error(message);
+        }
       },
       onAuthenticated: ({ scope }) => {
         if (this.destroyed || this.permissionReset || this.blocked && !this.retrying) return;
         this.authorizationFailed = false;
+        this.identityChanged = false;
         clearTimeout(this.persistenceRetry);
         this.scopeReadOnly = scope === 'readonly';
         callbacks.onReadOnly(this.scopeReadOnly || !!this.blocked);
       },
       onAuthenticationFailed: ({ reason }) => {
         if (this.destroyed || this.permissionReset || this.blocked && !this.retrying) return;
+        if (reason === 'session-identity-changed' || this.identityChanged) {
+          this.authorizationFailed = true; this.retrying = false; this.retrySynced = false;
+          clearTimeout(this.persistenceRetry); this.socket.disconnect();
+          callbacks.onReadOnly(true); callbacks.onStatus('unauthorized');
+          if (this.blocked) callbacks.onSyncBlocked?.({ ...this.blocked, retrying: false });
+          callbacks.onError('The signed-in account changed. Reload the board to open it with the current account. Your local work is kept on this device.');
+          return;
+        }
         if (this.retrying) { this.pauseSync(this.blocked!); return; }
         if (reason === 'persistence-failed') {
           // Hocuspocus denies authentication without closing the socket. Retry

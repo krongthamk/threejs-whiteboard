@@ -21,18 +21,24 @@ server package when run through pnpm). It contains `whiteboard.sqlite`, `assets/
 and a generated mode-0600 `session-secret`. Keep the secret stable across restarts;
 `WHITEBOARD_SESSION_SECRET` can supply at least 32 characters instead. `HOST`,
 `PORT`, `WHITEBOARD_WEBSOCKET_PATH`, `WHITEBOARD_ORIGINS` (comma separated), and
-`WHITEBOARD_SECURE_COOKIES=1` configure deployment. Default browser origins are
-localhost and 127.0.0.1 on ports 4173, 5173, 5174, and 3001. TLS termination deployments must
-set the real browser origin and secure cookies.
+`WHITEBOARD_SECURE_COOKIES=1` configure deployment. Without static serving,
+default browser origins are localhost and 127.0.0.1 on ports 4173, 5173, 5174,
+and 3001. With `WHITEBOARD_STATIC_DIR`, defaults include only the loopback server
+port (normally 3001). The local deployment helper explicitly sets
+`WHITEBOARD_ORIGINS=http://127.0.0.1:3001,http://localhost:3001`. TLS termination
+deployments must set their real browser origin and secure cookies.
 
 ## HTTP contract
 
 Errors are `{ "error": "message" }`. Session responses are
-`{ user: { id, username }, token, expiresAt }`; `expiresAt` is Unix milliseconds.
+`{ user: { id, username }, expiresAt }`; `expiresAt` is Unix milliseconds.
 The session token lasts 12 hours, is signed, and is checked against SQLite on
-every authenticated request and collaboration message. Browsers retain only
-the HttpOnly, SameSite=Lax cookie; the returned token is for the provider's
-in-memory authentication. Do not put tokens in URLs or localStorage.
+every authenticated request and collaboration message. Both sign-in and restored
+session JSON omit the token, including responses to Bearer clients. Browsers use
+the HttpOnly, SameSite=Lax cookie for HTTP and WebSocket authentication; application
+JavaScript does not receive the credential. Explicit non-browser tools can use
+the sign-in response's Set-Cookie header, and existing Bearer authentication remains
+supported. Do not put tokens in URLs or localStorage.
 
 Board responses use `{ board: { id, title, role, updatedAt } }`, where `role` is
 `owner`, `editor`, or `viewer`, and `updatedAt` is Unix milliseconds.
@@ -40,7 +46,7 @@ Board responses use `{ board: { id, title, role, updatedAt } }`, where `role` is
 | Method and path | Body / result |
 | --- | --- |
 | `POST /api/session` | `{username,password}` → session + cookie |
-| `GET /api/session` | Current session; restores a provider token after reload |
+| `GET /api/session` | Current identity and expiry; no token |
 | `POST /api/session/logout` | Revokes session and clears cookie; 204 |
 | `GET /api/boards` | `{boards: Board[]}`; membership only |
 | `POST /api/boards` | `{title}` → 201 `{board}`; caller becomes owner |
@@ -62,10 +68,18 @@ return 404.
 
 ## Collaboration and persistence
 
-Connect to `/collaboration` with the board ID as Hocuspocus document name and the
-session token as its authentication token. Viewers are read-only. Membership
+Connect to `/collaboration` with the board ID as Hocuspocus document name. Browser
+providers send an empty authentication token and the browser supplies the session
+cookie; explicit tools may still pass their signed token. Viewers are read-only. Membership
 and session revocation are rechecked before each message, including after an
 already authenticated session changes. Awareness remains ephemeral.
+
+Browser connections also send `expectedUserId` for the account that owns their
+local cache. The server compares this noncredential hint with the authenticated
+user before loading or synchronizing the document. If another tab has switched
+the cookie to a different account, authentication fails with
+`session-identity-changed`; the app stops reconnecting, shows the account change,
+and keeps that original account's local work. Explicit tools may omit this hint.
 
 Each Yjs document update is appended to a transactionally committed SQLite log.
 Snapshots compact at 5 MiB or 10,000 updates, retaining original client clocks;

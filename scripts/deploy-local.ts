@@ -106,7 +106,7 @@ if (previous.loaded) {
   }
 }
 mkdirSync(agents, { recursive: true }); mkdirSync(logs, { recursive: true, mode: 0o700 });
-const environment = { WHITEBOARD_DATA_DIR: dataDirectory, WHITEBOARD_STATIC_DIR: staticDirectory, HOST: '127.0.0.1', PORT: '3001', NODE_ENV: 'production', WHITEBOARD_DRAIN_MS: '5000' };
+const environment = { WHITEBOARD_DATA_DIR: dataDirectory, WHITEBOARD_STATIC_DIR: staticDirectory, WHITEBOARD_ORIGINS: 'http://127.0.0.1:3001,http://localhost:3001', HOST: '127.0.0.1', PORT: '3001', NODE_ENV: 'production', WHITEBOARD_DRAIN_MS: '5000' };
 // Import the TypeScript loader in the server process: launchd owns the actual
 // listener PID and sends SIGTERM directly to its five-second drain handler.
 const arguments_ = [process.execPath, '--import', pathToFileURL(join(root, 'node_modules/tsx/dist/loader.mjs')).href, join(root, 'packages/server/src/index.ts')];
@@ -155,9 +155,10 @@ try {
   }
   const login = await fetchBounded('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: baseUrl }, body: JSON.stringify({ username: credentials.username, password: credentials.password }) });
   if (!login.ok) throw new Error('The deployed service rejected the saved owner credentials.');
-  const session = await login.json() as { user?: { id?: string; username?: string }; token?: string };
-  if (typeof session.token !== 'string') throw new Error('The deployed service returned an invalid session.');
-  const logout = await fetchBounded('/api/session/logout', { method: 'POST', headers: { Authorization: `Bearer ${session.token}` } });
+  const session = await login.json() as { user?: { id?: string; username?: string }; expiresAt?: number };
+  const sessionCookie = login.headers.get('set-cookie')?.split(';')[0];
+  if (!sessionCookie?.startsWith('board_session=') || typeof session.expiresAt !== 'number') throw new Error('The deployed service returned an invalid session.');
+  const logout = await fetchBounded('/api/session/logout', { method: 'POST', headers: { Cookie: sessionCookie, Origin: baseUrl } });
   if (!logout.ok) throw new Error('Could not revoke the temporary deployment verification session.');
   if (session.user?.id !== ownerId || session.user.username !== credentials.username) throw new Error('The deployed service authenticated a different owner/database.');
   const final = service(), active = listeners(), table = processes();

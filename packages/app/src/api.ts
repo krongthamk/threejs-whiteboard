@@ -1,5 +1,5 @@
 export interface User { id: string; username: string; name?: string; color?: string }
-export interface Session { user: User; token: string; expiresAt: number }
+export interface Session { user: User; expiresAt: number }
 export type BoardRole = 'owner' | 'editor' | 'viewer';
 export interface BoardInfo { id: string; title: string; role: BoardRole; updatedAt: number }
 export interface AssetInfo { assetId: string; mimeType?: string; url?: string }

@@ -4,6 +4,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } f
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import * as Y from 'yjs';
+import { readHttpSession } from './http-session.js';
 import WebSocket from 'ws';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
 import { createWhiteboardServer } from '../../server/src/server.js';
@@ -194,7 +195,7 @@ try {
   const usernames = ['live-owner', 'live-editor-a', 'live-editor-b', 'live-outsider'];
   for (const username of usernames) app.store.createUser(username, password);
   const sessions = [];
-  for (const username of usernames) sessions.push(await jsonRequest<{ token: string; user: { id: string } }>('/api/session', undefined, 'POST', { username, password }, 200));
+  for (const username of usernames) sessions.push(await readHttpSession(await request('/api/session', undefined, 'POST', { username, password })));
   const boardResponse = await jsonRequest<{ board: { id: string } }>('/api/boards', sessions[0]!.token, 'POST', { title: 'Phase 3 live model acceptance' }, 201);
   boardId = boardResponse.board.id;
   for (const username of usernames.slice(1, 3)) assert.equal((await request(`/api/boards/${boardId}/members`, sessions[0]!.token, 'POST', { username, role: 'editor' })).status, 204);
