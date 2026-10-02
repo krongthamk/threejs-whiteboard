@@ -291,6 +291,13 @@ function BoardSettings({ access, kind, onClose }: { access: BoardAccess; kind: '
       {kind === 'share' && <><label htmlFor="member-role">Permission</label><select id="member-role" value={role} onChange={event => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></>}
       {error && <p className="form-error" role="alert">{error}</p>}{message && <p className="form-success" role="status">{message}</p>}
       <button className="primary-button" disabled={busy || !value.trim()} type="submit">{busy ? 'Saving…' : kind === 'rename' ? 'Save name' : 'Grant access'}</button>
+      {kind === 'share' && <button className="secondary-button" disabled={busy || !value.trim()} type="button" onClick={() => {
+        setBusy(true); setError(''); setMessage('');
+        const username = value.trim();
+        void api.removeMember(access.board.id, username).then(() => { setMessage(`Access removed for ${username}.`); setValue(''); })
+          .catch(cause => setError(cause instanceof Error ? cause.message : 'Access could not be removed.'))
+          .finally(() => setBusy(false));
+      }}>Remove access</button>}
     </form>
   </Modal>;
 }

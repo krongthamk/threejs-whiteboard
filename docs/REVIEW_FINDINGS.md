@@ -131,7 +131,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 3. Cache the selection frame in the controller; invalidate only when a selected id changes.
 4. Add a unit test that `nextIndex()` matches the previous `readAll().at(-1)` behaviour.
 
-### [ ] 9. Board membership can be granted but never revoked (medium)
+### [x] 9. Board membership can be granted but never revoked (medium)
 
 **Where:** `packages/server/src/server.ts:114-126` (members route only allows editor/viewer), `:68` (`Access-Control-Allow-Methods` has no DELETE); `packages/server/src/store.ts:85` (`setMember`, no `removeMember`); `packages/server/README.md` HTTP table.
 

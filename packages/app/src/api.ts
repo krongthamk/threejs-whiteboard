@@ -29,6 +29,7 @@ export const api = {
   createBoard: async (title: string) => (await request<{ board: BoardInfo }>('/api/boards', { method: 'POST', body: JSON.stringify({ title }) })).board,
   renameBoard: async (id: string, title: string) => (await request<{ board: BoardInfo }>(boardPath(id), { method: 'PATCH', body: JSON.stringify({ title }) })).board,
   membership: (id: string, username: string, role: 'editor' | 'viewer') => request<void>(`${boardPath(id)}/members`, { method: 'POST', body: JSON.stringify({ username, role }) }),
+  removeMember: (id: string, username: string) => request<void>(`${boardPath(id)}/members/${encodeURIComponent(username)}`, { method: 'DELETE' }),
   uploadAsset: (id: string, file: Blob) => request<AssetInfo>(`${boardPath(id)}/assets`, { method: 'POST', headers: { 'Content-Type': file.type }, body: file }),
   copyAsset: (id: string, sourceBoardId: string, assetId: string) => request<AssetInfo>(`${boardPath(id)}/assets/copy`, { method: 'POST', body: JSON.stringify({ sourceBoardId, assetId }) }),
   assetUrl: (id: string, assetId: string) => `${boardPath(id)}/assets/${encodeURIComponent(assetId)}`,

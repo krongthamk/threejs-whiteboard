@@ -739,3 +739,28 @@ test('sign-in permits forty distinct accounts behind one address while bounding 
   for (let index = 47; index < 120; index++) expect((await fetch(`${url}/api/session`, { method: 'POST', body: '{}' })).status).toBe(400);
   expect((await login('nat-user-2')).status).toBe(429);
 });
+
+test('only owners remove board members, owner membership is protected, and removal closes passive subscriptions', async () => {
+  const { app, board, owner, editor, tokens, request } = await setup();
+  const ownerClient = await client(app.port, board.id, tokens.owner!);
+  const removed = await client(app.port, board.id, tokens.editor!);
+  ownerClient.doc.getMap('revocation').set('before', true);
+  await until(() => removed.doc.getMap('revocation').get('before') === true);
+  let reset: any;
+  removed.provider.on('stateless', ({ payload }: { payload: string }) => { reset = JSON.parse(payload); removed.socket.disconnect(); });
+  const route = `/api/boards/${board.id}/members/editor`;
+  expect((await request(route, tokens.editor, { method: 'DELETE' })).status).toBe(403);
+  expect((await request(`/api/boards/${board.id}/members/owner`, tokens.owner, { method: 'DELETE' })).status).toBe(400);
+  expect(app.store.role(board.id, owner.id)).toBe('owner');
+  expect((await request(route, tokens.owner, { method: 'DELETE' })).status).toBe(204);
+  await until(() => !!reset);
+  expect(reset).toMatchObject({ type: 'permission-changed', boardId: board.id, role: null, resetRequired: true, reason: 'permissions-changed' });
+  expect(app.store.role(board.id, editor.id)).toBeUndefined();
+  expect((await request(`/api/boards/${board.id}`, tokens.editor)).status).toBe(404);
+  ownerClient.doc.getMap('revocation').set('after', true);
+  await until(() => !ownerClient.provider.hasUnsyncedChanges);
+  expect(removed.doc.getMap('revocation').get('after')).toBeUndefined();
+  expect(app.server.hocuspocus.documents.get(board.id)!.getConnections().some(connection => connection.context.userId === editor.id)).toBe(false);
+  const preflight = await request(route, tokens.owner, { method: 'OPTIONS', headers: { Origin: 'http://localhost:4173', 'Access-Control-Request-Method': 'DELETE' } });
+  expect(preflight.status).toBe(204); expect(preflight.headers.get('Access-Control-Allow-Methods')).toContain('DELETE');
+});

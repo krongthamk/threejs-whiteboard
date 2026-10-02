@@ -230,3 +230,30 @@ test('live editor downgrade refreshes the local document and later regrant canno
     expect(await contents(editor)).toEqual(await contents(owner));
   } finally { await ownerContext.close(); await editorContext.close(); }
 });
+
+test('the Share dialog removes a member while protecting the owner and immediately closing their board', async ({ browser }) => {
+  const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+  const [owner, member] = await Promise.all(contexts.map(context => context.newPage()));
+  try {
+    await signIn(owner!, 'alice');
+    const back = owner!.getByRole('button', { name: 'Back to boards', exact: true });
+    if (await back.isVisible()) await back.click();
+    await owner!.getByRole('button', { name: 'New board', exact: true }).click();
+    await owner!.getByLabel('Board name', { exact: true }).fill('Revocable sharing');
+    await owner!.getByRole('button', { name: 'Create board', exact: true }).click(); await connected(owner!);
+    const path = new URL(owner!.url()).pathname;
+    await owner!.getByRole('button', { name: 'Share', exact: true }).click();
+    await owner!.getByLabel('Username', { exact: true }).fill('bob');
+    await owner!.getByRole('button', { name: 'Grant access', exact: true }).click();
+    await expect(owner!.getByText('Access granted to bob.', { exact: true })).toBeVisible();
+    await signIn(member!, 'bob', path); await connected(member!);
+    await owner!.getByLabel('Username', { exact: true }).fill('alice');
+    await owner!.getByRole('button', { name: 'Remove access', exact: true }).click();
+    await expect(owner!.getByRole('alert')).toContainText('Owner membership cannot be removed');
+    await owner!.getByLabel('Username', { exact: true }).fill('bob');
+    await owner!.getByRole('button', { name: 'Remove access', exact: true }).click();
+    await expect(owner!.getByText('Access removed for bob.', { exact: true })).toBeVisible();
+    await expect(member!.getByRole('alert')).toContainText('Board not found');
+    expect(await member!.evaluate(async () => (await fetch(location.pathname.replace('/board/', '/api/boards/'))).status)).toBe(404);
+  } finally { await Promise.all(contexts.map(context => context.close())); }
+});

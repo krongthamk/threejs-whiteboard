@@ -38,6 +38,17 @@ export class Store {
     return { id, username };
   }
   userByName(username: string): User | undefined { return this.db.prepare('SELECT id,username FROM users WHERE username=?').get(username) as User | undefined; }
+  setPassword(username: string, password: string): User {
+    if (password.length < 12) throw new Error('Use a password of at least 12 characters');
+    const user = this.userByName(username); if (!user) throw new Error('User not found');
+    const salt = randomBytes(16).toString('hex'), hash = `${salt}:${scryptSync(password, salt, 64).toString('hex')}`;
+    this.db.transaction(() => {
+      this.db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hash, user.id);
+      this.revokeSessions(user.id);
+    })();
+    return user;
+  }
+  revokeSessions(userId: string): void { this.db.prepare('DELETE FROM sessions WHERE user_id=?').run(userId); }
   login(username: string, password: string): Session | null {
     const row = this.db.prepare('SELECT * FROM users WHERE username=?').get(username) as { id: string; username: string; password_hash: string } | undefined;
     // A dummy derivation keeps unknown usernames on the same expensive path.
@@ -86,6 +97,10 @@ export class Store {
   }
   rename(boardId: string, title: string): void { this.db.prepare('UPDATE boards SET title=?,updated_at=? WHERE id=?').run(title, Date.now(), boardId); }
   setMember(boardId: string, userId: string, role: Role): void { this.db.prepare('INSERT INTO members VALUES (?,?,?) ON CONFLICT(board_id,user_id) DO UPDATE SET role=excluded.role').run(boardId, userId, role); }
+  removeMember(boardId: string, userId: string): void {
+    if (this.role(boardId, userId) === 'owner') throw new Error('Owner membership cannot be removed');
+    this.db.prepare('DELETE FROM members WHERE board_id=? AND user_id=?').run(boardId, userId);
+  }
   loadDocument(boardId: string): Uint8Array | null {
     const row = this.db.prepare('SELECT snapshot FROM documents WHERE board_id=?').get(boardId) as { snapshot: Buffer } | undefined;
     if (!row) return null;

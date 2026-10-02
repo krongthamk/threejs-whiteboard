@@ -16,6 +16,8 @@ pnpm server
 
 The provisioning command prints a generated password once. Set `WHITEBOARD_PASSWORD` to supply a password of at least 12 characters instead. Accounts are provisioned by the operator; there are no anonymous boards or public registration.
 
+Owners can grant, change, or remove another account’s board access through Share. Operators can reset a password with `provision --reset-password <username>` (which revokes that account’s existing sessions), or revoke sessions with `provision --revoke-sessions <username>`. See the [account controls](packages/server/README.md) for deployment data-directory and live-connection behavior.
+
 ```sh
 pnpm dev
 ```

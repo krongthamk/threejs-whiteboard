@@ -12,7 +12,10 @@ pnpm server
 ```
 
 Provisioning prints a generated password once. Set `WHITEBOARD_PASSWORD` to
-supply a password (at least 12 characters) without printing it. There is no public
+supply a password (at least 12 characters) without printing it. Use
+`provision --reset-password <username>` to replace a password and revoke all of
+that account's sessions, or `provision --revoke-sessions <username>` to revoke
+sessions without changing its password. There is no public
 signup or anonymous board access. Account names are unique, case-sensitive,
 2–80 Unicode letters/numbers or `_.@-`.
 
@@ -53,6 +56,7 @@ Board responses use `{ board: { id, title, role, updatedAt } }`, where `role` is
 | `GET /api/boards/:id` | `{board}` |
 | `PATCH /api/boards/:id` | `{title}` → `{board}`; owner/editor |
 | `POST /api/boards/:id/members` | `{username,role:'editor'|'viewer'}`; owner only; 204 |
+| `DELETE /api/boards/:id/members/:username` | Removes access; owner only; owner membership is protected; 204 |
 | `POST /api/boards/:id/assets` | Raw PNG/JPEG/WebP bytes and Content-Type, at most 20 MiB; owner/editor |
 | `GET /api/boards/:id/assets/:assetId` | Authenticated image bytes; board membership required |
 | `POST /api/boards/:id/assets/copy` | `{sourceBoardId,assetId}`; source read + target edit permission |
@@ -191,7 +195,7 @@ proxy's address when sizing the aggregate limit.
 
 ## Live permission changes
 
-Changing a member's role invalidates that user's active board connections. Before
+Removing a member or changing a member's role invalidates that user's active board connections. Before
 closing the document connection, the server sends a Hocuspocus stateless JSON
 message: `{ "type": "permission-changed", "boardId": "…", "role": "viewer",
 "resetRequired": true, "reason": "permissions-changed" }`. The role can be
@@ -214,6 +218,11 @@ authenticated signed `expiresAt`; it is cleared on disconnect. Passive sockets
 therefore stop receiving updates at expiry without waiting for another inbound
 packet. These events use `role: null` with reason `session-revoked` or
 `session-expired` and the same authoritative-reset protocol.
+
+Provisioning account controls update the shared SQLite session rows. Existing
+sockets observe an operator revocation on their next inbound packet or their
+expiry timer; the separate provisioning process cannot proactively notify passive
+subscriptions in the running server.
 
 The initial deployment is one process. With multiple owners, an HTTP logout
 handled by another process is visible on the next incoming packet or at expiry,

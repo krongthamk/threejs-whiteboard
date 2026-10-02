@@ -121,7 +121,7 @@ export function createWhiteboardServer(options: Options) {
       const origin = request.headers.origin;
       if (origin && !origins.has(origin)) throw new HttpError(403, 'Origin is not allowed');
       if (origin) { response.setHeader('Access-Control-Allow-Origin', origin); response.setHeader('Access-Control-Allow-Credentials', 'true'); response.setHeader('Vary', 'Origin'); }
-      if (method === 'OPTIONS') { response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS'); response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization'); return json(response, 204); }
+      if (method === 'OPTIONS') { response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS'); response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization'); return json(response, 204); }
       if (path === '/health') return json(response, 200, { status: 'ok' });
       if (path === '/ready') { const ready = !draining && persistenceFailed.size === 0; return json(response, ready ? 200 : 503, { ready }); }
       if (serveStatic && path !== websocketPath && serveStatic(request, response, path)) return;
@@ -177,6 +177,19 @@ export function createWhiteboardServer(options: Options) {
         store.setMember(boardId, user.id, role);
         if (previousRole !== role) for (const connection of server.hocuspocus.documents.get(boardId)?.getConnections() ?? []) {
           if (connection.context.userId === user.id) resetConnection(connection, boardId, role);
+        }
+        return json(response, 204);
+      }
+      const memberMatch = suffix.match(/^members\/([^/]+)$/);
+      if (memberMatch && method === 'DELETE') {
+        if (board.role !== 'owner') throw new HttpError(403, 'Only the owner can change board membership');
+        let username: string;
+        try { username = decodeURIComponent(memberMatch[1]!); } catch { throw new HttpError(400, 'Invalid username'); }
+        const user = store.userByName(username); if (!user) throw new HttpError(404, 'User not found');
+        if (store.role(boardId, user.id) === 'owner') throw new HttpError(400, 'Owner membership cannot be removed');
+        store.removeMember(boardId, user.id);
+        for (const connection of server.hocuspocus.documents.get(boardId)?.getConnections() ?? []) {
+          if (connection.context.userId === user.id) resetConnection(connection, boardId, null, 'permissions-changed');
         }
         return json(response, 204);
       }
