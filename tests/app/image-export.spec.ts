@@ -1,9 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
+import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { contentBounds, getElementBounds } from '@whiteboard/model';
 
-const directory = resolve('docs/benchmarks/phase4/images');
+test.afterEach(({}, testInfo) => recordBrowserEvidence(testInfo, 'docs/benchmarks/phase4/images'));
 async function privateBoard(page: Page, title: string) {
   await page.goto('/'); await page.getByLabel('Username', { exact: true }).fill('alice');
   await page.getByLabel('Password', { exact: true }).fill('browser-test-only-password');
@@ -15,10 +16,10 @@ async function privateBoard(page: Page, title: string) {
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   await page.waitForFunction(() => !!window.whiteboard?.assets && !!window.whiteboardConnection?.provider.synced);
 }
-function saveData(name: string, data: string) { writeFileSync(resolve(directory, name), Buffer.from(data.slice(data.indexOf(',') + 1), 'base64')); }
+function saveData(directory: string, name: string, data: string) { writeFileSync(resolve(directory, name), Buffer.from(data.slice(data.indexOf(',') + 1), 'base64')); }
 
-test('private mixed board image pixels agree across PNG, embedded SVG and screen; controls catch missing/mirrored images', async ({ page }) => {
-  test.setTimeout(60_000); mkdirSync(directory, { recursive: true }); await privateBoard(page, 'Image parity proof');
+test('private mixed board image pixels agree across PNG, embedded SVG and screen; controls catch missing/mirrored images', async ({ page }, testInfo) => {
+  test.setTimeout(60_000); const directory = evidenceDirectory(testInfo); await privateBoard(page, 'Image parity proof');
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   const source = await page.evaluate(async () => {
     const paint = document.createElement('canvas'); paint.width = 768; paint.height = 512; const context = paint.getContext('2d')!;
@@ -113,7 +114,7 @@ test('private mixed board image pixels agree across PNG, embedded SVG and screen
     finally { URL.revokeObjectURL(selectionUrl); }
     return { checks, controls, flatCapControl, colors, selectionColors, opaqueAlphaMin, hrefsEmbedded: hrefs.length === 1 && hrefs.every(href => href.startsWith('data:image/png;base64,')), embeddedBytesEqual: embeddedBytes.length === originalBytes.length && embeddedBytes.every((byte, index) => byte === originalBytes[index]), selectedIds: [...selectionDoc.querySelectorAll('[data-element-id]')].map(node => node.getAttribute('data-element-id')), selectionCorner, svgText, pngData: await toData(png), screenRaster, svgRaster: svgRaster.dataUrl, selectionPngData: await toData(selectionPng), documentImage: board.read(heroId) };
   }, { raw, regions, heroId: source.id, probes: source.probes, originalBytes: source.bytes });
-  saveData('source.png', source.dataUrl); saveData('mixed.png', comparison.pngData); saveData('screen.png', comparison.screenRaster); saveData('svg-raster.png', comparison.svgRaster); saveData('selection.png', comparison.selectionPngData); writeFileSync(resolve(directory, 'mixed.svg'), comparison.svgText);
+  saveData(directory, 'source.png', source.dataUrl); saveData(directory, 'mixed.png', comparison.pngData); saveData(directory, 'screen.png', comparison.screenRaster); saveData(directory, 'svg-raster.png', comparison.svgRaster); saveData(directory, 'selection.png', comparison.selectionPngData); writeFileSync(resolve(directory, 'mixed.svg'), comparison.svgText);
   writeFileSync(resolve(directory, 'comparison.json'), JSON.stringify({ ...comparison, svgText: undefined, pngData: undefined, screenRaster: undefined, svgRaster: undefined, selectionPngData: undefined, pageErrors: errors, tolerance: { channel: 48, edgeOutputPixels: 1, imageMismatch: .02, ellipseMismatch: .02, textAndConnectorMismatch: .18, inkBoundsOutputPixels: 1, colorProbeChannel: 2 }, diagnostic: 'The stricter 2% connector experiment is preserved in strict-connector-before-opaque-alpha-comparison.json. Round caps fixed its 3px geometry error; remaining coverage differences are the existing S4 MSAA/raster tolerance. Flat-cap negative control must still fail the independent 1px ink bound.' }, null, 2));
   expect(comparison.hrefsEmbedded).toBe(true); expect(comparison.embeddedBytesEqual).toBe(true);
   // In particular, alpha-to-coverage ellipse fringes must not make opaque PNGs transparent.
@@ -131,8 +132,8 @@ test('private mixed board image pixels agree across PNG, embedded SVG and screen
   expect(comparison.documentImage).toEqual(source.elements.find(element => element.id === source.id)); expect(errors).toEqual([]);
 });
 
-test('PNG and embedded SVG retain native alternating-pixel detail after a low-resolution display preview', async ({ page }) => {
-  test.setTimeout(45_000); mkdirSync(directory, { recursive: true }); await privateBoard(page, 'Original pixel detail');
+test('PNG and embedded SVG retain native alternating-pixel detail after a low-resolution display preview', async ({ page }, testInfo) => {
+  test.setTimeout(45_000); const directory = evidenceDirectory(testInfo); await privateBoard(page, 'Original pixel detail');
   const result = await page.evaluate(async () => {
     const source = document.createElement('canvas'); source.width = 2048; source.height = 64; const sourceContext = source.getContext('2d')!;
     for (let x = 0; x < source.width; x++) { sourceContext.fillStyle = x % 2 ? '#ffffff' : '#000000'; sourceContext.fillRect(x, 0, 1, source.height); }
@@ -155,15 +156,15 @@ test('PNG and embedded SVG retain native alternating-pixel detail after a low-re
     context.clearRect(0, 0, 2048, 64); context.drawImage(thumbnail, 0, 0, 2048, 64); const thumbnailControl = check(context.getImageData(0, 32, 2048, 1).data);
     return { dimensions, preview: stats, png: check(pngRow), svg: check(svgRow), thumbnailControl, pngData, svgData, documentElements: board.readAll().length };
   });
-  saveData('native-detail.png', result.pngData); saveData('native-detail-svg.png', result.svgData);
+  saveData(directory, 'native-detail.png', result.pngData); saveData(directory, 'native-detail-svg.png', result.svgData);
   writeFileSync(resolve(directory, 'native-detail.json'), JSON.stringify({ ...result, pngData: undefined, svgData: undefined }, null, 2));
   expect(result.dimensions).toEqual([2048, 64]); expect(result.documentElements).toBe(1); expect(result.preview.visibleImages).toBe(1);
   for (const output of [result.png, result.svg]) { expect(output.meanError).toBeLessThanOrEqual(2); expect(output.maxError).toBeLessThanOrEqual(2); expect(output.adjacentContrast).toBeGreaterThanOrEqual(251); expect(output.alphaMin).toBe(255); }
   expect(result.thumbnailControl.meanError).toBeGreaterThan(100); expect(result.thumbnailControl.adjacentContrast).toBeLessThan(10);
 });
 
-test('round translucent connector caps and elbow joins preserve one opacity contribution', async ({ page }) => {
-  mkdirSync(directory, { recursive: true }); await privateBoard(page, 'Round connector opacity');
+test('round translucent connector caps and elbow joins preserve one opacity contribution', async ({ page }, testInfo) => {
+  const directory = evidenceDirectory(testInfo); await privateBoard(page, 'Round connector opacity');
   const result = await page.evaluate(async () => {
     const { board, exporter } = window.whiteboard;
     board.create('connector', { id: 'round-elbow', style: { stroke: '#2054df', strokeWidth: 12, opacity: .4 }, props: { start: { x: 50, y: 70 }, end: { x: 250, y: 210 }, kind: 'elbow' } });
@@ -187,7 +188,7 @@ test('round translucent connector caps and elbow joins preserve one opacity cont
     }
     return { colors, foreground, mismatch: mismatches / foreground, maxAlpha, pngData, svgData };
   });
-  saveData('round-translucent.png', result.pngData); saveData('round-translucent-svg.png', result.svgData);
+  saveData(directory, 'round-translucent.png', result.pngData); saveData(directory, 'round-translucent-svg.png', result.svgData);
   writeFileSync(resolve(directory, 'round-translucent.json'), JSON.stringify({ ...result, pngData: undefined, svgData: undefined, tolerance: { premultipliedChannel: 8, edgeOutputPixels: 1, mismatch: .02, probeChannel: 2 } }, null, 2));
   expect(result.foreground).toBeGreaterThan(1000); expect(result.mismatch).toBeLessThan(.02); expect(result.maxAlpha).toBeLessThanOrEqual(103);
   for (const color of result.colors) for (const values of [color.png, color.svg]) for (let channel = 0; channel < 4; channel++) expect(Math.abs(values[channel]! - [32, 84, 223, 102][channel]!), `${color.name} channel ${channel}`).toBeLessThanOrEqual(2);

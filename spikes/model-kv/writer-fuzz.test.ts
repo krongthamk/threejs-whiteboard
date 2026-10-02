@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { expect, it } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeRunEvidence } from '../../tests/evidence';
 import { assertValidElement, bindToElement, getElementBounds, type Element, type ElementType } from '../../packages/model/src/index.js';
 import { CLOCK_KEY, WriterBoardDocument } from './writer-model.js';
 
@@ -93,7 +93,7 @@ it('writer-owned candidate: 10,000 concurrent pairs across three clients preserv
   expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(20_000);
   expect(Object.keys(counts).sort()).toEqual(['binding', 'create', 'delete', 'gesture', 'image', 'move', 'order', 'position', 'redo', 'resize', 'rotate', 'stroke', 'style', 'text', 'undo'].sort());
   const result = { candidate: 'writer-owned-y-keyvalue', seed: SEED, concurrentPairs: 10_000, clients: 3, operations: 20_000, invalidElements: 0, divergentPairs: 0, validatedElements, deliveredUpdates, operationCounts: counts, durationMs: Math.round(performance.now() - started) };
-  mkdirSync('spikes/model-kv/reports', { recursive: true }); writeFileSync('spikes/model-kv/reports/writer-fuzz.json', `${JSON.stringify(result, null, 2)}\n`);
+  writeRunEvidence('model-kv', 'writer-fuzz.json', 'spikes/model-kv/reports/writer-fuzz.json', `${JSON.stringify(result, null, 2)}\n`);
   console.log(JSON.stringify(result)); clients.forEach(client => client.destroy());
 // This exhaustive oracle serializes all retained raw records after every pair.
 // The first complete run took 585,731ms; timeout is test infrastructure, not a product latency gate.

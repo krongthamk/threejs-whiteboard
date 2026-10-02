@@ -69,7 +69,7 @@ test('blur during composition waits and Escape leaves the document untouched', a
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
 });
 
-test('rotated zoomed editor follows the document and keeps an intervening style change', async ({ page }) => {
+test('rotated zoomed editor follows the document and keeps an intervening style change', async ({ page }, testInfo) => {
   await page.evaluate(() => {
     const app = window.whiteboard;
     app.board.update('note', { rotation: Math.PI / 6 });
@@ -89,7 +89,7 @@ test('rotated zoomed editor follows the document and keeps an intervening style 
   await expect(input).toHaveText('Still together');
   await page.keyboard.press('ControlOrMeta+Enter');
   expect(await page.evaluate(() => window.whiteboard.board.read('note'))).toMatchObject({ rotation: Math.PI / 6, props: { text: 'Still together' }, style: { fill: '#dbe9ff' } });
-  await page.screenshot({ path: 'test-results/app-text-rotated.png' });
+  await page.screenshot({ path: testInfo.outputPath('app-text-rotated.png') });
 });
 
 test('intentional trailing lines survive commit, reopen, clipboard and undo', async ({ page, context }) => {

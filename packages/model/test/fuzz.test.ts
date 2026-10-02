@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { assertValidElement, bindToElement, getElementBounds, LOCAL_ORIGIN, resolveConnectorEndpoints, type Element, type ElementType } from '../src/index.js';
 import { BoardDocument, WRITER_PREFIX, CLOCK_KEY } from '../src/document.js';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeRunEvidence } from '../../../tests/evidence';
 
 const SEED = 0x51a7e;
 function rawState(client: BoardDocument): string {
@@ -138,6 +138,6 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
   expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(20_000);
   expect(validated).toBeGreaterThan(100_000);
   const result = { spike: 'S2-schema2', seed: SEED, concurrentPairs: 10_000, clients: 3, operations: 20_000, validatedElements: validated, invalidElements: 0, divergentPairs: 0, deliveredUpdates: delivered, operationCounts: counts, durationMs: Math.round(performance.now() - started) };
-  mkdirSync('packages/model/reports', { recursive: true }); writeFileSync('packages/model/reports/s2-schema2-fuzz.json', `${JSON.stringify(result, null, 2)}\n`); console.log(JSON.stringify(result));
+  writeRunEvidence('model', 's2-schema2-fuzz.json', 'packages/model/reports/s2-schema2-fuzz.json', `${JSON.stringify(result, null, 2)}\n`); console.log(JSON.stringify(result));
   clients.forEach(client => client.destroy());
 }, 900_000);

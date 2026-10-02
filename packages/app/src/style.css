@@ -37,3 +37,5 @@
 .upload-status{position:absolute;bottom:82px;left:50%;transform:translateX(-50%);padding:11px 16px;font-size:12px;color:#60718a}
 .board-reload{flex-shrink:0;padding:8px 10px;border:1px solid currentColor;border-radius:6px;font-size:12px}.board-data-notice{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);max-width:560px;width:max-content;padding:12px 16px;font-size:12px;line-height:1.5;color:#43526b}.board-data-notice p+p{margin-top:6px}@media(max-width:760px){.board-data-notice{bottom:134px;max-width:calc(100vw - 24px)}}
 .board-reload:disabled{opacity:.5;cursor:default}.sync-recovery-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.status-limited .status-dot{background:#bf813b}
+
+@media(min-width:761px){.workspace .error-banner{top:96px}}

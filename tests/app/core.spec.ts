@@ -35,11 +35,11 @@ test('shape preview commits once, undo/redo and cancellation preserve the docume
   expect(await elements(page)).toEqual([created]);
 });
 
-test('rectangle, ellipse and sticky tools create real projected elements', async ({ page }) => {
+test('rectangle, ellipse and sticky tools create real projected elements', async ({ page }, testInfo) => {
   await draw(page, 'Rectangle'); await draw(page, 'Ellipse', 760, 280, 150, 100); await draw(page, 'Sticky note', 970, 500, 180, 160);
   expect((await elements(page)).map(element => element.type).sort()).toEqual(['ellipse', 'rect', 'sticky']);
   await expect.poll(() => page.evaluate(() => window.whiteboard.renderer.stats().shapeInstances)).toBe(3);
-  await page.screenshot({ path: 'test-results/app-core-shapes.png' });
+  await page.screenshot({ path: testInfo.outputPath('app-core-shapes.png') });
 });
 
 test('shift selection moves both shapes as one gesture and local history restores them', async ({ page }) => {
@@ -106,7 +106,7 @@ test('typing a style value commits one undo step and Escape cancels a draft', as
   await page.getByRole('button', { name: 'Undo', exact: true }).click(); expect(await elements(page)).toEqual(before);
 });
 
-test('narrow viewport keeps tools, selection controls and zoom reachable', async ({ page }) => {
+test('narrow viewport keeps tools, selection controls and zoom reachable', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await draw(page, 'Rectangle', 115, 340, 145, 110);
   await expect(page.getByRole('button', { name: 'Delete selection', exact: true })).toBeVisible();
@@ -116,5 +116,5 @@ test('narrow viewport keeps tools, selection controls and zoom reachable', async
     const box = (await button.boundingBox())!; expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
-  await page.screenshot({ path: 'test-results/app-core-narrow.png' });
+  await page.screenshot({ path: testInfo.outputPath('app-core-narrow.png') });
 });

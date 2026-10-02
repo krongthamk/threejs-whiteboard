@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
+import { writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createElement, resolveFontRuns, textLayout, type ShippedFontFamily } from '@whiteboard/model';
 
-const directory = resolve('docs/benchmarks/phase4/mixed-text-layout');
+test.afterEach(({}, testInfo) => recordBrowserEvidence(testInfo, 'docs/benchmarks/phase4/mixed-text-layout'));
 const samples = ['日本語 WWWWWWWWWW', '日本語\nWWWWWWWWWW', 'Latin Ā WWW\n日本語 WWW', '日本語 office affinity ffi fl fi', 'カタカナ。ひらがな、日本語！', 'A\u0304V 日本語 ＷＷＷ'];
 const fixtures = (['Inter', 'IBM Plex Mono'] as const).flatMap(fontFamily => [24, 48].flatMap(fontSize => samples.map((text, index) => createElement('text', {
   id: `${fontFamily}-${fontSize}-${index}`, x: -300, y: -100, style: { fontFamily, fontSize, color: '#111111' }, props: { text, align: 'left', autoSize: true },
@@ -17,8 +17,8 @@ const cases = [...fixtures, ...(['Inter', 'IBM Plex Mono'] as const).map(fontFam
   return { element, layout, lines };
 });
 
-test('actual Troika and browser glyph widths match deterministic mixed-script auto-size and wrapping', async ({ page }) => {
-  test.setTimeout(90_000); mkdirSync(directory, { recursive: true });
+test('actual Troika and browser glyph widths match deterministic mixed-script auto-size and wrapping', async ({ page }, testInfo) => {
+  test.setTimeout(90_000); const directory = evidenceDirectory(testInfo);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
   const measured = await page.evaluate(async cases => {
@@ -51,8 +51,8 @@ test('actual Troika and browser glyph widths match deterministic mixed-script au
   expect(errors).toEqual([]);
 });
 
-test('native mixed-script IME, caret and reopen preserve text; committed auto-size exports all glyphs', async ({ page }) => {
-  test.setTimeout(90_000); mkdirSync(directory, { recursive: true });
+test('native mixed-script IME, caret and reopen preserve text; committed auto-size exports all glyphs', async ({ page }, testInfo) => {
+  test.setTimeout(90_000); const directory = evidenceDirectory(testInfo);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
   const cdp = await page.context().newCDPSession(page), outputs = [];
@@ -142,8 +142,8 @@ print(json.dumps({'text':page.get_text(),'rows':[{'pdf':ink(pdf,row),'svg':ink(s
   expect(errors).toEqual([]);
 });
 
-test('repeated Noto Latin ligatures keep PNG SVG and PDF widths without cumulative clipping', async ({ page }) => {
-  test.setTimeout(90_000); mkdirSync(directory, { recursive: true });
+test('repeated Noto Latin ligatures keep PNG SVG and PDF widths without cumulative clipping', async ({ page }, testInfo) => {
+  test.setTimeout(90_000); const directory = evidenceDirectory(testInfo);
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
   const text = `日本語 ${Array(8).fill('office affinity ffi ffl fffi').join(' ')}`;
   const output = await page.evaluate(async text => {
@@ -193,8 +193,8 @@ print(json.dumps({'text':page.get_text(),'png':a,'svg':b,'pdf':c,'pngSvgDelta':m
   }
 });
 
-for (const scenario of ['offscreen', 'onscreen', 'presence'] as const) test(`cold and warm production PNG exports retain wide text with ${scenario} atlas generation`, async ({ page }) => {
-  test.setTimeout(90_000); mkdirSync(directory, { recursive: true });
+for (const scenario of ['offscreen', 'onscreen', 'presence'] as const) test(`cold and warm production PNG exports retain wide text with ${scenario} atlas generation`, async ({ page }, testInfo) => {
+  test.setTimeout(90_000); const directory = evidenceDirectory(testInfo);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
   const measured = await page.evaluate(async scenario => {

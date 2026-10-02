@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { evidenceDirectory, recordBrowserEvidence, repositoryPath } from '../evidence';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { createElement } from '@whiteboard/model';
 import coverage from '../../packages/app/src/export-font-coverage.generated.json' with { type: 'json' };
 
-const directory = resolve('docs/benchmarks/phase4/pdf-fonts');
+test.afterEach(({}, testInfo) => recordBrowserEvidence(testInfo, 'docs/benchmarks/phase4/pdf-fonts'));
 const text = 'Plan €•…— Ā 日本語 end';
 const fixture = (['Inter', 'IBM Plex Mono'] as const).flatMap((fontFamily, font) =>
   (['center', 'right'] as const).map((align, row) => createElement('text', {
@@ -14,9 +14,9 @@ const fixture = (['Inter', 'IBM Plex Mono'] as const).flatMap((fontFamily, font)
     style: { fontFamily, fontSize: 32, color: '#111111' }, props: { text, align, autoSize: false },
   })));
 
-test('PDF uses exact shipped cmap fallback and loaded measurement fonts for centered and right mixed text', async ({ page }) => {
-  test.setTimeout(60_000); mkdirSync(directory, { recursive: true });
-  for (const face of Object.values(coverage)) expect(createHash('sha256').update(readFileSync(resolve('packages/app/public/fonts', face.file))).digest('hex')).toBe(face.sha256);
+test('PDF uses exact shipped cmap fallback and loaded measurement fonts for centered and right mixed text', async ({ page }, testInfo) => {
+  test.setTimeout(60_000); const directory = evidenceDirectory(testInfo);
+  for (const face of Object.values(coverage)) expect(createHash('sha256').update(readFileSync(repositoryPath(`packages/app/public/fonts/${face.file}`))).digest('hex')).toBe(face.sha256);
   const errors: string[] = [], external: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/*', route => {
@@ -99,7 +99,7 @@ print(json.dumps({'lines':lines,'warmLines':warm_lines,'coldWarmPixelsEqual':col
   }
 });
 
-test('PDF reports unsupported glyphs instead of silently dropping them and remains usable', async ({ page }) => {
+test('PDF reports unsupported glyphs instead of silently dropping them and remains usable', async ({ page }, testInfo) => {
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
   const result = await page.evaluate(async () => {
     const { board, exporter } = window.whiteboard;
@@ -114,7 +114,7 @@ test('PDF reports unsupported glyphs instead of silently dropping them and remai
   expect(result.error).toContain('U+1F984'); expect(result.type).toBe('application/pdf'); expect(result.size).toBeGreaterThan(1000); expect(result.secondLineFamily).toBe('Noto Sans JP');
 });
 
-test('a malformed PDF font response is evicted so retry fetches the repaired font', async ({ page }) => {
+test('a malformed PDF font response is evicted so retry fetches the repaired font', async ({ page }, testInfo) => {
   let requests = 0;
   await page.route('**/fonts/inter-latin-400-normal.ttf', route => {
     requests++;

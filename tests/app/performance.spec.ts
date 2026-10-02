@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
+import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
+
+test.afterEach(({}, testInfo) => recordBrowserEvidence(testInfo, 'docs/benchmarks/phase1'));
 import { cpus, totalmem, release, platform } from 'node:os';
 
-test('5,000 real document shapes pan and zoom at 55 fps in the application', async ({ page }) => {
+test('5,000 real document shapes pan and zoom at 55 fps in the application', async ({ page }, testInfo) => {
   test.skip(process.env.RUN_APP_BENCHMARK !== '1', 'Run the hardware gate explicitly on the accepted target with RUN_APP_BENCHMARK=1.');
   test.setTimeout(120_000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -35,10 +38,10 @@ test('5,000 real document shapes pan and zoom at 55 fps in the application', asy
       userAgent: navigator.userAgent, schemaVersion: runtime.board.meta.get('schemaVersion'),
     };
   });
-  await mkdir('docs/benchmarks/phase1', { recursive: true });
-  await writeFile('docs/benchmarks/phase1/application-performance.json', `${JSON.stringify({ timestamp: new Date().toISOString(), viewport: page.viewportSize(), hardware: { cpu: cpus()[0]?.model, logicalCores: cpus().length, memoryBytes: totalmem(), platform: platform(), release: release() }, ...result, errors, passed: result.fps >= 55 && result.stats.shapeInstances === 5000 && errors.length === 0 }, null, 2)}\n`);
+  const directory = evidenceDirectory(testInfo);
+  await writeFile(`${directory}/application-performance.json`, `${JSON.stringify({ timestamp: new Date().toISOString(), viewport: page.viewportSize(), hardware: { cpu: cpus()[0]?.model, logicalCores: cpus().length, memoryBytes: totalmem(), platform: platform(), release: release() }, ...result, errors, passed: result.fps >= 55 && result.stats.shapeInstances === 5000 && errors.length === 0 }, null, 2)}\n`);
   expect(result.stats.shapeInstances).toBe(5000);
   expect(result.fps).toBeGreaterThanOrEqual(55);
   expect(errors).toEqual([]);
-  await page.screenshot({ path: 'docs/benchmarks/phase1/5000-shapes.png' });
+  await page.screenshot({ path: `${directory}/5000-shapes.png` });
 });

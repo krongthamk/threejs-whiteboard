@@ -52,7 +52,7 @@ Negative controls use the same comparison: removing the Latin text produces **93
 ## Reproduce
 
 ```sh
-RECORD_SPIKE_RESULTS=1 pnpm exec playwright test tests/browser/text-spike.spec.ts
+RECORD_EVIDENCE=1 pnpm exec playwright test tests/browser/text-spike.spec.ts
 ```
 
-The suite records artifacts under `docs/benchmarks/s4/` and fails on uncaught browser errors, missing/unsynchronized Japanese glyphs, external Japanese font requests, wrong PNG dimensions, or the visual gates above. S4 is complete within this prototype scope; the separate S1/S2/S3 gates and later application phases remain independent obligations. Phase 4 must extend export verification to selection, transparency, tiling, images, and the selected PDF path.
+The suite writes current artifacts under `test-results/browser/`; `RECORD_EVIDENCE=1` also copies them into `docs/benchmarks/s4/`. The suite always fails on uncaught browser errors, missing/unsynchronized Japanese glyphs, external Japanese font requests, wrong PNG dimensions, or the visual gates above. S4 is complete within this prototype scope; the separate S1/S2/S3 gates and later application phases remain independent obligations. Phase 4 must extend export verification to selection, transparency, tiling, images, and the selected PDF path.

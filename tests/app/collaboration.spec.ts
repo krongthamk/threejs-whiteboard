@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
 import type { BoardConnection } from '../../packages/app/src/collaboration';
 import type { EditorRuntime } from '../../packages/app/src/runtime';
 
@@ -9,6 +10,12 @@ async function signIn(page: Page, username: string, path = '/') {
   await page.getByLabel('Username', { exact: true }).fill(username);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+}
+async function boardList(page: Page) {
+  const back = page.getByRole('button', { name: 'Back to boards', exact: true });
+  await expect(back.or(page.getByRole('button', { name: 'New board', exact: true }))).toBeVisible();
+  if (await back.isVisible()) await back.click();
+  await expect(page.getByRole('button', { name: 'New board', exact: true })).toBeVisible();
 }
 async function connected(page: Page) {
   await expect(page.getByRole('status').filter({ hasText: /^Connected/ })).toBeVisible();
@@ -26,9 +33,7 @@ test('token-free sign-in and reload authenticate collaboration with the HttpOnly
   expect(await (await loginResponse).json()).not.toHaveProperty('token');
   expect(await page.evaluate(async () => (await fetch('/api/session')).json())).not.toHaveProperty('token');
   expect(await page.evaluate(() => document.cookie)).not.toContain('board_session=');
-  const back = page.getByRole('button', { name: 'Back to boards', exact: true });
-  await expect(back.or(page.getByRole('button', { name: 'New board', exact: true }))).toBeVisible();
-  if (await back.isVisible()) await back.click();
+  await boardList(page);
   await page.getByRole('button', { name: 'New board', exact: true }).click();
   await page.getByLabel('Board name', { exact: true }).fill('Cookie authentication');
   await page.getByRole('button', { name: 'Create board', exact: true }).click();
@@ -43,6 +48,7 @@ test('token-free sign-in and reload authenticate collaboration with the HttpOnly
 
 test('an already revoked session can return to sign-in without reloading the page', async ({ page }) => {
   await signIn(page, 'alice');
+  await boardList(page);
   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
   expect(await page.evaluate(async () => (await fetch('/api/session/logout', { method: 'POST' })).status)).toBe(204);
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
@@ -53,13 +59,31 @@ test('an already revoked session can return to sign-in without reloading the pag
   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
 });
 
-test('private boards converge, isolate undo, keep 30s offline edits and restore after reload', async ({ browser }) => {
+test('a revoked board session keeps sign-out reachable beside its recovery banner', async ({ page }) => {
+  await signIn(page, 'alice');
+  await boardList(page);
+  await page.getByRole('button', { name: 'New board', exact: true }).click();
+  await page.getByLabel('Board name', { exact: true }).fill('Revoked board session');
+  await page.getByRole('button', { name: 'Create board', exact: true }).click();
+  await connected(page);
+  expect(await page.evaluate(async () => (await fetch('/api/session/logout', { method: 'POST' })).status)).toBe(204);
+  await page.evaluate(() => {
+    window.whiteboardConnection!.provider.disconnect();
+    window.whiteboardConnection!.provider.connect();
+  });
+  await expect(page.getByRole('alert')).toContainText(/Sign in/i);
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+});
+
+test('private boards converge, isolate undo, keep 30s offline edits and restore after reload', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
   const contexts = await Promise.all([browser.newContext(), browser.newContext(), browser.newContext()]);
   const [alice, bob, viewer] = await Promise.all(contexts.map(context => context.newPage()));
   const errors: string[] = []; for (const page of [alice!, bob!, viewer!]) page.on('pageerror', error => errors.push(error.message));
   try {
     await signIn(alice!, 'alice');
+    await boardList(alice!);
     await alice!.getByRole('button', { name: 'New board', exact: true }).click();
     await alice!.getByLabel('Board name', { exact: true }).fill('Shared thinking');
     await alice!.getByRole('button', { name: 'Create board', exact: true }).click();
@@ -110,16 +134,15 @@ test('private boards converge, isolate undo, keep 30s offline edits and restore 
     await expect(viewer!.getByRole('button', { name: 'Rectangle', exact: true })).toBeDisabled();
     await viewer!.getByRole('button', { name: 'Select', exact: true }).click(); await viewer!.mouse.click(550, 360); await viewer!.keyboard.press('Backspace');
     expect(await contents(viewer!)).toEqual(converged);
-    await alice!.screenshot({ path: 'docs/benchmarks/phase3/private-board.png' });
+    await alice!.screenshot({ path: `${evidenceDirectory(testInfo)}/private-board.png` });
+    recordBrowserEvidence(testInfo, 'docs/benchmarks/phase3');
     expect(errors).toEqual([]);
   } finally { await Promise.all(contexts.map(context => context.close())); }
 });
 
 test('board access remains private and board rename/list navigation persists', async ({ page, browser }) => {
   await signIn(page, 'alice');
-  const back = page.getByRole('button', { name: 'Back to boards', exact: true });
-  await expect(back.or(page.getByRole('button', { name: 'New board', exact: true }))).toBeVisible();
-  if (await back.isVisible()) await back.click();
+  await boardList(page);
   await page.getByRole('button', { name: 'New board', exact: true }).click();
   await page.getByLabel('Board name', { exact: true }).fill('Navigation test');
   await page.getByRole('button', { name: 'Create board', exact: true }).click(); await connected(page);

@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { expect, it } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeRunEvidence } from '../../tests/evidence';
 import { CLOCK_KEY, WriterBoardDocument, WRITER_PREFIX, type WriterOptions } from './writer-model.js';
 
 const NETWORK = Symbol('network');
@@ -113,8 +113,7 @@ it('measures retained generation and writer records honestly under repeated life
   expect(samples.at(-1)!.liveRecords).toBe(402);
   expect(samples.every(sample => sample.visibleElements === 0)).toBe(true);
   expect(samples[3]!.snapshotBytes).toBeGreaterThan(samples[0]!.snapshotBytes);
-  mkdirSync('spikes/model-kv/reports', { recursive: true });
-  writeFileSync('spikes/model-kv/reports/lifecycle-retention.json', `${JSON.stringify({ interpretation: 'Hot edits plateau for fixed writer/key/generation sets. Retired writer arrays and obsolete generation overrides are retained to preserve offline merge and undo; lifecycle churn is not bounded by visible element count.', samples }, null, 2)}\n`);
+  writeRunEvidence('model-kv', 'lifecycle-retention.json', 'spikes/model-kv/reports/lifecycle-retention.json', `${JSON.stringify({ interpretation: 'Hot edits plateau for fixed writer/key/generation sets. Retired writer arrays and obsolete generation overrides are retained to preserve offline merge and undo; lifecycle churn is not bounded by visible element count.', samples }, null, 2)}\n`);
   board.destroy();
 });
 

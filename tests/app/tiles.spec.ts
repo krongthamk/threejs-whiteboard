@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
+import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
+
+test.afterEach(({}, testInfo) => recordBrowserEvidence(testInfo, 'docs/benchmarks/phase4'));
 import type { ThreeRenderer } from '@whiteboard/renderer';
 
-test('PNG crosses the real GPU texture limit without a seam or vertical inversion', async ({ page }) => {
+test('PNG crosses the real GPU texture limit without a seam or vertical inversion', async ({ page }, testInfo) => {
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
   const result = await page.evaluate(async () => {
     const { board, renderer, exporter } = window.whiteboard;
@@ -25,11 +28,11 @@ test('PNG crosses the real GPU texture limit without a seam or vertical inversio
   for (const pixel of result.seam!) expect(pixel).toEqual([0, 0, 255, 255]);
   for (const pixel of result.red!) expect(pixel).toEqual([255, 0, 0, 255]);
   expect(result.top).toEqual([0, 255, 0, 255]);
-  mkdirSync('docs/benchmarks/phase4', { recursive: true });
-  writeFileSync('docs/benchmarks/phase4/native-tiles.json', JSON.stringify(result, null, 2));
+  const directory = evidenceDirectory(testInfo);
+  writeFileSync(`${directory}/native-tiles.json`, JSON.stringify(result, null, 2));
 });
 
-test('controlled two-axis PNG tiles equal the untiled pixels, including translucent seam crossings', async ({ page }) => {
+test('controlled two-axis PNG tiles equal the untiled pixels, including translucent seam crossings', async ({ page }, testInfo) => {
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
   const result = await page.evaluate(async () => {
     const { board, exporter } = window.whiteboard;
@@ -54,6 +57,6 @@ test('controlled two-axis PNG tiles equal the untiled pixels, including transluc
   });
   expect(result.width).toBe(130); expect(result.height).toBe(134); expect(result.differingChannels).toBe(0);
   expect(result.overlap[3]).toBeGreaterThan(170); expect(result.overlap[3]).toBeLessThan(190);
-  mkdirSync('docs/benchmarks/phase4', { recursive: true });
-  writeFileSync('docs/benchmarks/phase4/controlled-tiles.json', JSON.stringify(result, null, 2));
+  const directory = evidenceDirectory(testInfo);
+  writeFileSync(`${directory}/controlled-tiles.json`, JSON.stringify(result, null, 2));
 });

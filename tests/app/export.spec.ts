@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
+import { writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { contentBounds, createElement, getElementBounds } from '@whiteboard/model';
 import { mixedFixture } from '../../spikes/text/fixture';
 
 const fixture = [...mixedFixture(), createElement('text', { id: 'japanese', x: 530, y: 350, index: 'a6', style: { fontSize: 28 }, props: { text: '日本語のアイデア', align: 'left', autoSize: true } })];
-const directory = resolve('docs/benchmarks/phase4');
-test.beforeEach(async ({ page }) => { await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard); });
+test.afterEach(({}, testInfo) => recordBrowserEvidence(testInfo, 'docs/benchmarks/phase4'));
+test.beforeEach(async ({ page }, testInfo) => { await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard); });
 
-test('document-only selection PNG excludes overlap and draft; all four scales and transparency work', async ({ page }) => {
+test('document-only selection PNG excludes overlap and draft; all four scales and transparency work', async ({ page }, testInfo) => {
   const result = await page.evaluate(async () => {
     const { board, renderer, exporter } = window.whiteboard;
     const first = board.create('rect', { x: 0, y: 0, w: 100, h: 80, style: { fill: '#ff0000', strokeWidth: 0 } }).id;
@@ -28,8 +28,8 @@ test('document-only selection PNG excludes overlap and draft; all four scales an
   for (const output of result) { expect(output.width).toBe(148 * output.scale); expect(output.height).toBe(128 * output.scale); expect(output.corner).toEqual([0, 0, 0, 0]); expect(output.center).toEqual([255, 0, 0, 255]); }
 });
 
-test('mixed Latin/Japanese board exports PNG, embedded SVG and PDF through the real dialog', async ({ page }) => {
-  test.setTimeout(60_000); mkdirSync(directory, { recursive: true });
+test('mixed Latin/Japanese board exports PNG, embedded SVG and PDF through the real dialog', async ({ page }, testInfo) => {
+  test.setTimeout(60_000); const directory = evidenceDirectory(testInfo);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.evaluate(values => { window.whiteboard.board.transact(() => { for (const element of values) window.whiteboard.board.add(element); }); window.whiteboard.controller.zoomToFit(); }, fixture);
   await page.evaluate(() => window.whiteboard.renderer.whenReady());
@@ -110,7 +110,7 @@ test('mixed Latin/Japanese board exports PNG, embedded SVG and PDF through the r
   }
 });
 
-test('minimap navigates the actual camera and keyboard fit preserves document contents', async ({ page }) => {
+test('minimap navigates the actual camera and keyboard fit preserves document contents', async ({ page }, testInfo) => {
   await page.evaluate(values => { for (const element of values) window.whiteboard.board.add(element); }, fixture);
   const before = await page.evaluate(() => window.whiteboard.board.readAll());
   await page.getByRole('button', { name: 'Open minimap', exact: true }).click();

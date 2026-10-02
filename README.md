@@ -75,6 +75,8 @@ pnpm --filter @whiteboard/app build
 
 `pnpm test:app` builds an isolated test bundle and starts a disposable authenticated server on 3001 plus the app on 5174. Stop the local deployment first to release 3001. Its generated accounts/data never enter deployment storage. `pnpm test:routed` runs the actual app through a two-owner router using separate server instances and shared same-host test SQLite; it checks both owners and reload persistence. S4 uses the separate spike test server on 4175. Install the test browser with `pnpm exec playwright install chrome` if needed.
 
+Ordinary unit and browser runs write current artifacts under ignored `test-results/` using paths anchored to the repository or each Playwright test. Historical reports under `packages/model/reports/`, `spikes/model-kv/reports/` and `docs/benchmarks/` are refreshed only with `RECORD_EVIDENCE=1`; select that flag intentionally when recording replacement evidence.
+
 Performance measurements require a quiet, hardware-accelerated browser. Do not run GPU benchmarks concurrently with browser export/UI tests. The Mac-specific app gate is opt-in:
 
 ```sh

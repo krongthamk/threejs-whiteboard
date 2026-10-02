@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
+import { evidenceDirectory, recordBrowserEvidence, writeRunEvidence } from '../evidence'
 import { resolve } from 'node:path'
 
 const pageErrors = new WeakMap<Page, string[]>()
@@ -19,15 +20,13 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }, testInfo) => {
   const errors = pageErrors.get(page) ?? []
   testEvidence.push({ title: testInfo.title, status: testInfo.status ?? 'unknown', pageErrors: [...errors] })
+  recordBrowserEvidence(testInfo, 'docs/benchmarks/s4')
   expect(errors, 'No uncaught browser errors').toEqual([])
 })
 
 test.afterAll(() => {
-  if (process.env.RECORD_SPIKE_RESULTS === '1') {
-    mkdirSync(resolve('docs/benchmarks/s4'), { recursive: true })
-    writeFileSync(resolve('docs/benchmarks/s4/suite-results.json'), JSON.stringify({ timestamp: new Date().toISOString(), browserVersion,
-      productionBundle: true, tests: testEvidence, passed: testEvidence.every(result => result.status === 'passed' && result.pageErrors.length === 0) }, null, 2) + '\n')
-  }
+  writeRunEvidence('browser/s4', 'suite-results.json', 'docs/benchmarks/s4/suite-results.json', JSON.stringify({ timestamp: new Date().toISOString(), browserVersion,
+    productionBundle: true, tests: testEvidence, passed: testEvidence.every(result => result.status === 'passed' && result.pageErrors.length === 0) }, null, 2) + '\n')
 })
 
 test('native caret, selection, typing and blur form one undo step', async ({ page }) => {
@@ -102,7 +101,7 @@ test('Chromium IME candidate input commits through the native editing pipeline',
   expect(externalRequests).toEqual([])
   const proof = { glyphs, externalRequests, embeddedFonts: 2, pngExported: true, comparison }
   await testInfo.attach('japanese-offline.json', { body: JSON.stringify(proof, null, 2), contentType: 'application/json' })
-  if (process.env.RECORD_SPIKE_RESULTS === '1') {
+  {
     const raster = await page.evaluate(async value => {
       const image = new Image(), url = URL.createObjectURL(new Blob([value], { type: 'image/svg+xml' }))
       try {
@@ -112,11 +111,11 @@ test('Chromium IME candidate input commits through the native editing pipeline',
         return canvas.toDataURL()
       } finally { URL.revokeObjectURL(url) }
     }, svg)
-    mkdirSync(resolve('docs/benchmarks/s4'), { recursive: true })
-    writeFileSync(resolve('docs/benchmarks/s4/japanese-offline.json'), JSON.stringify(proof, null, 2) + '\n')
-    writeFileSync(resolve('docs/benchmarks/s4/japanese-offline@2x.png'), Buffer.from(exported.split(',')[1]!, 'base64'))
-    writeFileSync(resolve('docs/benchmarks/s4/japanese-offline.svg'), svg)
-    writeFileSync(resolve('docs/benchmarks/s4/japanese-svg-raster@2x.png'), Buffer.from(raster.split(',')[1]!, 'base64'))
+    const directory = evidenceDirectory(testInfo)
+    writeFileSync(resolve(directory, 'japanese-offline.json'), JSON.stringify(proof, null, 2) + '\n')
+    writeFileSync(resolve(directory, 'japanese-offline@2x.png'), Buffer.from(exported.split(',')[1]!, 'base64'))
+    writeFileSync(resolve(directory, 'japanese-offline.svg'), svg)
+    writeFileSync(resolve(directory, 'japanese-svg-raster@2x.png'), Buffer.from(raster.split(',')[1]!, 'base64'))
   }
   await session.detach()
 })
@@ -174,9 +173,8 @@ test('mixed board exports at 2× with SVG visual parity per region', async ({ pa
   expect(svg).toContain('data:font/woff;base64,')
   const comparison = await page.evaluate(() => window.textSpike.compareExports())
   await testInfo.attach('comparison.json', { body: JSON.stringify(comparison, null, 2), contentType: 'application/json' })
-  if (process.env.RECORD_SPIKE_RESULTS === '1') {
-    const directory = resolve('docs/benchmarks/s4')
-    mkdirSync(directory, { recursive: true })
+  {
+    const directory = evidenceDirectory(testInfo)
     writeFileSync(resolve(directory, 'mixed-board@2x.png'), Buffer.from(png.split(',')[1]!, 'base64'))
     writeFileSync(resolve(directory, 'svg-raster@2x.png'), Buffer.from(svgPng.split(',')[1]!, 'base64'))
     writeFileSync(resolve(directory, 'mixed-board.svg'), svg)
@@ -213,9 +211,9 @@ test('visual comparison rejects missing and displaced text despite edge toleranc
     ]
   })
   await testInfo.attach('negative-controls.json', { body: JSON.stringify(controls, null, 2), contentType: 'application/json' })
-  if (process.env.RECORD_SPIKE_RESULTS === '1') {
-    mkdirSync(resolve('docs/benchmarks/s4'), { recursive: true })
-    writeFileSync(resolve('docs/benchmarks/s4/negative-controls.json'), JSON.stringify(controls, null, 2) + '\n')
+  {
+    const directory = evidenceDirectory(testInfo)
+    writeFileSync(resolve(directory, 'negative-controls.json'), JSON.stringify(controls, null, 2) + '\n')
   }
   for (const { name, comparison } of controls) {
     const bounds = comparison.textInkBounds.find(region => region.name === 'text')!

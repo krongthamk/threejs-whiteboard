@@ -37,7 +37,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 5. Add a test in `packages/server/src/server.test.ts` that stubs `store.appendUpdate` to throw once, sends one update through a real provider, and asserts the listener is still accepting connections and the client received the reset reason.
 6. Update `packages/server/README.md` "Collaboration and persistence" to describe the behaviour on a storage error.
 
-### [ ] 2. Any editor can brick a board for every member, permanently (critical, reproduced)
+### [x] 2. Any editor can brick a board for every member, permanently (critical, reproduced)
 
 **Where:** `packages/model/src/document.ts:205-224` (`read`/`readAll` throw on any invalid element), `:261-262` (`delete` calls `readAll` first), `:297-298` (`reorder` calls `readAll`), `:117` (`refresh` trusts `value.stamp.clock` and `JSON.parse(key)`); `packages/app/src/runtime.ts:55-64` (subscriber calls `board.read` inside the Yjs observer); `packages/app/src/minimap.tsx:22` (`readAll` in render); `packages/app/src/main.tsx:6` (no error boundary); `packages/server/src/server.ts:185` (`beforeSync` validates dirty writes only for viewers).
 
@@ -52,7 +52,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 6. Add `operations prune-element <boardId> <elementId>` to `packages/server/src/operations.ts` and `backup-cli.ts`.
 7. Tests: model test where replica B pushes a malformed base record and replica A can still `readAll`, `delete('bad')`, and `reorder`; server test that a malformed update from an editor is rejected and the board stays readable; an app test that the error boundary renders.
 
-### [ ] 3. No size cap or backpressure on Yjs updates (high, reproduced)
+### [x] 3. No size cap or backpressure on Yjs updates (high, reproduced)
 
 **Where:** `packages/server/src/server.ts:156` (Hocuspocus server construction, no `websocketOptions`), `:194-199` (`onChange` persists verbatim), `packages/server/src/store.ts:103-108` (compaction re-encodes the whole document past 5 MiB).
 
@@ -65,7 +65,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 4. Add a per-socket high-water mark check on `bufferedAmount` before broadcasting; terminate sockets that stay above it for more than a few seconds. Drop stale awareness for slow sockets rather than queueing it.
 5. Tests: an oversized update is rejected and the log size does not change; a socket that never drains is closed.
 
-### [ ] 4. Production deploy keeps Vite dev origins in the CORS allowlist and returns the bearer token (high, reproduced)
+### [x] 4. Production deploy keeps Vite dev origins in the CORS allowlist and returns the bearer token (high, reproduced)
 
 **Where:** `packages/server/src/server.ts:21` (default origins include localhost and 127.0.0.1 on 4173, 5173, 5174, 3001), `:66-67` (reflects allowlisted Origin with `Access-Control-Allow-Credentials: true`), `:76` (Bearer requests exempt from Origin check), `:94` (`GET /api/session` returns the raw token); `scripts/deploy-local.ts:109` (launch agent env has no `WHITEBOARD_ORIGINS`); `packages/server/src/config.ts:29`.
 
@@ -77,7 +77,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 3. Stop returning `token` from `GET /api/session` to cookie-authenticated callers; the WebSocket `onAuthenticate` already accepts the cookie. Check `packages/app/src/account.tsx` and `collaboration.ts` for any code path that needs the token and route it through the cookie instead.
 4. Test: with a static directory configured, a request with `Origin: http://localhost:5173` gets 403.
 
-### [ ] 5. The CI workflow cannot pass on ubuntu-latest (high)
+### [x] 5. The CI workflow cannot pass on ubuntu-latest (high)
 
 **Where:** `.github/workflows/ci.yml:17-19`; `tests/app/text.spec.ts:26, 105, 110`; `tests/app/assets.spec.ts:38, 71, 98, 172`; 27 `Meta+` occurrences across `tests/app/*.spec.ts` (assets 10, text 6, controller 5, core 3, text-layout 2, collaboration 1).
 
@@ -90,7 +90,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 4. Add a step after the app build that fails if `packages/app/dist` contains the string `whiteboardConnection` (test hooks leaked into a production bundle).
 5. Verify locally with `pnpm test:app` before pushing.
 
-### [ ] 6. Test runs rewrite tracked files (high, reproduced)
+### [x] 6. Test runs rewrite tracked files (high, reproduced)
 
 **Where:** `packages/model/test/fuzz.test.ts:141` (writes `packages/model/reports/s2-schema2-fuzz.json`), `packages/model/test/writer-storage.test.ts:116-117`; Playwright write sites: `tests/app/collaboration.spec.ts:92`, `export.spec.ts:36, 42, 98-100, 108`, `image-export.spec.ts:116-117, 158-159, 190-191`, `pdf.spec.ts:49-53, 85`, `performance.spec.ts:39, 43`, `text-layout.spec.ts:41, 114-117, 162, 190, 228-229`, `tiles.spec.ts:29, 58`.
 
