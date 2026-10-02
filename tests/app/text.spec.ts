@@ -23,14 +23,14 @@ test('native editing supports selection, cut/paste and one undoable blur commit'
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const input = await edit(page);
   await page.keyboard.type('A fresh direction');
-  await page.keyboard.press('Meta+a'); await page.keyboard.press('Meta+x'); await page.keyboard.press('Meta+v');
+  await page.keyboard.press('ControlOrMeta+a'); await page.keyboard.press('ControlOrMeta+x'); await page.keyboard.press('ControlOrMeta+v');
   await expect(input).toHaveText('A fresh direction');
   await page.keyboard.press('ArrowLeft'); await page.keyboard.type('!');
   await page.mouse.click(1120, 800);
   await expect(input).toHaveCount(0);
   expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: 'A fresh directio!n' });
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
-  await page.keyboard.press('Meta+z');
+  await page.keyboard.press('ControlOrMeta+z');
   expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: 'A shared idea' });
 });
 
@@ -87,7 +87,7 @@ test('rotated zoomed editor follows the document and keeps an intervening style 
     window.whiteboard.board.updateStyle(['note'], { fill: '#dbe9ff' });
   });
   await expect(input).toHaveText('Still together');
-  await page.keyboard.press('Meta+Enter');
+  await page.keyboard.press('ControlOrMeta+Enter');
   expect(await page.evaluate(() => window.whiteboard.board.read('note'))).toMatchObject({ rotation: Math.PI / 6, props: { text: 'Still together' }, style: { fill: '#dbe9ff' } });
   await page.screenshot({ path: 'test-results/app-text-rotated.png' });
 });
@@ -102,14 +102,14 @@ test('intentional trailing lines survive commit, reopen, clipboard and undo', as
   await edit(page); await page.mouse.click(1120, 800);
   expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: 'A\n\n' });
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
-  await edit(page); await page.keyboard.press('Meta+a'); await page.keyboard.press('Meta+x'); await page.keyboard.press('Meta+v');
+  await edit(page); await page.keyboard.press('ControlOrMeta+a'); await page.keyboard.press('ControlOrMeta+x'); await page.keyboard.press('ControlOrMeta+v');
   await page.mouse.click(1120, 800);
   expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: 'A\n\n' });
   await edit(page);
   await page.evaluate(() => navigator.clipboard.writeText('Pasted\n\n'));
-  await page.keyboard.press('Meta+a'); await page.keyboard.press('Meta+v'); await page.mouse.click(1120, 800);
+  await page.keyboard.press('ControlOrMeta+a'); await page.keyboard.press('ControlOrMeta+v'); await page.mouse.click(1120, 800);
   expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: 'Pasted\n\n' });
-  await page.keyboard.press('Meta+z');
+  await page.keyboard.press('ControlOrMeta+z');
   expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: 'A\n\n' });
 });
 

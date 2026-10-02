@@ -75,7 +75,7 @@ test('native mixed-script IME, caret and reopen preserve text; committed auto-si
       return { scrollWidth: node.scrollWidth, clientWidth: node.clientWidth, scrollHeight: node.scrollHeight, clientHeight: node.clientHeight, caretInInput: caret.left >= box.left - 1 && caret.right <= box.right + 1 && caret.top >= box.top - 1 && caret.bottom <= box.bottom + 1, overflow: getComputedStyle(node).overflow };
     });
     expect(native.scrollWidth).toBeLessThanOrEqual(native.clientWidth + 1); expect(native.scrollHeight).toBeLessThanOrEqual(native.clientHeight + 1); expect(native.caretInInput).toBe(true); expect(native.overflow).toBe('visible');
-    await page.keyboard.press('Meta+Enter'); await expect(input).toHaveCount(0);
+    await page.keyboard.press('ControlOrMeta+Enter'); await expect(input).toHaveCount(0);
     const text = '日本語 WWWWWWWWWWWW！\nWWWWWWWWWWWW。';
     const committed = await page.evaluate(async () => { await window.whiteboard.renderer.whenReady(); return { element: window.whiteboard.board.read('draft')!, undo: window.whiteboard.board.undoManager.undoStack.length }; });
     expect(committed.element.props).toMatchObject({ text }); expect(committed.undo).toBe(1);
@@ -83,7 +83,7 @@ test('native mixed-script IME, caret and reopen preserve text; committed auto-si
     expect(committed.element.w).toBeCloseTo(expected.w, 8); expect(committed.element.h).toBe(80);
     await page.evaluate(() => window.whiteboard.textEditor.open('draft')); await expect(input).toBeFocused();
     expect(await page.evaluate(() => getSelection()?.toString())).toBe(text);
-    await page.keyboard.press('Meta+Enter'); expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
+    await page.keyboard.press('ControlOrMeta+Enter'); expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
     const rendered = await page.evaluate(async () => {
       const { board, exporter } = window.whiteboard, element = board.read('draft')!;
       const options = { scale: 2, transparent: false, title: 'Mixed-script complete text' };

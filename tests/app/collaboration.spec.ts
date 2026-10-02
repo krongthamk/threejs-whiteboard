@@ -84,7 +84,7 @@ test('private boards converge, isolate undo, keep 30s offline edits and restore 
     await alice!.getByRole('button', { name: 'Select', exact: true }).click(); await alice!.mouse.click(550, 350);
     await alice!.keyboard.press('Shift+ArrowRight');
     await expect.poll(async () => (await contents(bob!))[0]!.x).toBe(original.x + 10);
-    await alice!.keyboard.press('Meta+z');
+    await alice!.keyboard.press('ControlOrMeta+z');
     await expect.poll(async () => (await contents(bob!))[0]!.x).toBe(original.x);
     expect((await contents(alice!))[0]!.style.fill).toBe('#dbe9ff');
     await expect(alice!.getByLabel('bob', { exact: true })).toBeVisible();

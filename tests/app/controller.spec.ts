@@ -23,11 +23,11 @@ test('resize and rotate handles preview geometry then commit one undo step', asy
   expect(await read(page)).toEqual(before); await page.mouse.up();
   expect(await read(page)).toMatchObject({ x: -220, y: -200, w: 220, h: 150 });
   expect(await history(page)).toBe(steps + 1);
-  await page.keyboard.press('Meta+z'); expect(await read(page)).toEqual(before);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await read(page)).toEqual(before);
   await page.mouse.move(580, 272); await page.mouse.down(); await page.mouse.move(668, 360, { steps: 8 }); await page.mouse.up();
   expect((await read(page)).rotation).toBeCloseTo(Math.PI / 2, 4);
   expect(await history(page)).toBe(steps + 1);
-  await page.keyboard.press('Meta+z'); expect(await read(page)).toEqual(before);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await read(page)).toEqual(before);
 });
 
 test('Escape and pointercancel restore both document and rendered geometry', async ({ page }) => {
@@ -50,7 +50,7 @@ test('a concurrent geometry and style change survives local move commit', async 
   expect(await read(page)).toMatchObject({ x: -195, y: -200, style: { fill: '#ff0000' } });
   await page.mouse.up();
   expect(await read(page)).toMatchObject({ x: -145, y: -170, style: { fill: '#ff0000' } });
-  await page.keyboard.press('Meta+z');
+  await page.keyboard.press('ControlOrMeta+z');
   expect(await read(page)).toMatchObject({ x: -195, y: -200, style: { fill: '#ff0000' } });
 });
 
@@ -83,7 +83,7 @@ test('pen previews are transient, retain pen pressure, and commit simplified inp
   expect(stroke.props.simplified).toBe(true); expect(stroke.props.points.length).toBeLessThan(63);
   expect(Math.max(...stroke.props.points.filter((_, i) => i % 3 === 2))).toBeCloseTo(.9, 4);
   expect(await history(page)).toBe(steps + 1);
-  await page.keyboard.press('Meta+z'); expect(await page.evaluate(() => window.whiteboard.board.readAll().length)).toBe(1);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await page.evaluate(() => window.whiteboard.board.readAll().length)).toBe(1);
 });
 
 test('fast erasing removes whole strokes as one gesture and Escape restores them', async ({ page }) => {
@@ -103,7 +103,7 @@ test('fast erasing removes whole strokes as one gesture and Escape restores them
   await page.mouse.move(550, 600); await page.mouse.down(); await page.mouse.move(900, 600); await page.mouse.up();
   expect(await page.evaluate(() => window.whiteboard.board.readAll().map(element => element.id))).toEqual(['test-shape']);
   expect(await history(page)).toBe(steps + 1);
-  await page.keyboard.press('Meta+z'); expect(await page.evaluate(() => window.whiteboard.board.readAll().length)).toBe(3);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await page.evaluate(() => window.whiteboard.board.readAll().length)).toBe(3);
 });
 
 test('text tool creates a native editable text and commits after blur', async ({ page }) => {

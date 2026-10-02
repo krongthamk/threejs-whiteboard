@@ -35,7 +35,7 @@ async function drop(page: Page, files: ImageBytes[], position = { x: 800, y: 420
   }, { files, position });
 }
 const contents = (page: Page) => page.evaluate(() => window.whiteboard.board.readAll());
-async function clipboardText(page: Page, text: string) { await page.evaluate(text => navigator.clipboard.writeText(text), text); await page.keyboard.press('Meta+v'); }
+async function clipboardText(page: Page, text: string) { await page.evaluate(text => navigator.clipboard.writeText(text), text); await page.keyboard.press('ControlOrMeta+v'); }
 async function clearError(page: Page) { const button = page.getByRole('button', { name: 'Dismiss error', exact: true }); if (await button.isVisible()) await button.click(); }
 
 test.beforeEach(async ({ context, page }) => { await context.grantPermissions(['clipboard-read', 'clipboard-write']); await signIn(page); });
@@ -58,8 +58,8 @@ test('drop preserves PNG/JPEG/WebP bytes and dimensions; a whole batch is one un
   }
   expect(elements[0]).toMatchObject({ props: { naturalW: 1200, naturalH: 700 } });
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(before + 1);
-  await page.keyboard.press('Meta+z'); expect(await contents(page)).toEqual([]);
-  await page.keyboard.press('Meta+Shift+z'); expect(await contents(page)).toEqual(elements);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await contents(page)).toEqual([]);
+  await page.keyboard.press('ControlOrMeta+Shift+z'); expect(await contents(page)).toEqual(elements);
   await page.evaluate(() => window.whiteboard.renderer.whenReady());
   expect(await page.evaluate(() => window.whiteboard.renderer.stats().visibleImages)).toBe(3);
 });
@@ -67,7 +67,7 @@ test('drop preserves PNG/JPEG/WebP bytes and dimensions; a whole batch is one un
 test('native clipboard image paste imports pixels, while a dialog input retains native paste', async ({ page }) => {
   await newBoard(page, 'Native image clipboard'); const file = await image(page, 180, 120);
   await page.evaluate(async file => navigator.clipboard.write([new ClipboardItem({ [file.type]: new Blob([new Uint8Array(file.bytes)], { type: file.type }) })]), file);
-  await page.keyboard.press('Meta+v');
+  await page.keyboard.press('ControlOrMeta+v');
   await expect.poll(async () => (await contents(page)).length).toBe(1);
   expect((await contents(page))[0]).toMatchObject({ type: 'image', props: { naturalW: 180, naturalH: 120 } });
   const before = await contents(page);
@@ -78,7 +78,7 @@ test('native clipboard image paste imports pixels, while a dialog input retains 
   await page.getByRole('button', { name: 'Save name', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Native pasted board title', exact: true })).toBeVisible();
-  await page.keyboard.press('Meta+z'); expect(await contents(page)).toEqual([]);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await contents(page)).toEqual([]);
 });
 
 test('native mixed selection copy remaps bindings and shared image refs across private boards', async ({ page, browser }) => {
@@ -95,7 +95,7 @@ test('native mixed selection copy remaps bindings and shared image refs across p
     // Move the target after binding, so copy must capture the current endpoint rather than its old fallback.
     board.update('external-shape', { y: 200 }); session.setState({ selectedIds: board.readAll().filter(element => element.id !== 'external-shape').map(element => element.id) });
   }, [shape, outside, stroke, connector, secondImage]);
-  await page.keyboard.press('Meta+c');
+  await page.keyboard.press('ControlOrMeta+c');
   const text = await page.evaluate(() => navigator.clipboard.readText()), copied = JSON.parse(text) as { elements: Element[] };
   expect(copied.elements).toHaveLength(5); expect(text).not.toContain('data:image'); expect(text).not.toContain('blob:');
   const copiedConnector = copied.elements.find(element => element.type === 'connector')!;
@@ -118,8 +118,8 @@ test('native mixed selection copy remaps bindings and shared image refs across p
   const imageIds = pasted.flatMap(element => element.type === 'image' ? [element.props.assetId] : []); expect(new Set(imageIds).size).toBe(1); expect(imageIds[0]).not.toBe(imported.props.assetId); expect(copyCalls).toBe(1);
   const stored = await page.request.get(`/api/boards/${targetId}/assets/${imageIds[0]}`); expect([...await stored.body()]).toEqual(pixels.bytes);
   expect((await page.request.get(`/api/boards/${targetId}/assets/${imported.props.assetId}`)).status()).toBe(404);
-  await page.keyboard.press('Meta+z'); expect((await contents(page)).map(element => element.id)).toEqual(['existing']);
-  await page.keyboard.press('Meta+Shift+z'); expect((await contents(page)).filter(element => element.id !== 'existing')).toEqual(pasted);
+  await page.keyboard.press('ControlOrMeta+z'); expect((await contents(page)).map(element => element.id)).toEqual(['existing']);
+  await page.keyboard.press('ControlOrMeta+Shift+z'); expect((await contents(page)).filter(element => element.id !== 'existing')).toEqual(pasted);
   const outsiderContext = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] }), outsider = await outsiderContext.newPage();
   try {
     await signIn(outsider, 'outsider'); await newBoard(outsider, 'Unauthorized clipboard destination');
@@ -168,8 +168,8 @@ test('cut requires successful clipboard writing and restores the whole selection
   });
   await expect(page.getByRole('alert')).toContainText('Clipboard permission denied'); expect(await contents(page)).toEqual(original);
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(0); await clearError(page);
-  await page.keyboard.press('Meta+x'); expect(await contents(page)).toEqual([]);
+  await page.keyboard.press('ControlOrMeta+x'); expect(await contents(page)).toEqual([]);
   expect(JSON.parse(await page.evaluate(() => navigator.clipboard.readText())).elements).toEqual(original);
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
-  await page.keyboard.press('Meta+z'); expect(await contents(page)).toEqual(original);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await contents(page)).toEqual(original);
 });

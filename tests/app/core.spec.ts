@@ -53,7 +53,7 @@ test('shift selection moves both shapes as one gesture and local history restore
   const after = await elements(page);
   for (const old of before) expect(after.find(element => element.id === old.id)).toMatchObject({ x: old.x + 80, y: old.y + 50 });
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(history + 1);
-  await page.keyboard.press('Meta+z'); expect(await elements(page)).toEqual(before);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await elements(page)).toEqual(before);
 });
 
 test('marquee, duplicate, nudge, style and delete are undoable', async ({ page }) => {
@@ -61,11 +61,11 @@ test('marquee, duplicate, nudge, style and delete are undoable', async ({ page }
   await page.getByRole('button', { name: 'Select', exact: true }).click();
   await page.mouse.move(440, 240); await page.mouse.down(); await page.mouse.move(1060, 470, { steps: 10 }); await page.mouse.up();
   expect(await page.evaluate(() => window.whiteboard.session.getState().selectedIds.length)).toBe(2);
-  await page.keyboard.press('Meta+d'); expect(await elements(page)).toHaveLength(4);
+  await page.keyboard.press('ControlOrMeta+d'); expect(await elements(page)).toHaveLength(4);
   const before = await elements(page);
   await page.keyboard.press('Shift+ArrowRight');
   expect(await elements(page)).not.toEqual(before);
-  await page.keyboard.press('Meta+z'); expect(await elements(page)).toEqual(before);
+  await page.keyboard.press('ControlOrMeta+z'); expect(await elements(page)).toEqual(before);
   await page.getByRole('button', { name: 'Fill #dbe9ff', exact: true }).click();
   const selected = await page.evaluate(() => window.whiteboard.session.getState().selectedIds.map(id => window.whiteboard.board.read(id)!.style.fill));
   expect(selected).toEqual(['#dbe9ff', '#dbe9ff']);

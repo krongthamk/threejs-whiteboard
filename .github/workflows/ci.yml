@@ -1,8 +1,12 @@
 name: Check
 on: [push, pull_request]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -14,11 +18,35 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: node scripts/license-audit.mjs
-      - run: pnpm exec playwright install --with-deps chrome
-      - run: pnpm test:browser
-      - run: pnpm test:app
-      - run: pnpm test:routed
       - run: pnpm --filter @whiteboard/app build
+        env:
+          VITE_TEST_HOOKS: '0'
+      - run: node scripts/check-production-hooks.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-results
+          path: test-results/
+  browser:
+    needs: checks
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: install-browser
+        run: pnpm exec playwright install chrome
+      - run: pnpm test:browser
+        if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
+      - run: pnpm test:app
+        if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
+      - run: pnpm test:routed
+        if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
