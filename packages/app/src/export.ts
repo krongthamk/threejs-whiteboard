@@ -1,5 +1,5 @@
 import { contentBounds, documentToSvg, resolveBinding, resolveFontRuns, type BoardDocument, type Box, type Element } from '@whiteboard/model';
-import { createRenderer, type ThreeRenderer } from '@whiteboard/renderer';
+import { createRenderer, ExportContextLostError, type ThreeRenderer } from '@whiteboard/renderer';
 
 export interface ExportOptions { format: 'png' | 'svg' | 'pdf'; selection?: readonly string[]; scale: number; transparent: boolean; title: string; padding?: number }
 export interface ExportSnapshot { elements: Element[]; bounds: Box }
@@ -77,7 +77,7 @@ export class BoardExporter {
   private renderer?: ThreeRenderer;
   private busy = false;
   private destroyed = false;
-  constructor(private board: BoardDocument, private resolveAsset?: (id: string) => string | Promise<string>) {}
+  constructor(private board: BoardDocument, private resolveAsset?: (id: string) => string | Promise<string>, private createProjection: typeof createRenderer = createRenderer) {}
 
   async create(options: ExportOptions): Promise<Blob> {
     if (this.destroyed) throw new Error('This board is closed.');
@@ -96,16 +96,27 @@ export class BoardExporter {
   private async png({ elements, bounds }: ExportSnapshot, options: ExportOptions): Promise<Blob> {
     const w = Math.ceil(bounds.w * options.scale), h = Math.ceil(bounds.h * options.scale);
     if (w > 32767 || h > 32767 || w * h > 100_000_000) throw new Error('This PNG would be too large. Choose a smaller scale, a selection, or SVG.');
-    this.renderer ??= createRenderer({ canvas: document.createElement('canvas'), fontUrl: '/fonts/inter-latin-400-normal.woff', monoFontUrl: '/fonts/ibm-plex-mono-latin-400-normal.woff', fallbackFontUrl: '/fonts/noto-sans-jp-400.woff', resolveAsset: this.resolveAsset, background: '#ffffff', grid: false, pixelRatio: 1 });
+    this.renderer ??= this.createProjection({ canvas: document.createElement('canvas'), fontUrl: '/fonts/inter-latin-400-normal.woff', monoFontUrl: '/fonts/ibm-plex-mono-latin-400-normal.woff', fallbackFontUrl: '/fonts/noto-sans-jp-400.woff', resolveAsset: this.resolveAsset, background: '#ffffff', grid: false, pixelRatio: 1 });
     this.renderer.setElements(elements);
     this.renderer.resize(1, 1);
     this.renderer.setCamera({ x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2, zoom: 1 / Math.max(bounds.w, bounds.h) });
-    return this.renderer.exportPng({ bounds, scale: options.scale, transparent: options.transparent });
+    const renderer = this.renderer;
+    try { return await renderer.exportPng({ bounds, scale: options.scale, transparent: options.transparent }); }
+    catch (error) {
+      // A lost projection cannot serve a later retry. Other failures retain its cache.
+      if (error instanceof ExportContextLostError) { renderer.dispose(); this.renderer = undefined; }
+      throw error;
+    }
   }
 
   private async svg({ elements, bounds }: ExportSnapshot, options: ExportOptions): Promise<string> {
-    const fonts = elements.some(element => element.type === 'text' || element.type === 'sticky')
-      ? await Promise.all(faces.map(async face => ({ family: face.family, dataUrl: await fontUrl(face.stem, 'woff') }))) : [];
+    const textElements = elements.filter(element => element.type === 'text' || element.type === 'sticky');
+    // Derive coverage from the model's canonical line/run layout without outlining
+    // the board's strokes twice. Whitespace and following lines retain font state.
+    const textSvg = documentToSvg(textElements, { bounds, padding: 0, background: null });
+    const textRoot = new DOMParser().parseFromString(textSvg, 'image/svg+xml').documentElement;
+    const usedFonts = collectExportFonts(textRoot, false);
+    const fonts = await Promise.all(faces.filter(face => usedFonts.has(face.family)).map(async face => ({ family: face.family, dataUrl: await fontUrl(face.stem, 'woff') })));
     const assets = new Map<string, string>();
     for (const element of elements) if (element.type === 'image' && !assets.has(element.props.assetId)) {
       if (!this.resolveAsset) throw new Error('The image is unavailable for export.');
@@ -114,7 +125,6 @@ export class BoardExporter {
     }
     const svg = documentToSvg(elements, { bounds, padding: 0, background: options.transparent ? null : '#ffffff', title: options.title, fonts, assetUrl: id => assets.get(id) });
     const root = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
-    collectExportFonts(root, false);
     return new XMLSerializer().serializeToString(root);
   }
 

@@ -20,6 +20,10 @@ interface StrokeChunk { ids: string[]; mesh: THREE.Mesh }
 export interface TextCaret { charIndex: number; x: number; y: number; height: number }
 let configuredFallbackFont: string | undefined;
 
+export class ExportContextLostError extends Error {
+  constructor() { super('The graphics context was lost while preparing this PNG. Try exporting again.'); this.name = 'ExportContextLostError'; }
+}
+
 /** A disposable projection. Every geometry and text handle can be rebuilt from the document. */
 export class ThreeRenderer implements Renderer {
   readonly scene = new THREE.Scene();
@@ -667,7 +671,7 @@ export class ThreeRenderer implements Renderer {
     const width = Math.ceil(bounds.w * scale), height = Math.ceil(bounds.h * scale);
     const output = document.createElement('canvas'); output.width = width; output.height = height;
     const context = output.getContext('2d'); if (!context) throw new Error('Canvas 2D unavailable');
-    const maxSize = this.webgl.capabilities.maxTextureSize;
+    const maxSize = Math.min(4096, this.webgl.capabilities.maxTextureSize);
     const clear = this.webgl.getClearColor(new THREE.Color()), alpha = this.webgl.getClearAlpha();
     const gridVisible = this.layers.grid.visible, selectionVisible = this.layers.selectionUI.visible, presenceVisible = this.layers.presence.visible, liveStrokeVisible = this.liveStroke.mesh.visible;
     const editing = this.editingTextId; this.editingTextId = null;
@@ -675,44 +679,58 @@ export class ThreeRenderer implements Renderer {
     this.liveStroke.mesh.visible = false;
     this.images.setExporting(true);
     this.webgl.setClearColor(clear, transparent ? 0 : 1);
+    let lost: ExportContextLostError | undefined, rejectLost!: (error: Error) => void;
+    const contextLoss = new Promise<never>((_, reject) => { rejectLost = reject; });
+    void contextLoss.catch(() => {});
+    const onContextLost = (event: Event) => { event.preventDefault(); lost ??= new ExportContextLostError(); rejectLost(lost); };
+    const checkContext = () => { if (lost || this.webgl.getContext().isContextLost()) throw lost ?? new ExportContextLostError(); };
+    const awaitExport = async <T,>(work: Promise<T>): Promise<T> => {
+      checkContext(); const result = await Promise.race([work, contextLoss]); checkContext(); return result;
+    };
+    this.webgl.domElement.addEventListener('webglcontextlost', onContextLost);
+    let target: THREE.WebGLRenderTarget | undefined;
     try {
+      checkContext();
+      const targetWidth = Math.min(maxSize, width), targetHeight = Math.min(maxSize, height);
+      target = new THREE.WebGLRenderTarget(targetWidth, targetHeight, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, samples: 4 });
+      target.texture.colorSpace = THREE.LinearSRGBColorSpace;
+      const pixels = new Uint8Array(targetWidth * targetHeight * 4), flipped = new Uint8ClampedArray(pixels.length);
       for (let top = 0; top < height; top += maxSize) for (let left = 0; left < width; left += maxSize) {
         const tileWidth = Math.min(maxSize, width - left), tileHeight = Math.min(maxSize, height - top);
         const tileBounds = { x: bounds.x + left / scale, y: bounds.y + top / scale, w: tileWidth / scale, h: tileHeight / scale };
-        this.updateVisibleTexts(tileBounds, scale); await this.whenReady();
-        // A main-canvas text sync may own glyph generation needed by this export.
-        // Await the current shared work even if this renderer's own sync is done.
-        await whenTextAtlasReady();
+        this.updateVisibleTexts(tileBounds, scale); await awaitExport(this.whenReady());
+        // Another renderer may own shared glyph generation needed by this tile.
+        await awaitExport(whenTextAtlasReady());
         const camera = this.camera.clone(); camera.zoom = 1;
         camera.left = -tileBounds.w / 2; camera.right = tileBounds.w / 2; camera.top = tileBounds.h / 2; camera.bottom = -tileBounds.h / 2;
         camera.position.set(tileBounds.x + tileBounds.w / 2, -tileBounds.y - tileBounds.h / 2, 500); camera.updateProjectionMatrix();
-        const target = new THREE.WebGLRenderTarget(tileWidth, tileHeight, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, samples: 4 });
-        target.texture.colorSpace = THREE.LinearSRGBColorSpace;
-        try {
-          this.webgl.setRenderTarget(target); this.webgl.render(this.scene, camera);
-          const pixels = new Uint8Array(tileWidth * tileHeight * 4); this.webgl.readRenderTargetPixels(target, 0, 0, tileWidth, tileHeight, pixels);
-          // Blending accumulates premultiplied components in a transparent target;
-          // ImageData expects straight alpha, or translucent exports become dark.
-          if (transparent) for (let p = 0; p < pixels.length; p += 4) {
-            const opacity = pixels[p + 3]!;
-            if (opacity > 0 && opacity < 255) for (let c = 0; c < 3; c++) pixels[p + c] = Math.min(255, Math.round(pixels[p + c]! * 255 / opacity));
-          }
-          // Alpha-to-coverage shapes can leave fractional alpha in covered MSAA
-          // samples. The resolved RGB already includes the opaque clear color;
-          // keep those colors and mark the explicitly opaque export as opaque.
-          else for (let p = 3; p < pixels.length; p += 4) pixels[p] = 255;
-          const flipped = new Uint8ClampedArray(pixels.length), stride = tileWidth * 4;
-          for (let row = 0; row < tileHeight; row++) flipped.set(pixels.subarray(row * stride, (row + 1) * stride), (tileHeight - row - 1) * stride);
-          context.putImageData(new ImageData(flipped, tileWidth, tileHeight), left, top);
-        } finally { this.webgl.setRenderTarget(null); target.dispose(); }
+        // Render-target viewport uses physical pixels regardless of display DPR.
+        // Edge tiles keep the same framebuffer storage and only shrink its viewport.
+        target.viewport.set(0, 0, tileWidth, tileHeight);
+        this.webgl.setRenderTarget(target); this.webgl.render(this.scene, camera); checkContext();
+        this.webgl.readRenderTargetPixels(target, 0, 0, tileWidth, tileHeight, pixels); checkContext();
+        const length = tileWidth * tileHeight * 4;
+        // ImageData expects straight alpha, while transparent blending accumulates
+        // premultiplied components. Keep opaque clear colors explicitly opaque.
+        if (transparent) for (let p = 0; p < length; p += 4) {
+          const opacity = pixels[p + 3]!;
+          if (opacity > 0 && opacity < 255) for (let c = 0; c < 3; c++) pixels[p + c] = Math.min(255, Math.round(pixels[p + c]! * 255 / opacity));
+        }
+        else for (let p = 3; p < length; p += 4) pixels[p] = 255;
+        const stride = tileWidth * 4;
+        for (let row = 0; row < tileHeight; row++) flipped.set(pixels.subarray(row * stride, (row + 1) * stride), (tileHeight - row - 1) * stride);
+        context.putImageData(new ImageData(flipped.subarray(0, length), tileWidth, tileHeight), left, top);
       }
-      return await new Promise<Blob>((resolve, reject) => output.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG encoding failed')), 'image/png'));
+      return await awaitExport(new Promise<Blob>((resolve, reject) => output.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG encoding failed')), 'image/png')));
     } finally {
+      this.webgl.domElement.removeEventListener('webglcontextlost', onContextLost);
+      this.webgl.setRenderTarget(null); target?.dispose();
       this.webgl.setClearColor(clear, alpha); this.layers.grid.visible = gridVisible;
       this.layers.selectionUI.visible = selectionVisible; this.layers.presence.visible = presenceVisible;
       this.liveStroke.mesh.visible = liveStrokeVisible;
       this.images.setExporting(false);
-      this.editingTextId = editing; this.viewportDirty = true; this.render();
+      this.editingTextId = editing; this.viewportDirty = true;
+      if (!lost && !this.webgl.getContext().isContextLost()) this.render();
     }
   }
 

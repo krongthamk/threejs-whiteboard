@@ -94,12 +94,12 @@ test('mixed Latin/Japanese board exports PNG, embedded SVG and PDF through the r
       const region = regions.find(region => region.name === (name!.includes('Japanese') ? 'japanese' : 'editable'))!;
       negativeControls.push({ ...regionMismatch(pngPixels, context.getImageData(0, 0, width, height).data, region), name });
     }
-    return { fonts: fonts.length, embedded: svgText.includes('data:font/woff;base64,'), width, height, pngVsSvg: mismatch(pngPixels, svgPixels), pngVsScreen: mismatch(pngPixels, screenPixels), regions: regionChecks, negativeControls, edgeToleranceCssPixels: .5, channelTolerance: 48, inkMaskMaxChannel: 160, inkBoundsToleranceOutputPixels: 1, svgRaster, screenRaster };
+    return { fonts: fonts.length, fontFamilies: fonts.map(([, family]) => family).sort(), embedded: svgText.includes('data:font/woff;base64,'), width, height, pngVsSvg: mismatch(pngPixels, svgPixels), pngVsScreen: mismatch(pngPixels, screenPixels), regions: regionChecks, negativeControls, edgeToleranceCssPixels: .5, channelTolerance: 48, inkMaskMaxChannel: 160, inkBoundsToleranceOutputPixels: 1, svgRaster, screenRaster };
   }, { bounds, regions });
   writeFileSync(`${directory}/svg-raster.png`, Buffer.from(comparison.svgRaster.split(',')[1]!, 'base64'));
   writeFileSync(`${directory}/screen-raster.png`, Buffer.from(comparison.screenRaster.split(',')[1]!, 'base64'));
   writeFileSync(`${directory}/comparison.json`, JSON.stringify({ ...comparison, svgRaster: undefined, screenRaster: undefined, pageErrors: errors }, null, 2));
-  expect(comparison.fonts).toBe(3); expect(comparison.embedded).toBe(true);
+  expect(comparison.fonts).toBe(2); expect(comparison.fontFamilies).toEqual(['Inter', 'Noto Sans JP']); expect(comparison.embedded).toBe(true);
   expect(comparison.pngVsScreen).toBeLessThan(.01); expect(comparison.pngVsSvg).toBeLessThan(.03);
   for (const region of comparison.regions) { expect(region.foreground, region.name).toBeGreaterThan(100); expect(region.edgeTolerantMismatch, region.name).toBeLessThan(.18); expect(region.screen.edgeTolerantMismatch, region.name).toBeLessThan(.18); if (region.type === 'text' || region.type === 'sticky') { expect(region.inkBoundsDifference, region.name).not.toBeNull(); expect(region.inkBoundsDifference!, region.name).toBeLessThanOrEqual(1); expect(region.screen.inkBoundsDifference!, region.name).toBeLessThanOrEqual(1); } }
   for (const control of comparison.negativeControls) expect(control.edgeTolerantMismatch > .18 || control.inkBoundsDifference === null || control.inkBoundsDifference > 1, control.name).toBe(true);
