@@ -6,7 +6,7 @@ Implementation and measured acceptance evidence are tracked against [the build p
 
 ## Run locally
 
-Use Node.js 24 or 26+, pnpm 9.15.9, and Chrome for browser tests. The pinned toolchain also accepts Node 22.12+. Development needs two terminals:
+Use Node.js 26 (the CI runtime), pnpm 9.15.9, and Chrome for browser tests. `.npmrc` enforces the package's allowed Node range (`^22.12.0 || ^24.0.0 || >=26.0.0`) during installation. Current local verification uses Node 26.8.1. Development needs two terminals:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -76,6 +76,8 @@ Export the board or selection as PNG at 1×–4×, a self-contained SVG, or a si
 The document model rejects incomplete Unicode characters before saving text or pasting clipboard content. Coordinates, stroke widths, and derived element dimensions are limited to one billion document units; font size is limited to 1024. A batch that exceeds these limits is rejected before any element changes. Unsupported document schemas remain available for recovery but cannot be edited, undone, or redone.
 
 ## Verification
+
+Run the commands below from the workspace root. Package `typecheck` scripts explicitly delegate to the root project; model and server `test` scripts run only their package tests with the root Vitest configuration. The root suite also includes maintained command and PDF verification tests in `tests/unit/`.
 
 ```sh
 pnpm typecheck

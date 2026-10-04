@@ -1,6 +1,6 @@
 # Implementation review
 
-Baseline: `ee372ddafd4744f67e1e1b0d467ebf2f608c968b`, the initial research commit. No intervening commits existed at review time. The comparison is `git diff ee372dd --` including all new implementation files, made visible with intent-to-add; a tracked-only empty diff was not used. Specification: [BUILD_PLAN.md](BUILD_PLAN.md). Two independent agents reviewed standards and specification in parallel.
+Baseline: `ee372ddafd4744f67e1e1b0d467ebf2f608c968b`, the initial research commit. This historical review was recorded with the initial implementation in commit `fed369b`. Its comparison used `git diff ee372dd --` including all new implementation files, made visible with intent-to-add; a tracked-only empty diff was not used. Later implementation changes are tracked separately in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md). Specification: [BUILD_PLAN.md](BUILD_PLAN.md). Two independent agents reviewed standards and specification in parallel.
 
 ## Standards
 

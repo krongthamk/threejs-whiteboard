@@ -10,7 +10,7 @@
     "spike": "tsx src/run.ts",
     "spike:writer": "tsx src/run-writer-kv.ts",
     "verify": "tsx src/verify.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "pnpm -w typecheck"
   },
   "dependencies": {
     "@hocuspocus/provider": "4.7.0",

@@ -16,8 +16,10 @@ resources are measured independently in a dedicated child process.
 ## Reproduction
 
 ```sh
-pnpm --filter @whiteboard/loadtest spike
+pnpm loadtest
 ```
+
+This command selects the production-server writer-owned-register harness. The historical failed Y.Map harness remains available through `pnpm --filter @whiteboard/loadtest spike`.
 
 The default is 1,800 seconds, 40 clients, 5 document operations per second per
 client, and 20 awareness updates per second per client. A smoke run can override

@@ -8,6 +8,16 @@ its lockfile entries are removed; caller-supplied and historical element IDs
 remain unchanged. The separate `nanoid` 3.3.19 entry remains a PostCSS transitive
 dependency. This change adds no dependency.
 
+Finding 52 update — 2026-10-05: CI pins Node 26, matching the locally verified
+Node 26.8.1 runtime, and `.npmrc` rejects unsupported engines. The actual
+`--trace-deprecation` stack located `require("three")` in Troika 0.52.5's UMD
+entry point. Vitest now selects Troika text/utils published ESM entry points
+and transforms those packages; browser builds already use ESM. The original
+seven-test reproduction passes with the warning present under the old config
+and absent under the new config. A standalone unsupported-engine install
+changes from exit 0 to `ERR_PNPM_UNSUPPORTED_ENGINE`; no dependency versions
+changed. Logs are under ignored `test-results/verification/tooling52/`.
+
 Hocuspocus server, provider, and database extension are pinned to **4.7.0**.
 The [official v4.7.0 release](https://github.com/ueberdosis/hocuspocus/releases/tag/v4.7.0)
 explicitly includes [PR #1152](https://github.com/ueberdosis/hocuspocus/pull/1152),
