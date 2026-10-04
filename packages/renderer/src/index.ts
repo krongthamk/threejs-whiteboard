@@ -522,6 +522,12 @@ export class ThreeRenderer implements Renderer {
   setPresence(presences: readonly RemotePresence[]): void { this.queuedPresence = presences; this.invalidate(); }
   getImageError(id: string): Error | undefined { return this.images.getError(id); }
   getMaxImageDimension(): number { return this.webgl.capabilities.maxTextureSize; }
+  setPixelRatio(ratio: number): void {
+    if (!Number.isFinite(ratio) || ratio <= 0 || ratio === this.webgl.getPixelRatio()) return;
+    this.webgl.setPixelRatio(ratio);
+    this.resize(this.width, this.height);
+  }
+
   resize(width: number, height: number): void {
     this.width = Math.max(1, width); this.height = Math.max(1, height);
     this.webgl.setSize(this.width, this.height, false);
@@ -535,13 +541,13 @@ export class ThreeRenderer implements Renderer {
       w: this.width / this.state.zoom, h: this.height / this.state.zoom };
   }
 
-  private updateVisibleTexts(bounds = this.viewport(), zoom = this.state.zoom): void {
+  private updateVisibleTexts(bounds = this.viewport(), zoom = this.state.zoom, includeTinyText = false): void {
     this.images.updateVisible(bounds, zoom, this.webgl.getPixelRatio());
     const visible = new Set<string>();
     const entries = this.textIndex.search({ minX: bounds.x, minY: bounds.y, maxX: bounds.x + bounds.w, maxY: bounds.y + bounds.h });
     for (const entry of entries) {
       const element = this.elements.get(entry.id)!;
-      if ((element.type !== 'text' && element.type !== 'sticky') || !element.props.text || element.style.fontSize * zoom < 6 || entry.id === this.editingTextId) continue;
+      if ((element.type !== 'text' && element.type !== 'sticky') || !element.props.text || (!includeTinyText && element.style.fontSize * zoom < 6) || entry.id === this.editingTextId) continue;
       visible.add(entry.id);
       const handle = this.textHandles.get(entry.id) ?? this.createText(element);
       if (handle.mesh.parent !== this.layers.text) this.layers.text.add(handle.mesh, handle.placeholder);
@@ -704,7 +710,7 @@ export class ThreeRenderer implements Renderer {
         if (top || left) await awaitExport(new Promise<void>(resolve => setTimeout(resolve, 0)));
         const tileWidth = Math.min(maxSize, width - left), tileHeight = Math.min(maxSize, height - top);
         const tileBounds = { x: bounds.x + left / scale, y: bounds.y + top / scale, w: tileWidth / scale, h: tileHeight / scale };
-        this.updateVisibleTexts(tileBounds, scale); await awaitExport(this.whenReady({ allowImageErrors: true, onAssetError }));
+        this.updateVisibleTexts(tileBounds, scale, true); await awaitExport(this.whenReady({ allowImageErrors: true, onAssetError }));
         // Another renderer may own shared glyph generation needed by this tile.
         await awaitExport(whenTextAtlasReady());
         const camera = this.camera.clone(); camera.zoom = 1;

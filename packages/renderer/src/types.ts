@@ -27,6 +27,7 @@ export interface Renderer {
   setPresence(presences: readonly RemotePresence[]): void;
   getImageError(id: string): Error | undefined;
   getMaxImageDimension(): number;
+  setPixelRatio(ratio: number): void;
   resize(width: number, height: number): void;
   /** Explicit draw by default; false skips a frame with no projection changes. */
   render(force?: boolean): void;

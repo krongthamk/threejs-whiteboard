@@ -3,7 +3,7 @@ import { BoardDocument } from '@whiteboard/model';
 import { EditorRuntime } from './runtime';
 
 const renderer = vi.hoisted(() => ({
-  setElements: vi.fn(), setCamera: vi.fn(), applyDiff: vi.fn(), resize: vi.fn(),
+  setPixelRatio: vi.fn(), setElements: vi.fn(), setCamera: vi.fn(), applyDiff: vi.fn(), resize: vi.fn(),
   render: vi.fn(), dispose: vi.fn(), getMaxImageDimension: vi.fn(() => 4096),
 }));
 vi.mock('@whiteboard/renderer', () => ({ createRenderer: () => renderer }));
@@ -102,3 +102,39 @@ describe('runtime quarantine and recovery', () => {
     read.mockClear(); board.meta.set('title', 'Renamed'); expect(read).not.toHaveBeenCalled();
     board.delete('selected-50'); expect(runtime.session.getState().selectedIds).not.toContain('selected-50');
   });
+
+
+it('refreshes the drawing buffer on a DPR change and removes its rearmed observer on destroy', () => {
+  const queries: { callback?: () => void; addEventListener: ReturnType<typeof vi.fn>; removeEventListener: ReturnType<typeof vi.fn> }[] = [];
+  const matchMedia = vi.fn(() => {
+    const query = { callback: undefined as (() => void) | undefined, addEventListener: vi.fn((_: string, callback: () => void) => { query.callback = callback; }), removeEventListener: vi.fn() };
+    queries.push(query); return query;
+  });
+  vi.stubGlobal('matchMedia', matchMedia);
+  runtime = new EditorRuntime({ canvas, onError: vi.fn(), onChange: vi.fn(), onEditText: vi.fn() });
+  vi.stubGlobal('devicePixelRatio', 3);
+  queries[0]?.callback?.();
+  expect(renderer.setPixelRatio).toHaveBeenLastCalledWith(2);
+  expect(renderer.resize).toHaveBeenLastCalledWith(800, 600);
+  expect(matchMedia).toHaveBeenLastCalledWith('(resolution: 3dppx)');
+  expect(queries[0]?.removeEventListener).toHaveBeenCalledWith('change', queries[0]?.callback);
+  runtime.destroy();
+  expect(queries[1]?.removeEventListener).toHaveBeenCalledWith('change', queries[1]?.callback);
+});
+
+
+it('observes a silent DPR change in the existing RAF and leaves unchanged frames alone', () => {
+  let nextFrame!: FrameRequestCallback;
+  vi.stubGlobal('requestAnimationFrame', vi.fn((callback: FrameRequestCallback) => { nextFrame = callback; return 1; }));
+  const remove = vi.fn(), add = vi.fn();
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ addEventListener: add, removeEventListener: remove })));
+  runtime = new EditorRuntime({ canvas, onError: vi.fn(), onChange: vi.fn(), onEditText: vi.fn() });
+  renderer.resize.mockClear(); renderer.setPixelRatio.mockClear();
+  for (let i = 0; i < 10; i++) nextFrame(i);
+  expect(renderer.resize).not.toHaveBeenCalled(); expect(renderer.setPixelRatio).not.toHaveBeenCalled(); expect(add).toHaveBeenCalledTimes(1);
+  vi.stubGlobal('devicePixelRatio', 1.5); nextFrame(11);
+  expect(renderer.setPixelRatio).toHaveBeenLastCalledWith(1.5); expect(renderer.resize).toHaveBeenCalledOnce();
+  expect(remove).toHaveBeenCalledOnce(); expect(add).toHaveBeenCalledTimes(2);
+  for (let i = 12; i < 20; i++) nextFrame(i);
+  expect(renderer.setPixelRatio).toHaveBeenCalledOnce(); expect(renderer.resize).toHaveBeenCalledOnce(); expect(add).toHaveBeenCalledTimes(2);
+});

@@ -1,4 +1,4 @@
-export interface ImageHeader { mimeType: 'image/png' | 'image/jpeg' | 'image/webp'; width: number; height: number }
+export interface ImageHeader { mimeType: 'image/png' | 'image/jpeg' | 'image/webp'; width: number; height: number; orientation?: number }
 export const MAX_IMAGE_DIMENSION = 16384;
 export const MAX_IMAGE_PIXELS = 100_000_000;
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
@@ -13,7 +13,7 @@ const text = (bytes: Uint8Array, offset: number, length: number) => String.fromC
 function dimensions(mimeType: ImageHeader['mimeType'], width: number, height: number, orientation = 1): ImageHeader {
   if (width <= 0 || height <= 0) invalid();
   // Browser image decoders apply EXIF orientation; swaps preserve area and side limits.
-  return { mimeType, width: orientation >= 5 ? height : width, height: orientation >= 5 ? width : height };
+  return { mimeType, width: orientation >= 5 ? height : width, height: orientation >= 5 ? width : height, ...(orientation !== 1 ? { orientation } : {}) };
 }
 function exifOrientation(bytes: Uint8Array): number {
   if (text(bytes, 0, 6) === 'Exif\0\0') bytes = bytes.subarray(6);

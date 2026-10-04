@@ -44,6 +44,7 @@ export class EditorRuntime {
   private stopped = false;
   private frame = 0;
   private observer: ResizeObserver;
+  private removeDprObserver: () => void = () => {};
   private unsubscribe: () => void;
   private unsubscribeSession: () => void;
   private readonly onChange: () => void;
@@ -114,9 +115,40 @@ export class EditorRuntime {
     this.observer.observe(options.canvas);
     const bounds = options.canvas.getBoundingClientRect();
     this.renderer.resize(Math.max(1, bounds.width), Math.max(1, bounds.height));
+    let observedDpr = devicePixelRatio;
+    const observeDpr = () => {
+      observedDpr = devicePixelRatio;
+      this.removeDprObserver();
+      if (this.stopped || typeof globalThis.matchMedia !== 'function') return;
+      const query = globalThis.matchMedia(`(resolution: ${devicePixelRatio}dppx)`);
+      const changed = () => {
+        if (this.stopped) return;
+        try {
+          const ratio = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? Math.min(devicePixelRatio, 2) : 1;
+          this.renderer.setPixelRatio(ratio);
+          const bounds = options.canvas.getBoundingClientRect();
+          this.renderer.resize(Math.max(1, bounds.width), Math.max(1, bounds.height));
+        } catch (error) { options.onError(error instanceof Error ? error.message : 'The canvas could not resize. Reload the board.'); }
+        observeDpr();
+      };
+      query.addEventListener('change', changed);
+      this.removeDprObserver = () => query.removeEventListener('change', changed);
+    };
+    observeDpr();
     const render = () => {
       if (this.stopped) return;
-      try { this.renderer.render(false); }
+      try {
+        // Chromium metric overrides can change DPR without dispatching a media event.
+        // The existing RAF provides a numeric guard without another timer or idle draw.
+        if (devicePixelRatio !== observedDpr) {
+          const ratio = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? Math.min(devicePixelRatio, 2) : 1;
+          this.renderer.setPixelRatio(ratio);
+          const bounds = options.canvas.getBoundingClientRect();
+          this.renderer.resize(Math.max(1, bounds.width), Math.max(1, bounds.height));
+          observeDpr();
+        }
+        this.renderer.render(false);
+      }
       catch (error) { options.onError(error instanceof Error ? error.message : 'The canvas could not render. Reload the board.'); return; }
       this.frame = requestAnimationFrame(render);
     };
@@ -145,7 +177,7 @@ export class EditorRuntime {
   destroy(): void {
     if (this.stopped) return;
     this.stopped = true;
-    cancelAnimationFrame(this.frame); this.observer.disconnect();
+    cancelAnimationFrame(this.frame); this.observer.disconnect(); this.removeDprObserver();
     this.assets.destroy(); this.textEditor.destroy(); this.controller.destroy(); this.unsubscribe(); this.unsubscribeSession();
     this.exporter.destroy(); this.renderer.dispose(); this.session.dispose(); this.board.destroy();
   }

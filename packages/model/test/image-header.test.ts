@@ -7,8 +7,8 @@ test('reads PNG IHDR dimensions from a bounded subarray without decoding pixels'
   expect(readImageHeader(padded.subarray(9, 9 + image.length))).toEqual({ mimeType: 'image/png', width: 30000, height: 30000 });
   expect(() => assertSafeImageDimensions(30000, 30000)).toThrow();
 });
-test.each([undefined, 1, 6, 8])('reads JPEG SOF and EXIF display orientation %s without allocating decoded pixels', orientation => {
-  expect(readImageHeader(jpegHeader(120, 80, orientation))).toEqual({ mimeType: 'image/jpeg', width: orientation === 6 || orientation === 8 ? 80 : 120, height: orientation === 6 || orientation === 8 ? 120 : 80 });
+test.each([undefined, 1, 2, 3, 4, 5, 6, 7, 8])('reads JPEG SOF and EXIF display orientation %s without allocating decoded pixels', orientation => {
+  expect(readImageHeader(jpegHeader(120, 80, orientation))).toEqual({ mimeType: 'image/jpeg', width: orientation && orientation >= 5 ? 80 : 120, height: orientation && orientation >= 5 ? 120 : 80, ...(orientation && orientation !== 1 ? { orientation } : {}) });
 });
 test.each(['VP8 ', 'VP8L', 'VP8X'] as const)('reads %s WebP canvas dimensions', type => {
   expect(readImageHeader(webpHeader(321, 123, type))).toEqual({ mimeType: 'image/webp', width: 321, height: 123 });

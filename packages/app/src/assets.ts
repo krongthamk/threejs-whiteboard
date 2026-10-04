@@ -1,6 +1,7 @@
 import { generateKeyBetween } from 'fractional-indexing';
 import { BoardDocument, createElement, assertSafeImageDimensions, readImageHeader, type Element as BoardElement, type Point } from '@whiteboard/model';
 import { api } from './api';
+import { normalizeImageOrientation } from './image-orientation';
 import type { SessionStore } from './session';
 import { encodeClipboard, parseClipboard, preparePastedElements, type ClipboardEnvelope } from './clipboard-model';
 
@@ -67,8 +68,9 @@ export class BoardAssets {
     catch { throw new Error(`${file.name || 'This file'} is not a PNG, JPEG, or WebP image with a valid header.`); }
     this.dimensions(header.width, header.height, file.name || 'Image');
     assertSafeImageDimensions(header.width, header.height);
-    // Normalize only the media type; keep the original immutable source bytes.
+    // Keep ordinary immutable source bytes; bake nontrivial EXIF transforms into pixels.
     const blob = file.slice(0, file.size, header.mimeType);
+    if (header.orientation) return { file, blob: await normalizeImageOrientation(blob, header), width: header.width, height: header.height };
     let width: number, height: number;
     try {
       if (typeof createImageBitmap === 'function') {

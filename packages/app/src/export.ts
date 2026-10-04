@@ -1,3 +1,4 @@
+import { normalizeImageOrientation } from './image-orientation';
 import { readImageHeader, MAX_IMAGE_BYTES, contentBounds, documentToSvg, resolveBinding, resolveFontRuns, type BoardDocument, type Box, type Element } from '@whiteboard/model';
 import { createRenderer, ExportContextLostError, waitForSignal, IMAGE_ERROR_COLOR, type ThreeRenderer } from '@whiteboard/renderer';
 
@@ -147,12 +148,15 @@ export class BoardExporter {
         if (!this.resolveAsset) throw new Error('The image is unavailable for export.');
         const sourceSignal = AbortSignal.any([options.signal!, AbortSignal.timeout(15_000)]);
         const url = await waitForSignal(Promise.resolve().then(() => this.resolveAsset!(id)), sourceSignal);
-        const blob = await readBlob(url, sourceSignal);
+        let blob = await readBlob(url, sourceSignal);
         if (blob.size > MAX_IMAGE_BYTES) throw new Error('The image exceeds the 20 MiB limit.');
         const header = readImageHeader(new Uint8Array(await waitForSignal(blob.arrayBuffer(), sourceSignal)));
         // Validate decoding before embedding bytes that could silently disappear in SVG/PDF.
-        const decoded = createImageBitmap(blob, { resizeWidth: 1, resizeHeight: 1 }).then(bitmap => { bitmap.close(); });
-        await waitForSignal(decoded, sourceSignal);
+        if (header.orientation) blob = await normalizeImageOrientation(blob, header, sourceSignal);
+        else {
+          const decoded = createImageBitmap(blob, { resizeWidth: 1, resizeHeight: 1 }).then(bitmap => { bitmap.close(); });
+          await waitForSignal(decoded, sourceSignal);
+        }
         assets.set(id, { data: await blobDataUrl(blob, sourceSignal), width: header.width, height: header.height });
       } catch (error) {
         options.signal?.throwIfAborted(); assets.set(id, null); warn(id);
