@@ -128,3 +128,25 @@ test('blurring an untouched text draft preserves a peer edit and creates no loca
   expect(await page.evaluate(id => window.whiteboard.board.read(id)!.props, id)).toMatchObject({ text: 'Peer version' });
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(0);
 });
+
+test('native sticky drag retains its ready text mesh with zero disposals and no placeholders', async ({ page }, testInfo) => {
+  const before = await page.evaluate(() => ({ uuid: window.whiteboard.renderer.getTextObject('note')!.uuid,
+    disposals: window.whiteboard.renderer.stats().textDisposals, x: window.whiteboard.board.read('note')!.x }));
+  await page.mouse.move(610, 420); await page.mouse.down();
+  for (let step = 1; step <= 12; step++) {
+    await page.mouse.move(610 + step * 6, 420 + step * 3);
+    const state = await page.evaluate(async () => {
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      const renderer = window.whiteboard.renderer, mesh = renderer.getTextObject('note')!;
+      return { uuid: mesh.uuid, visible: mesh.visible, disposals: renderer.stats().textDisposals,
+        otherVisible: renderer.layers.text.children.filter(child => child !== mesh && child.visible).length };
+    });
+    expect(state).toEqual({ uuid: before.uuid, visible: true, disposals: before.disposals, otherVisible: 0 });
+  }
+  await page.mouse.up();
+  const after = await page.evaluate(() => ({ uuid: window.whiteboard.renderer.getTextObject('note')!.uuid,
+    disposals: window.whiteboard.renderer.stats().textDisposals, x: window.whiteboard.board.read('note')!.x }));
+  expect(after.uuid).toBe(before.uuid); expect(after.disposals).toBe(before.disposals);
+  expect(after.x).toBeGreaterThan(before.x + 50);
+  await page.screenshot({ path: testInfo.outputPath('native-drag-text.png') });
+});

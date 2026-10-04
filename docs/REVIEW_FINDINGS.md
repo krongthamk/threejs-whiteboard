@@ -106,7 +106,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 
 ## Tier 2. Should fix soon
 
-### [ ] 7. Adding or removing any element rebuilds the entire projection (high, measured)
+### [x] 7. Adding or removing any element rebuilds the entire projection (high, measured)
 
 **Where:** `packages/renderer/src/index.ts:121` (`orderingChanged` true when `!previous || !value`), `:134` (depth is `rank / n * 100`), `:139`, `:167`, `:199`, `:205-209` (connectors always rebuilt); `packages/renderer/src/strokes.ts:21` (depth baked per vertex).
 
@@ -157,7 +157,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 4. Renderer: before decoding, compare header dimensions with the element's `naturalW/H` and skip with a placeholder on mismatch or over-limit.
 5. Tests: server rejects a crafted 30k by 30k IHDR; model unit tests for the three parsers.
 
-### [ ] 11. Dragging a text or sticky destroys and re-typesets its mesh every frame (medium)
+### [x] 11. Dragging a text or sticky destroys and re-typesets its mesh every frame (medium)
 
 **Where:** `packages/renderer/src/index.ts:123` (`flush` disposes text for every queued id), `:319` (`createText` on next visible pass), `:344-354` (placeholder until async `sync` completes).
 

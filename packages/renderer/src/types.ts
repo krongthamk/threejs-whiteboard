@@ -11,8 +11,8 @@ export type RendererStyle = ElementStyle;
 export type RenderElement = Element;
 export interface RendererStats {
   calls: number; triangles: number; geometries: number; textures: number;
-  elements: number; shapeInstances: number; strokeChunks: number; strokeChunkRebuilds: number;
-  textInstances: number; visibleTexts: number; pendingTexts: number; textErrors: number;
+  elements: number; shapeInstances: number; strokeChunks: number; strokeChunkRebuilds: number; connectorRebuilds: number;
+  textInstances: number; visibleTexts: number; pendingTexts: number; textErrors: number; textDisposals: number;
   presencePeers: number; presenceLabels: number; pendingPresenceLabels: number; presenceErrors: number;
   imageInstances: number; visibleImages: number; pendingImages: number; imageErrors: number;
 }

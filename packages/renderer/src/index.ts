@@ -30,13 +30,27 @@ export class ThreeRenderer implements Renderer {
   })) as Record<'grid' | 'shapes' | 'strokes' | 'text' | 'connectors' | 'selectionUI' | 'presence', THREE.Group>;
   private elements = new Map<string, RenderElement>();
   private depths = new Map<string, number>();
+  private textDepths = new Map<string, number>();
   private shapeBatches = new Map<string, THREE.InstancedMesh>();
   private shapeSlots = new Map<string, number>();
+  private shapeMembers = new Map<string, Set<string>>();
+  private connectorHandles = new Map<string, THREE.Mesh[]>();
+  private connectorDependencies = new Map<string, Set<string>>();
+  private connectorRebuilds = 0;
+  private opaqueConnectorArrows?: THREE.InstancedMesh;
+  private connectorArrowSlots = new Map<string, number>();
+  private freeConnectorArrowSlots: number[] = [];
+  private connectorArrowTransform = new THREE.Object3D();
   private translucentShapes = new Map<string, THREE.InstancedMesh>();
   private translucentStrokes = new Map<string, THREE.Mesh>();
   private strokeChunks: StrokeChunk[] = [];
+  private strokeMembership = new Map<string, StrokeChunk>();
+  private highestElement?: RenderElement;
+  private connectorElements = new Map<string, RenderElement>();
   private textIndex = new RBush<TextIndexEntry>();
   private textHandles = new Map<string, TextHandle>();
+  private replacementTexts = new Map<string, TextHandle>();
+  private textDisposals = 0;
   private visibleTextIds = new Set<string>();
   private pendingTexts = new Set<Promise<void>>();
   private queued = new Map<string, RenderElement | null>();
@@ -104,7 +118,7 @@ export class ThreeRenderer implements Renderer {
     this.clearProjection();
     this.elements = new Map(elements.map(element => [element.id, element]));
     this.queued.clear();
-    this.rebuild(new Set(elements.map(element => element.id)), true);
+    this.rebuild(new Set(elements.map(element => element.id)));
   }
 
   applyDiff(upserts: readonly RenderElement[], removals: readonly string[] = []): void {
@@ -114,29 +128,105 @@ export class ThreeRenderer implements Renderer {
 
   private flush(): void {
     if (!this.queued.size) return;
+    const incrementalStrokes = this.canUpdateStrokeProjection();
     const changed = new Set(this.queued.keys());
-    let orderingChanged = false;
     for (const [id, value] of this.queued) {
       const previous = this.elements.get(id);
-      if (!previous || !value || previous.index !== value.index || previous.type !== value.type || (previous.style.opacity < 1) !== (value.style.opacity < 1)) orderingChanged = true;
+      if (!previous && value === null) { changed.delete(id); continue; }
+      if (previous && value && previous.index !== value.index) this.depths.delete(id);
       if (value) this.elements.set(id, value); else this.elements.delete(id);
-      this.disposeText(id);
+      if (!value || (value.type !== 'text' && value.type !== 'sticky')) this.disposeText(id);
+      else {
+        const current = this.textHandles.get(id);
+        if (current && previous && (this.textLayoutChanged(previous, value) || current.error)) {
+          this.disposeReplacement(id);
+          if (current.ready) {
+            this.clearTextError(current);
+            this.createText(value, current);
+          } else this.disposeText(id);
+        }
+        this.updateTextTransform(id, value);
+      }
     }
     this.queued.clear();
-    this.rebuild(changed, orderingChanged);
+    if (!changed.size) return;
+    if (incrementalStrokes) this.updateStrokeProjection(changed);
+    else this.rebuild(changed);
   }
 
-  private rebuild(changed: Set<string>, orderingChanged: boolean): void {
-    const ordered = [...this.elements.values()].sort(compareElements);
-    if (orderingChanged) {
-      this.depths.clear();
-      this.shapeSlots.clear();
-      ordered.forEach((element, index) => this.depths.set(element.id, index / Math.max(1, ordered.length) * 100));
+  /** The common pen/eraser path touches only dirty chunk members. New strokes
+   * must follow the document maximum; inserts, reorders and rank exhaustion use
+   * the general ordered path, as do changes to any other primitive type. */
+  private canUpdateStrokeProjection(): boolean {
+    const highest = this.highestElement;
+    if (!highest || this.queued.has(highest.id)) return false;
+    let additions = 0;
+    for (const [id, value] of this.queued) {
+      const previous = this.elements.get(id);
+      if (previous?.type === 'connector' && value?.type === 'connector' && previous.index === value.index) continue;
+      if (previous && (previous.type !== 'stroke' || previous.style.opacity !== 1)) return false;
+      if (value) {
+        if (value.type !== 'stroke' || value.style.opacity !== 1 || (previous && previous.index !== value.index)) return false;
+        if (!previous) {
+          if (compareElements(value, highest) <= 0) return false;
+          additions++;
+        }
+      }
     }
+    return (this.depths.get(highest.id) ?? 100) + additions * .02 < 99.99;
+  }
+
+  private updateStrokeProjection(changed: Set<string>): void {
+    const dirtyChunks = new Set<StrokeChunk>(), additions: RenderElement[] = [];
+    for (const id of changed) {
+      const chunk = this.strokeMembership.get(id), element = this.elements.get(id);
+      if (chunk) dirtyChunks.add(chunk);
+      if (!element) { this.depths.delete(id); this.textDepths.delete(id); }
+      else if (element.type === 'connector') this.connectorElements.set(id, element);
+      else if (!chunk) additions.push(element);
+    }
+    // Sorted additions retain compareElements' equal-index ID tie break.
+    additions.sort(compareElements);
+    for (const element of additions) {
+      const depth = this.depths.get(this.highestElement!.id)! + .02;
+      this.depths.set(element.id, depth); this.textDepths.set(element.id, depth + .001);
+      this.highestElement = element;
+    }
+    for (const previous of dirtyChunks) {
+      const slot = this.strokeChunks.indexOf(previous);
+      const members = previous.ids.flatMap(id => {
+        this.strokeMembership.delete(id);
+        const element = this.elements.get(id); return element ? [element] : [];
+      });
+      disposeMesh(previous.mesh);
+      if (members.length) this.strokeChunks[slot] = this.buildStrokeChunk(members);
+      else this.strokeChunks.splice(slot, 1);
+    }
+    const tail = this.strokeChunks.at(-1);
+    if (additions.length && tail && tail.ids.length < STROKES_PER_CHUNK) {
+      const extra = additions.splice(0, STROKES_PER_CHUNK - tail.ids.length);
+      disposeMesh(tail.mesh);
+      this.strokeChunks[this.strokeChunks.length - 1] = this.buildStrokeChunk([...tail.ids.map(id => this.elements.get(id)!), ...extra]);
+    }
+    for (let offset = 0; offset < additions.length; offset += STROKES_PER_CHUNK) this.strokeChunks.push(this.buildStrokeChunk(additions.slice(offset, offset + STROKES_PER_CHUNK)));
+    this.rebuildConnectors([...this.connectorElements.values()], changed);
+    this.presence.updateDocument(this.elements);
+  }
+
+  private rebuild(changed: Set<string>): void {
+    const ordered = [...this.elements.values()].sort(compareElements);
+    const depthChanged = this.updateDepths(ordered);
+    for (const id of depthChanged) changed.add(id);
+    this.textDepths.clear();
+    ordered.forEach((element, i) => {
+      const depth = this.depths.get(element.id)!;
+      const next = i + 1 < ordered.length ? this.depths.get(ordered[i + 1]!.id)! : 100;
+      this.textDepths.set(element.id, depth + Math.min(.001, (next - depth) / 4));
+    });
     for (const type of ['rect', 'ellipse', 'sticky']) {
       const shapes = ordered.filter(element => element.type === type && element.style.opacity === 1);
       const old = this.shapeBatches.get(type);
-      if (!orderingChanged && old && shapes.length === old.count) {
+      if (old && shapes.length === old.count && shapes.every(shape => this.shapeMembers.get(type)?.has(shape.id))) {
         let updated = false;
         for (const shape of shapes) if (changed.has(shape.id)) {
           const slot = this.shapeSlots.get(shape.id);
@@ -148,80 +238,211 @@ export class ThreeRenderer implements Renderer {
       // Batches own only GPU data, never document state.
       if (old) disposeMesh(old);
       this.shapeBatches.delete(type);
+      this.shapeMembers.delete(type);
       if (shapes.length) {
         const mesh = createShapeBatch(shapes, this.depths);
         shapes.forEach((shape, index) => this.shapeSlots.set(shape.id, index));
+        this.shapeMembers.set(type, new Set(shapes.map(shape => shape.id)));
         this.shapeBatches.set(type, mesh); this.layers.shapes.add(mesh);
       }
     }
     const translucentShapes = ordered.filter(element => ['rect', 'ellipse', 'sticky'].includes(element.type) && element.style.opacity < 1);
-    this.updateTranslucent(translucentShapes, this.translucentShapes, this.layers.shapes, changed, orderingChanged, createShapeBatch);
+    this.updateTranslucent(translucentShapes, this.translucentShapes, this.layers.shapes, changed, createShapeBatch);
     const translucentStrokes = ordered.filter(element => element.type === 'stroke' && element.style.opacity < 1);
-    this.updateTranslucent(translucentStrokes, this.translucentStrokes, this.layers.strokes, changed, orderingChanged, createStrokeChunk);
+    this.updateTranslucent(translucentStrokes, this.translucentStrokes, this.layers.strokes, changed, createStrokeChunk);
     const strokes = ordered.filter(element => element.type === 'stroke' && element.style.opacity === 1);
+    const unassigned = new Map(strokes.map(element => [element.id, element]));
     const nextChunks: StrokeChunk[] = [];
-    for (let offset = 0; offset < strokes.length; offset += STROKES_PER_CHUNK) {
-      const chunkElements = strokes.slice(offset, offset + STROKES_PER_CHUNK);
-      const ids = chunkElements.map(element => element.id);
-      const previous = this.strokeChunks[offset / STROKES_PER_CHUNK];
-      const reusable = !orderingChanged && previous && previous.ids.length === ids.length && ids.every((id, i) => id === previous.ids[i] && !changed.has(id));
-      if (reusable) nextChunks.push(previous);
+    // Chunk membership is stable: deleting an early stroke never shifts later chunks.
+    for (const previous of this.strokeChunks) {
+      const members = previous.ids.flatMap(id => {
+        const element = unassigned.get(id); unassigned.delete(id); return element ? [element] : [];
+      });
+      if (members.length === previous.ids.length && members.every(element => !changed.has(element.id))) nextChunks.push(previous);
       else {
-        if (previous) disposeMesh(previous.mesh);
-        const mesh = createStrokeChunk(chunkElements, this.depths);
-        this.layers.strokes.add(mesh); nextChunks.push({ ids, mesh }); this.chunkRebuilds++;
+        disposeMesh(previous.mesh);
+        if (members.length) nextChunks.push(this.buildStrokeChunk(members));
       }
     }
-    for (let i = nextChunks.length; i < this.strokeChunks.length; i++) disposeMesh(this.strokeChunks[i]!.mesh);
+    const additions = [...unassigned.values()];
+    // Fill one tail chunk using cached tessellations, leaving every full chunk intact.
+    const tail = nextChunks.at(-1);
+    if (additions.length && tail && tail.ids.length < STROKES_PER_CHUNK) {
+      const extra = additions.splice(0, STROKES_PER_CHUNK - tail.ids.length);
+      disposeMesh(tail.mesh);
+      nextChunks[nextChunks.length - 1] = this.buildStrokeChunk([...tail.ids.map(id => this.elements.get(id)!), ...extra]);
+    }
+    for (let offset = 0; offset < additions.length; offset += STROKES_PER_CHUNK) nextChunks.push(this.buildStrokeChunk(additions.slice(offset, offset + STROKES_PER_CHUNK)));
     this.strokeChunks = nextChunks;
+    this.strokeMembership.clear();
+    for (const chunk of this.strokeChunks) for (const id of chunk.ids) this.strokeMembership.set(id, chunk);
+    this.highestElement = ordered.at(-1);
     this.textIndex.clear();
     this.textIndex.load(ordered.filter(element => element.type === 'text' || element.type === 'sticky').map(element => {
       const box = getElementBounds(element);
       return { id: element.id, minX: box.x, minY: box.y, maxX: box.x + box.w, maxY: box.y + box.h };
     }));
-    for (const [id, handle] of this.textHandles) {
-      if (!this.elements.has(id)) this.disposeText(id);
-      else {
-        handle.mesh.position.z = (this.depths.get(id) ?? 0) + 0.001;
-        handle.mesh.renderOrder = 1000 + handle.mesh.position.z;
-      }
+    for (const id of this.textHandles.keys()) {
+      const element = this.elements.get(id);
+      if (!element || (element.type !== 'text' && element.type !== 'sticky')) this.disposeText(id);
+      else this.updateTextTransform(id, element);
     }
-    this.rebuildConnectors(ordered.filter(element => element.type === 'connector'));
+    this.connectorElements = new Map(ordered.filter(element => element.type === 'connector').map(element => [element.id, element]));
+    this.rebuildConnectors([...this.connectorElements.values()], changed);
     this.images.set(ordered.filter((element): element is ElementOf<'image'> => element.type === 'image'), this.depths);
     this.presence.updateDocument(this.elements);
     this.viewportDirty = true;
   }
 
-  private updateTranslucent<T extends THREE.Mesh>(elements: RenderElement[], handles: Map<string, T>, group: THREE.Group, changed: Set<string>, orderingChanged: boolean,
+  private updateTranslucent<T extends THREE.Mesh>(elements: RenderElement[], handles: Map<string, T>, group: THREE.Group, changed: Set<string>,
     create: (elements: readonly RenderElement[], depths: Map<string, number>) => T): void {
     const ids = new Set(elements.map(element => element.id));
     for (const [id, mesh] of handles) if (!ids.has(id)) { disposeMesh(mesh); handles.delete(id); }
-    for (const element of elements) if (!handles.has(element.id) || changed.has(element.id) || orderingChanged) {
+    for (const element of elements) if (!handles.has(element.id) || changed.has(element.id)) {
       const old = handles.get(element.id); if (old) disposeMesh(old);
       const mesh = create([element], this.depths); handles.set(element.id, mesh); group.add(mesh);
     }
   }
 
-  private rebuildConnectors(elements: RenderElement[]): void {
-    for (const child of [...this.layers.connectors.children]) disposeMesh(child as THREE.Mesh);
-    this.buildConnectorMeshes(elements.filter(element => element.style.opacity === 1), false);
-    for (const element of elements) if (element.style.opacity < 1) this.buildConnectorMeshes([element], true);
+  private buildStrokeChunk(elements: RenderElement[]): StrokeChunk {
+    const mesh = createStrokeChunk(elements, this.depths);
+    this.layers.strokes.add(mesh); this.chunkRebuilds++;
+    const chunk = { ids: elements.map(element => element.id), mesh };
+    for (const id of chunk.ids) this.strokeMembership.set(id, chunk);
+    return chunk;
   }
 
-  private buildConnectorMeshes(elements: RenderElement[], translucent: boolean): void {
-    if (!elements.length) return;
-    const positions: number[] = [], colors: number[] = [];
-    const arrowGeometry = new THREE.BufferGeometry();
-    arrowGeometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, -1, -.45, 0, -1, .45, 0], 3));
-    const arrowColors = new Float32Array(elements.length * 4);
-    arrowGeometry.setAttribute('tint', new THREE.InstancedBufferAttribute(arrowColors, 4));
-    const arrowMaterial = new THREE.ShaderMaterial({
+  /** Sparse ranks survive count changes. Reserve .001 for text above its own fill,
+   * plus depth-buffer/Float32 headroom on both sides before renormalizing. */
+  private updateDepths(ordered: RenderElement[]): Set<string> {
+    const changed = new Set<string>();
+    const ids = new Set(ordered.map(element => element.id));
+    for (const id of this.depths.keys()) if (!ids.has(id)) this.depths.delete(id);
+    let previous = -100;
+    // Keep existing ranks that still obey compareElements, including its id tie-break.
+    for (const element of ordered) {
+      const depth = this.depths.get(element.id);
+      if (depth !== undefined && depth > previous) previous = depth;
+      else this.depths.delete(element.id);
+    }
+    let exhausted = false;
+    for (let i = 0; i < ordered.length;) {
+      const element = ordered[i]!;
+      if (this.depths.has(element.id)) { i++; continue; }
+      const start = i;
+      while (i < ordered.length && !this.depths.has(ordered[i]!.id)) i++;
+      const left = start ? this.depths.get(ordered[start - 1]!.id)! : -100;
+      const right = i < ordered.length ? this.depths.get(ordered[i]!.id)! : 100;
+      const step = Math.min(.02, (right - left) / (i - start + 1));
+      if (step < .004) { exhausted = true; break; }
+      for (let j = start; j < i; j++) {
+        this.depths.set(ordered[j]!.id, left + step * (j - start + 1)); changed.add(ordered[j]!.id);
+      }
+    }
+    if (exhausted) ordered.forEach((element, index) => {
+      const depth = -90 + index / Math.max(1, ordered.length) * 180;
+      if (this.depths.get(element.id) !== depth) changed.add(element.id);
+      this.depths.set(element.id, depth);
+    });
+    return changed;
+  }
+
+  private rebuildConnectors(elements: RenderElement[], changed: Set<string>): void {
+    const dirty = new Set(changed);
+    for (const id of changed) for (const dependent of this.connectorDependencies.get(id) ?? []) dirty.add(dependent);
+    const ids = new Set(elements.map(element => element.id));
+    const opaqueIds = new Set(elements.filter(element => element.style.opacity === 1).map(element => element.id));
+    for (const [id, slot] of this.connectorArrowSlots) if (!opaqueIds.has(id)) {
+      const arrows = this.opaqueConnectorArrows!;
+      this.connectorArrowTransform.scale.set(0, 0, 0); this.connectorArrowTransform.updateMatrix();
+      arrows.setMatrixAt(slot, this.connectorArrowTransform.matrix);
+      arrows.instanceMatrix.addUpdateRange(slot * 16, 16); arrows.instanceMatrix.needsUpdate = true;
+      const tint = arrows.geometry.getAttribute('tint') as THREE.InstancedBufferAttribute;
+      tint.setXYZW(slot, 0, 0, 0, 0); tint.addUpdateRange(slot * 4, 4); tint.needsUpdate = true;
+      this.connectorArrowSlots.delete(id); this.freeConnectorArrowSlots.push(slot);
+    }
+    if (opaqueIds.size) this.reserveConnectorArrows(opaqueIds.size);
+    else if (this.opaqueConnectorArrows) {
+      disposeMesh(this.opaqueConnectorArrows); this.opaqueConnectorArrows = undefined;
+      this.connectorArrowSlots.clear(); this.freeConnectorArrowSlots = [];
+    }
+    for (const [id, meshes] of this.connectorHandles) if (!ids.has(id)) {
+      meshes.forEach(disposeMesh); this.connectorHandles.delete(id);
+    }
+    this.connectorDependencies.clear();
+    for (const element of elements) {
+      if (element.type !== 'connector') continue;
+      for (const binding of [element.props.start, element.props.end]) if ('elementId' in binding) {
+        const dependents = this.connectorDependencies.get(binding.elementId) ?? new Set<string>();
+        dependents.add(element.id); this.connectorDependencies.set(binding.elementId, dependents);
+      }
+      if (!this.connectorHandles.has(element.id) || dirty.has(element.id)) {
+        this.connectorHandles.get(element.id)?.forEach(disposeMesh);
+        this.connectorHandles.set(element.id, this.buildConnectorMeshes([element], element.style.opacity < 1));
+        if (element.style.opacity === 1) {
+          const arrows = this.opaqueConnectorArrows!;
+          let slot = this.connectorArrowSlots.get(element.id);
+          if (slot === undefined) {
+            slot = this.freeConnectorArrowSlots.pop() ?? arrows.count;
+            this.connectorArrowSlots.set(element.id, slot); arrows.count = Math.max(arrows.count, slot + 1);
+          }
+          this.updateConnectorArrow(arrows, slot, element);
+        }
+        this.connectorRebuilds++;
+      }
+    }
+  }
+
+  private createConnectorArrows(capacity: number, translucent: boolean): THREE.InstancedMesh {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, -1, -.45, 0, -1, .45, 0], 3));
+    geometry.setAttribute('tint', new THREE.InstancedBufferAttribute(new Float32Array(capacity * 4), 4).setUsage(THREE.DynamicDrawUsage));
+    const material = new THREE.ShaderMaterial({
       vertexShader: 'attribute vec4 tint; varying vec4 color; void main(){color=tint;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}',
       fragmentShader: 'varying vec4 color; void main(){gl_FragColor=color;\n#include <colorspace_fragment>\n}',
       transparent: translucent, side: THREE.DoubleSide, depthFunc: THREE.LessDepth,
     });
-    const arrows = new THREE.InstancedMesh(arrowGeometry, arrowMaterial, elements.length);
-    const arrowTransform = new THREE.Object3D(); let arrowIndex = 0;
+    const arrows = new THREE.InstancedMesh(geometry, material, capacity);
+    arrows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    return arrows;
+  }
+
+  private reserveConnectorArrows(required: number): void {
+    const previous = this.opaqueConnectorArrows;
+    if (previous && previous.instanceMatrix.count >= required) return;
+    const capacity = Math.max(16, 2 ** Math.ceil(Math.log2(required)));
+    const arrows = this.createConnectorArrows(capacity, false);
+    arrows.name = 'opaqueConnectorArrowheads'; arrows.renderOrder = 4; arrows.count = previous?.count ?? 0;
+    // One inexpensive shared triangle draw avoids an O(N) bounding-sphere scan
+    // when an individual endpoint changes. Document hit testing uses the model.
+    arrows.frustumCulled = false;
+    if (previous) {
+      (arrows.instanceMatrix.array as Float32Array).set(previous.instanceMatrix.array);
+      (arrows.geometry.getAttribute('tint').array as Float32Array).set(previous.geometry.getAttribute('tint').array);
+      disposeMesh(previous);
+    }
+    this.opaqueConnectorArrows = arrows; this.layers.connectors.add(arrows);
+  }
+
+  private updateConnectorArrow(arrows: THREE.InstancedMesh, slot: number, element: RenderElement): void {
+    const points = arrowheadPoints(element, this.elements), transform = this.connectorArrowTransform;
+    if (points.length === 3) {
+      const tip = points[0]!, base = { x: (points[1]!.x + points[2]!.x) / 2, y: (points[1]!.y + points[2]!.y) / 2 };
+      const size = Math.hypot(tip.x - base.x, tip.y - base.y);
+      transform.position.set(tip.x, -tip.y, this.depths.get(element.id) ?? 0);
+      transform.rotation.z = -Math.atan2(tip.y - base.y, tip.x - base.x); transform.scale.set(size, size, 1);
+    } else { transform.position.set(0, 0, 0); transform.rotation.z = 0; transform.scale.set(0, 0, 0); }
+    transform.updateMatrix(); arrows.setMatrixAt(slot, transform.matrix);
+    arrows.instanceMatrix.addUpdateRange(slot * 16, 16); arrows.instanceMatrix.needsUpdate = true;
+    const tint = arrows.geometry.getAttribute('tint') as THREE.InstancedBufferAttribute;
+    tint.setXYZW(slot, ...rgba(element.style.stroke, element.style.opacity));
+    tint.addUpdateRange(slot * 4, 4); tint.needsUpdate = true;
+  }
+
+  private buildConnectorMeshes(elements: RenderElement[], translucent: boolean): THREE.Mesh[] {
+    const positions: number[] = [], colors: number[] = [];
+    const arrows = translucent ? this.createConnectorArrows(elements.length, true) : undefined;
+    let arrowIndex = 0;
     const addTriangle = (a: Point, b: Point, c: Point, element: RenderElement) => {
       const tint = rgba(element.style.stroke, element.style.opacity), z = this.depths.get(element.id) ?? 0;
       for (const p of [a, b, c]) { positions.push(p.x, -p.y, z); colors.push(...tint); }
@@ -250,15 +471,7 @@ export class ThreeRenderer implements Renderer {
           addTriangle(point, { x: point.x + a.x, y: point.y + a.y }, { x: point.x + b.x, y: point.y + b.y }, element);
         }
       }
-      const arrow = arrowheadPoints(element, this.elements);
-      if (arrow.length === 3) {
-        const tip = arrow[0]!, base = { x: (arrow[1]!.x + arrow[2]!.x) / 2, y: (arrow[1]!.y + arrow[2]!.y) / 2 };
-        const size = Math.hypot(tip.x - base.x, tip.y - base.y);
-        arrowTransform.position.set(tip.x, -tip.y, this.depths.get(element.id) ?? 0);
-        arrowTransform.rotation.z = -Math.atan2(tip.y - base.y, tip.x - base.x);
-        arrowTransform.scale.set(size, size, 1); arrowTransform.updateMatrix();
-        arrows.setMatrixAt(arrowIndex, arrowTransform.matrix); arrowColors.set(rgba(element.style.stroke, element.style.opacity), arrowIndex * 4); arrowIndex++;
-      }
+      if (arrows) this.updateConnectorArrow(arrows, arrowIndex++, element);
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -270,7 +483,11 @@ export class ThreeRenderer implements Renderer {
     });
     const renderOrder = translucent ? 1000 + (this.depths.get(elements[0]!.id) ?? 0) : 4;
     const mesh = new THREE.Mesh(geometry, material); mesh.renderOrder = renderOrder; this.layers.connectors.add(mesh);
-    arrows.count = arrowIndex; arrows.renderOrder = renderOrder; arrows.computeBoundingSphere(); this.layers.connectors.add(arrows);
+    if (arrows) {
+      arrows.count = arrowIndex; arrows.renderOrder = renderOrder; arrows.computeBoundingSphere(); this.layers.connectors.add(arrows);
+      return [mesh, arrows];
+    }
+    return [mesh];
   }
 
   setCamera(state: CameraState): void {
@@ -327,35 +544,67 @@ export class ThreeRenderer implements Renderer {
     this.viewportDirty = false;
   }
 
-  private createText(element: RenderElement & { type: 'text' | 'sticky' }): TextHandle {
+  private textLayoutChanged(previous: RenderElement, next: RenderElement & { type: 'text' | 'sticky' }): boolean {
+    if (previous.type !== next.type || (previous.type !== 'text' && previous.type !== 'sticky')) return true;
+    return previous.w !== next.w || previous.props.text !== next.props.text || previous.props.align !== next.props.align
+      || previous.props.autoSize !== next.props.autoSize || previous.style.fontSize !== next.style.fontSize
+      || previous.style.fontFamily !== next.style.fontFamily;
+  }
+
+  private updateTextTransform(id: string, element: RenderElement & { type: 'text' | 'sticky' }): void {
+    const inset = element.type === 'sticky' ? STICKY_TEXT_INSET : 0;
+    const alignOffset = element.props.align === 'left' ? inset : element.props.align === 'right' ? element.w - inset : element.w / 2;
+    const p = rotatePoint({ x: element.x + alignOffset, y: element.y + inset + element.style.fontSize }, { x: element.x + element.w / 2, y: element.y + element.h / 2 }, element.rotation);
+    for (const handle of [this.textHandles.get(id), this.replacementTexts.get(id)]) if (handle) {
+      handle.mesh.position.set(p.x, -p.y, this.textDepths.get(id) ?? .001);
+      handle.mesh.rotation.z = -element.rotation;
+      handle.mesh.renderOrder = 1000 + handle.mesh.position.z;
+      handle.mesh.fillOpacity = element.style.opacity; handle.mesh.color = cssColor(element.style.color);
+      handle.placeholder.position.set(element.x + element.w / 2, -element.y - element.h / 2, handle.mesh.position.z);
+      handle.placeholder.scale.set(Math.max(1, element.w), Math.max(1, element.h), 1);
+      handle.placeholder.rotation.z = -element.rotation; handle.placeholder.renderOrder = handle.mesh.renderOrder;
+    }
+  }
+
+  private createText(element: RenderElement & { type: 'text' | 'sticky' }, previous?: TextHandle): TextHandle {
     const mesh = new Text();
     const layout = textLayout(element);
     mesh.text = layout.text; mesh.font = element.style.fontFamily.toLowerCase().includes('mono') ? this.options.monoFontUrl ?? this.options.fontUrl : this.options.fontUrl;
     mesh.fontSize = element.style.fontSize; mesh.color = cssColor(element.style.color);
     mesh.fillOpacity = element.style.opacity; mesh.textAlign = element.props.align;
-    const inset = element.type === 'sticky' ? STICKY_TEXT_INSET : 0;
     mesh.maxWidth = Infinity;
     mesh.lineHeight = 1.25; mesh.overflowWrap = 'break-word';
     mesh.anchorX = element.props.align; mesh.anchorY = 'top-baseline';
-    const alignOffset = element.props.align === 'left' ? inset : element.props.align === 'right' ? element.w - inset : element.w / 2;
-    const p = rotatePoint({ x: element.x + alignOffset, y: element.y + inset + element.style.fontSize }, { x: element.x + element.w / 2, y: element.y + element.h / 2 }, element.rotation);
-    mesh.position.set(p.x, -p.y, (this.depths.get(element.id) ?? 0) + .001);
-    mesh.rotation.z = -element.rotation;
-    mesh.renderOrder = 1000 + mesh.position.z; mesh.visible = false; mesh.material.depthWrite = false;
+    mesh.visible = false; mesh.material.depthWrite = false;
     const placeholder = new THREE.Mesh(this.placeholderGeometry, this.placeholderMaterial);
-    placeholder.position.set(element.x + element.w / 2, -element.y - element.h / 2, mesh.position.z);
-    placeholder.scale.set(Math.max(1, element.w), Math.max(1, element.h), 1); placeholder.rotation.z = -element.rotation;
-    placeholder.renderOrder = mesh.renderOrder;
     const handle: TextHandle = { mesh, ready: false, placeholder, cancel: () => {}, layout };
-    this.textHandles.set(element.id, handle);
+    if (previous) this.replacementTexts.set(element.id, handle);
+    else this.textHandles.set(element.id, handle);
+    this.updateTextTransform(element.id, element);
     const ready = new Promise<void>((resolve, reject) => {
       const cancel = syncTextAtlas(mesh, this.options.fontLoadTimeoutMs ?? 15000, () => {
-        if (!this.disposed && this.textHandles.get(element.id) === handle) {
-          handle.ready = true; mesh.visible = this.visibleTextIds.has(element.id); placeholder.visible = false;
+        const current = this.textHandles.get(element.id);
+        const replacement = this.replacementTexts.get(element.id) === handle;
+        if (!this.disposed && (current === handle || replacement)) {
+          handle.ready = true;
+          if (replacement) {
+            this.replacementTexts.delete(element.id);
+            if (current) this.releaseText(current);
+            this.textHandles.set(element.id, handle);
+          }
+          mesh.visible = this.visibleTextIds.has(element.id); placeholder.visible = false;
+          if (mesh.visible) this.layers.text.add(mesh);
         }
         resolve();
       }, error => {
-        handle.error = error; this.textErrorCount++; reject(error);
+        if (this.replacementTexts.get(element.id) === handle) {
+          this.replacementTexts.delete(element.id); this.releaseText(handle);
+          const current = this.textHandles.get(element.id);
+          if (current) { this.clearTextError(current); current.error = error; this.textErrorCount++; }
+        } else if (this.textHandles.get(element.id) === handle) {
+          handle.error = error; this.textErrorCount++;
+        }
+        reject(error);
       });
       handle.cancel = () => { cancel(); resolve(); };
     });
@@ -464,22 +713,36 @@ export class ThreeRenderer implements Renderer {
     return { calls: this.webgl.info.render.calls, triangles: this.webgl.info.render.triangles, geometries: this.webgl.info.memory.geometries,
       textures: this.webgl.info.memory.textures, elements: this.elements.size,
       shapeInstances: [...this.shapeBatches.values(), ...this.translucentShapes.values()].reduce((n, mesh) => n + mesh.count, 0), strokeChunks: this.strokeChunks.length,
-      strokeChunkRebuilds: this.chunkRebuilds, textInstances: this.textHandles.size, visibleTexts: this.visibleTextIds.size, pendingTexts: this.pendingTexts.size,
-      textErrors: this.textErrorCount, ...this.presence.stats(), ...this.images.stats() };
+      strokeChunkRebuilds: this.chunkRebuilds, connectorRebuilds: this.connectorRebuilds, textInstances: this.textHandles.size, visibleTexts: this.visibleTextIds.size, pendingTexts: this.pendingTexts.size,
+      textErrors: this.textErrorCount, textDisposals: this.textDisposals, ...this.presence.stats(), ...this.images.stats() };
   }
 
+  private clearTextError(handle: TextHandle): void {
+    if (handle.error) { this.textErrorCount--; delete handle.error; }
+  }
+  private releaseText(handle: TextHandle): void {
+    this.clearTextError(handle); handle.cancel(); handle.mesh.removeFromParent(); handle.mesh.dispose();
+    handle.placeholder.removeFromParent(); this.textDisposals++;
+  }
+  private disposeReplacement(id: string): void {
+    const handle = this.replacementTexts.get(id);
+    if (handle) { this.replacementTexts.delete(id); this.releaseText(handle); }
+  }
   private disposeText(id: string): void {
-    const handle = this.textHandles.get(id); if (!handle) return;
-    if (handle.error) this.textErrorCount--;
-    handle.cancel(); handle.mesh.removeFromParent(); handle.mesh.dispose(); handle.placeholder.removeFromParent(); this.textHandles.delete(id);
+    this.disposeReplacement(id);
+    const handle = this.textHandles.get(id);
+    if (handle) { this.textHandles.delete(id); this.releaseText(handle); }
   }
   private clearProjection(): void {
     this.images.clear();
     for (const mesh of this.shapeBatches.values()) disposeMesh(mesh); this.shapeBatches.clear();
     for (const mesh of this.translucentShapes.values()) disposeMesh(mesh); this.translucentShapes.clear();
     for (const mesh of this.translucentStrokes.values()) disposeMesh(mesh); this.translucentStrokes.clear();
-    this.shapeSlots.clear();
+    this.shapeSlots.clear(); this.shapeMembers.clear(); this.depths.clear(); this.textDepths.clear();
+    this.connectorHandles.clear(); this.connectorDependencies.clear();
+    this.connectorArrowSlots.clear(); this.freeConnectorArrowSlots = []; this.opaqueConnectorArrows = undefined;
     for (const chunk of this.strokeChunks) disposeMesh(chunk.mesh); this.strokeChunks = [];
+    this.strokeMembership.clear(); this.highestElement = undefined; this.connectorElements.clear();
     for (const id of this.textHandles.keys()) this.disposeText(id); this.visibleTextIds.clear();
     for (const mesh of [...this.layers.connectors.children]) disposeMesh(mesh as THREE.Mesh);
     this.textIndex.clear();
