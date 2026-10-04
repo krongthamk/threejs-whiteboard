@@ -26,6 +26,8 @@ const interactiveTarget = (target: EventTarget | null) => target instanceof Elem
 export class EditorController {
   readonly hitIndex: HitIndex;
   private gesture: Gesture | null = null;
+  private touches = new Map<number, Point>();
+  private pinch: { ids: [number, number]; distance: number; zoom: number; anchor: Point } | null = null;
   private preview = new Map<string, Element>();
   private selectionCache: { elements: Element[]; frame: SelectionFrame | null; outlines: SelectionFrame[] } | null = null;
   private selectionIds = new Set<string>();
@@ -110,8 +112,20 @@ export class EditorController {
   }
 
   private pointerDown = (event: PointerEvent): void => {
-    if (this.gesture || (event.button !== 0 && event.button !== 1)) return;
+    if (event.button !== 0 && event.button !== 1) return;
     const { canvas, session, isReadOnly } = this.options;
+    if (event.pointerType === 'touch') {
+      this.touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      canvas.setPointerCapture(event.pointerId);
+      if (this.touches.size >= 2) {
+        canvas.focus({ preventScroll: true }); event.preventDefault();
+        // Restore any edit preview, retaining capture for both navigation fingers.
+        this.cancelGesture(false);
+        if (!this.pinch) this.beginPinch();
+        this.updateCursor(); return;
+      }
+    } else if (this.touches.size) return;
+    if (this.gesture) return;
     const point = this.world({ x: event.clientX, y: event.clientY }), state = session.getState();
     const common: PointerGesture = { pointerId: event.pointerId, start: point, point, clientStart: { x: event.clientX, y: event.clientY }, moved: false };
     canvas.focus({ preventScroll: true }); event.preventDefault();
@@ -164,6 +178,10 @@ export class EditorController {
   };
 
   private pointerMove = (event: PointerEvent): void => {
+    if (this.touches.has(event.pointerId)) {
+      this.touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (this.pinch) { event.preventDefault(); this.movePinch(); return; }
+    }
     const point = this.world({ x: event.clientX, y: event.clientY });
     const gesture = this.gesture;
     if (!gesture || event.pointerId !== gesture.pointerId) { this.updateCursor(point); return; }
@@ -181,6 +199,33 @@ export class EditorController {
       this.projectGesture();
     }
   };
+
+  private beginPinch(): void {
+    const entries = [...this.touches];
+    if (entries.length < 2) { this.pinch = null; return; }
+    const [first, second] = entries as [[number, Point], [number, Point], ...[number, Point][]];
+    const center = { x: (first[1].x + second[1].x) / 2, y: (first[1].y + second[1].y) / 2 };
+    this.pinch = { ids: [first[0], second[0]], distance: Math.max(1, Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y)),
+      zoom: this.options.session.getState().camera.zoom, anchor: this.world(center) };
+  }
+  private movePinch(): void {
+    const pinch = this.pinch; if (!pinch) return;
+    const first = this.touches.get(pinch.ids[0]), second = this.touches.get(pinch.ids[1]);
+    if (!first || !second) return;
+    const zoom = clampZoom(pinch.zoom * Math.hypot(first.x - second.x, first.y - second.y) / pinch.distance);
+    const bounds = this.options.canvas.getBoundingClientRect();
+    this.options.session.setState({ camera: {
+      x: pinch.anchor.x - ((first.x + second.x) / 2 - bounds.left - bounds.width / 2) / zoom,
+      y: pinch.anchor.y - ((first.y + second.y) / 2 - bounds.top - bounds.height / 2) / zoom, zoom,
+    } });
+  }
+  private endTouch(id: number): boolean {
+    const navigating = !!this.pinch;
+    if (!this.touches.delete(id)) return false;
+    if (this.pinch?.ids.includes(id)) this.beginPinch();
+    this.releasePointer(id); this.updateCursor();
+    return navigating;
+  }
 
   private appendStrokeSamples(event: PointerEvent): void {
     const gesture = this.gesture; if (gesture?.kind !== 'draw') return;
@@ -234,6 +279,7 @@ export class EditorController {
   }
 
   private pointerUp = (event: PointerEvent): void => {
+    if (this.endTouch(event.pointerId)) return;
     const gesture = this.gesture; if (!gesture || gesture.pointerId !== event.pointerId) return;
     this.pointerMove(event);
     this.gesture = null;
@@ -267,7 +313,11 @@ export class EditorController {
     if (editTextId) this.options.onEditText(editTextId);
   };
   private releasePointer(id: number): void { if (this.options.canvas.hasPointerCapture(id)) this.options.canvas.releasePointerCapture(id); }
-  private pointerCancel = (event: PointerEvent): void => { if (this.gesture?.pointerId === event.pointerId) this.cancelGesture(); };
+  private pointerCancel = (event: PointerEvent): void => {
+    if (event.type === 'lostpointercapture' && this.options.canvas.hasPointerCapture(event.pointerId)) return;
+    this.endTouch(event.pointerId);
+    if (this.gesture?.pointerId === event.pointerId) this.cancelGesture();
+  };
   private restorePreview(): void {
     const upserts: Element[] = [], removals: string[] = [];
     for (const id of this.preview.keys()) { const element = this.options.board.read(id); if (element) upserts.push(element); else removals.push(id); }
@@ -277,11 +327,18 @@ export class EditorController {
     if (selectedIds.some(id => !this.hitIndex.elements.has(id))) this.select(selectedIds.filter(id => this.hitIndex.elements.has(id)));
     this.refreshSelection();
   }
-  private cancelGesture(): void {
+  private cancelGesture(releaseCapture = true): void {
     const gesture = this.gesture; this.gesture = null;
     this.options.renderer.setLiveStroke(null);
     if (gesture?.kind === 'marquee') this.select(gesture.previous);
-    this.restorePreview(); if (gesture) this.releasePointer(gesture.pointerId); this.updateCursor();
+    this.restorePreview();
+    if (releaseCapture) {
+      this.pinch = null;
+      const ids = [...this.touches.keys()]; this.touches.clear();
+      for (const id of ids) this.releasePointer(id);
+      if (gesture) this.releasePointer(gesture.pointerId);
+    }
+    this.updateCursor();
   }
   private blur = (): void => { this.space = false; this.cancelGesture(); };
   private doubleClick = (event: MouseEvent): void => {
@@ -327,7 +384,7 @@ export class EditorController {
     if (interactiveTarget(event.target) || event.isComposing) return;
     const modifier = event.metaKey || event.ctrlKey, key = event.key.toLowerCase();
     if (event.code === 'Space') { event.preventDefault(); this.space = true; this.updateCursor(); return; }
-    if (key === 'escape') { event.preventDefault(); if (this.gesture) this.cancelGesture(); else { this.select([]); this.options.session.setState({ tool: 'select' }); } return; }
+    if (key === 'escape') { event.preventDefault(); if (this.gesture || this.touches.size) this.cancelGesture(); else { this.select([]); this.options.session.setState({ tool: 'select' }); } return; }
     if (modifier && event.code === 'KeyZ') { event.preventDefault(); if (event.shiftKey) this.redo(); else this.undo(); return; }
     if (modifier && event.code === 'KeyY') { event.preventDefault(); this.redo(); return; }
     if (modifier && event.code === 'KeyD') { event.preventDefault(); this.duplicateSelection(); return; }
@@ -347,7 +404,7 @@ export class EditorController {
   private keyUp = (event: KeyboardEvent): void => { if (event.code === 'Space') { this.space = false; this.updateCursor(); } };
   private updateCursor(point?: Point): void {
     const tool = this.options.session.getState().tool;
-    let cursor = this.gesture?.kind === 'pan' ? 'grabbing' : this.space || tool === 'pan' ? 'grab' : tool === 'select' ? 'default' : 'crosshair';
+    let cursor = this.pinch || this.gesture?.kind === 'pan' ? 'grabbing' : this.space || tool === 'pan' ? 'grab' : tool === 'select' ? 'default' : 'crosshair';
     const handle = point && tool === 'select' && !this.gesture ? this.handleAt(point) : null;
     if (handle) cursor = handle === 'rotate' ? 'crosshair' : ['nw', 'se'].includes(handle) ? 'nwse-resize' : ['ne', 'sw'].includes(handle) ? 'nesw-resize' : ['n', 's'].includes(handle) ? 'ns-resize' : 'ew-resize';
     else if (this.gesture?.kind === 'move') cursor = 'move';
