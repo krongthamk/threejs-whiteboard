@@ -5,6 +5,8 @@
 @font-face{font-family:'Noto Sans JP';src:url('/fonts/noto-sans-jp-400.woff') format('woff');font-weight:400;font-display:swap}
 .text-editor-anchor{position:absolute;transform-origin:0 0;z-index:4;pointer-events:none}
 .native-text-editor{padding:0;margin:0;outline:2px solid #5267ce;background:#ffffffd9;overflow-wrap:anywhere;border:0;pointer-events:auto;user-select:text;caret-color:#344caf}
+.shape-text-editor{box-sizing:border-box;overflow:auto}
+.shape-text-editor[data-empty=true]::before{content:attr(data-placeholder);color:#637187;pointer-events:none}
 .font-select{width:104px;padding:6px 7px;border:1px solid #e6ebf2;background:#f7f9fc;border-radius:6px;font-size:11px;color:#36465c}
 .connector-options{display:flex;gap:3px;padding:3px;border:1px solid #e3e8f0;border-radius:7px;background:#f7f9fc;margin:12px 0 4px}.connector-options button{flex:1;min-height:34px;border-radius:4px;font-size:11px;color:#58677c}.connector-options button[aria-pressed=true]{background:#fff;box-shadow:0 1px 3px #21324b15;color:#435cc7}
 .modal{color:#1d2b40;max-height:calc(100dvh - 32px);overflow:auto;padding:22px;width:min(440px,calc(100vw - 32px))}

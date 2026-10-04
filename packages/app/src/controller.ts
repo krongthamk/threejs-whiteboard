@@ -21,6 +21,7 @@ type Gesture = PointerGesture & (
 const clampZoom = (zoom: number) => Math.max(.02, Math.min(64, zoom));
 const boxBetween = (a: Point, b: Point) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) });
 const interactiveTarget = (target: EventTarget | null) => target instanceof Element && !!target.closest('input,textarea,select,button,a,summary,[contenteditable="true"],[role="textbox"],[role="button"]');
+const textEditable = (element: Element | null | undefined) => !!element && ['text', 'sticky', 'rect', 'ellipse'].includes(element.type);
 
 /** Session gestures project previews; only completed gestures enter the document. */
 export class EditorController {
@@ -146,7 +147,7 @@ export class EditorController {
       this.preview.set(element.id, element); this.options.renderer.applyDiff([element]); this.select([element.id]);
     } else if (state.tool === 'text' && !isReadOnly()) {
       const hit = this.hitIndex.hit(point, 0);
-      if (hit?.type === 'text' || hit?.type === 'sticky') { this.select([hit.id]); session.setState({ tool: 'select' }); this.options.onEditText(hit.id); return; }
+      if (hit && textEditable(hit)) { this.select([hit.id]); session.setState({ tool: 'select' }); this.options.onEditText(hit.id); return; }
       const element = createElement('text', { ...point, index: this.nextIndex(), style: state.style });
       this.gesture = { ...common, kind: 'create', element };
       this.preview.set(element.id, element); this.options.renderer.applyDiff([element]); this.select([element.id]);
@@ -343,7 +344,7 @@ export class EditorController {
   private doubleClick = (event: MouseEvent): void => {
     if (this.options.isReadOnly()) return;
     const element = this.hitIndex.hit(this.world({ x: event.clientX, y: event.clientY }), 0);
-    if (element?.type === 'text' || element?.type === 'sticky') { this.select([element.id]); this.options.onEditText(element.id); }
+    if (element && textEditable(element)) { this.select([element.id]); this.options.onEditText(element.id); }
   };
   private wheel = (event: WheelEvent): void => {
     event.preventDefault(); if (this.gesture) return;
@@ -382,6 +383,12 @@ export class EditorController {
   private keyDown = (event: KeyboardEvent): void => {
     if (interactiveTarget(event.target) || event.isComposing) return;
     const modifier = event.metaKey || event.ctrlKey, key = event.key.toLowerCase();
+    if (key === 'enter' && !modifier && !event.altKey && !event.shiftKey && !this.options.isReadOnly() && !this.gesture && !this.pinch && !this.touches.size) {
+      const selected = this.selected();
+      if (selected.length === 1 && (selected[0]!.type === 'rect' || selected[0]!.type === 'ellipse')) {
+        event.preventDefault(); this.options.session.setState({ tool: 'select' }); this.options.onEditText(selected[0]!.id); return;
+      }
+    }
     if (event.code === 'Space') { event.preventDefault(); this.space = true; this.updateCursor(); return; }
     if (key === 'escape') { event.preventDefault(); if (this.gesture || this.touches.size) this.cancelGesture(); else { this.select([]); this.options.session.setState({ tool: 'select' }); } return; }
     if (modifier && event.code === 'KeyZ') { event.preventDefault(); if (event.shiftKey) this.redo(); else this.undo(); return; }

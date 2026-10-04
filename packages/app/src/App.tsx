@@ -6,7 +6,7 @@ import {
   Copy, Trash2, X, Keyboard, Check, ArrowLeft, LogOut, Users, Pencil,
   Type, PenLine, Eraser, ArrowUpRight, Download, ImagePlus,
 } from 'lucide-react';
-import { SCHEMA_VERSION, type ElementStyle } from '@whiteboard/model';
+import { SCHEMA_VERSION, textBlock, type ElementPatch, type ElementStyle, type ShapeTextProps, type TextProps } from '@whiteboard/model';
 import { EditorRuntime, type BoardDiagnostics } from './runtime';
 import type { Tool } from './session';
 import { Modal } from './modal';
@@ -196,13 +196,37 @@ function BoardChrome({ runtime, revision, readOnly }: { runtime: EditorRuntime; 
   const showProperties = selected.length > 0 || shapeTool || ['text', 'draw', 'connector'].includes(state.tool);
   const showFill = shapeTool || selected.some(element => ['rect', 'ellipse', 'sticky'].includes(element.type));
   const showStroke = shapeTool || ['draw', 'connector'].includes(state.tool) || selected.some(element => !['text', 'image'].includes(element.type));
-  const showFont = ['sticky', 'text'].includes(state.tool) || selected.some(element => element.type === 'text' || element.type === 'sticky');
+  const textElements = selected.filter(element => textBlock(element) !== null);
+  const shapeLabels = textElements.filter(element => element.type === 'rect' || element.type === 'ellipse');
+  const showFont = ['sticky', 'text'].includes(state.tool) || textElements.length > 0;
+  const horizontal = textElements.map(element => textBlock(element)!.align);
+  const vertical = shapeLabels.map(element => textBlock(element)!.verticalAlign);
+  const horizontalValue = horizontal.every(value => value === horizontal[0]) ? horizontal[0] : '';
+  const verticalValue = vertical.every(value => value === vertical[0]) ? vertical[0] : '';
   const connector = selected.find(element => element.type === 'connector');
   const showConnector = state.tool === 'connector' || !!connector;
   const count = runtime.elementCount;
   const canUndo = runtime.board.undoManager.undoStack.length > 0;
   const canRedo = runtime.board.undoManager.redoStack.length > 0;
   const changeStyle = (patch: Partial<ElementStyle>) => runtime.applyStyle(patch);
+  const changeAlignment = (patch: { align?: TextProps['align']; verticalAlign?: ShapeTextProps['verticalAlign'] }) => {
+    if (readOnly || runtime.readOnly) return;
+    // Native focus blurs and commits a draft before this action. Build patches
+    // from fresh records so a rendered selection cannot restore stale text.
+    const updates: { id: string; patch: ElementPatch }[] = [];
+    for (const id of runtime.session.getState().selectedIds) {
+      const element = runtime.board.read(id);
+      if (!element) continue;
+      const block = textBlock(element);
+      if (!block) continue;
+      if (element.type === 'text' || element.type === 'sticky') {
+        if (patch.align) updates.push({ id, patch: { props: { ...element.props, align: patch.align } } });
+      } else if ((element.type === 'rect' || element.type === 'ellipse') && typeof element.props.text === 'string') {
+        updates.push({ id, patch: { props: { ...element.props, text: block.text, align: block.align, autoSize: false, verticalAlign: block.verticalAlign, ...patch } } });
+      }
+    }
+    runtime.board.updateMany(updates);
+  };
 
   return <>
     <Minimap runtime={runtime} revision={revision} />
@@ -228,6 +252,12 @@ function BoardChrome({ runtime, revision, readOnly }: { runtime: EditorRuntime; 
         <div className="property-row"><label htmlFor="font-size">Size</label><NumberField id="font-size" value={style.fontSize} min={8} max={256} unit="px" onCommit={fontSize => changeStyle({ fontSize })} /></div>
         <div className="property-row"><label htmlFor="text-color">Text</label><ColorField id="text-color" label="Text color" value={style.color} onCommit={color => changeStyle({ color })} /></div>
       </>}
+      {!!textElements.length && <div className="property-row"><label htmlFor="text-align">Horizontal</label><select id="text-align" className="font-select" aria-label="Horizontal text alignment" value={horizontalValue} onChange={event => changeAlignment({ align: event.target.value as TextProps['align'] })}>
+        {horizontalValue === '' && <option value="" disabled>Mixed</option>}<option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
+      </select></div>}
+      {!!shapeLabels.length && <div className="property-row"><label htmlFor="text-vertical-align">Vertical</label><select id="text-vertical-align" className="font-select" aria-label="Vertical text alignment" value={verticalValue} onChange={event => changeAlignment({ verticalAlign: event.target.value as ShapeTextProps['verticalAlign'] })}>
+        {verticalValue === '' && <option value="" disabled>Mixed</option>}<option value="top">Top</option><option value="middle">Middle</option><option value="bottom">Bottom</option>
+      </select></div>}
       {showConnector && <div className="connector-options" role="group" aria-label="Connector shape">{(['straight', 'elbow'] as const).map(kind => <button key={kind} aria-pressed={(connector?.type === 'connector' ? connector.props.kind : state.connectorKind) === kind} onClick={() => {
         runtime.session.setState({ connectorKind: kind });
         runtime.board.transact(() => { for (const element of selected) if (element.type === 'connector') runtime.board.update(element.id, { props: { ...element.props, kind } }); });

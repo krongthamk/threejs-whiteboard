@@ -114,7 +114,7 @@ export class PresenceProjection {
       }
     }
     const editing = peer.state.editingTextId ? this.elements.get(peer.state.editingTextId) : undefined;
-    peer.editing.group.visible = !!editing && (editing.type === 'text' || editing.type === 'sticky');
+    peer.editing.group.visible = !!editing && (editing.type === 'text' || editing.type === 'sticky' || editing.type === 'rect' || editing.type === 'ellipse');
     if (peer.editing.group.visible && editing) {
       const b = getElementBounds(editing, this.elements), pad = 3 / this.zoom;
       outline([{ x: b.x - pad, y: b.y - pad }, { x: b.x + b.w + pad, y: b.y - pad }, { x: b.x + b.w + pad, y: b.y + b.h + pad }, { x: b.x - pad, y: b.y + b.h + pad }], 2 / this.zoom);

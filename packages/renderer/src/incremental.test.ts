@@ -519,3 +519,24 @@ it('shape readiness waits for exact visible or editing tasks while excluding off
   const pending = renderer.whenReady().then(() => { settled = true; }); await Promise.resolve(); expect(settled).toBe(false);
   near.callbacks.shift()!(); await pending; expect(renderer.stats().pendingTexts).toBe(0);
 });
+
+it.each([['rect', false], ['rect', true], ['ellipse', false], ['ellipse', true]] as const)('projects remote editing badge and outline for %s with labeled=%s and removes stale frames', (type, labeled) => {
+  const element: Element = { ...shapeLabel(type), props: labeled ? shapeLabel(type).props : {} };
+  renderer.setElements([element]); renderer.render();
+  const state = { clientId: 'shape-editor', name: 'Alice', color: '#4378ed', cursor: null, selection: [], editingTextId: element.id };
+  renderer.setPresence([state]); renderer.render();
+  const peer = renderer.layers.presence.getObjectByName('peer:shape-editor')!, badge = peer.children[2]!, frame = peer.children[1] as THREE.Mesh;
+  expect(badge.visible).toBe(true); expect(frame.geometry.drawRange.count).toBe(24);
+  expect(badge.children.at(-1)).toMatchObject({ text: 'Alice · editing', visible: false });
+  for (const label of textState.instances as MockText[]) for (const callback of label.callbacks.splice(0)) callback();
+  renderer.render(false);
+  expect(badge.children.at(-1)?.visible).toBe(true); expect(renderer.stats()).toMatchObject({ presenceLabels: 2, pendingPresenceLabels: 0, presenceErrors: 0 });
+  const position = badge.position.clone();
+  renderer.applyDiff([{ ...element, x: element.x + 80 }]); renderer.render();
+  expect(badge.position.x).toBeCloseTo(position.x + 80); expect(badge.visible).toBe(true); expect(frame.geometry.drawRange.count).toBe(24);
+  renderer.setPresence([{ ...state, editingTextId: null }]); renderer.render();
+  expect(badge.visible).toBe(false); expect(frame.geometry.drawRange.count).toBe(0);
+  renderer.setPresence([state]); renderer.render(); expect(badge.visible).toBe(true);
+  renderer.applyDiff([], [element.id]); renderer.render();
+  expect(badge.visible).toBe(false); expect(frame.geometry.drawRange.count).toBe(0);
+});

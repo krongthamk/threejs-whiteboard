@@ -1,8 +1,10 @@
-import { BoardDocument, deriveElementGeometry, isWellFormedString, MAX_TEXT_LENGTH, STICKY_TEXT_INSET, TEXT_LINE_HEIGHT, resolvedFontFamily, type Element } from '@whiteboard/model';
+import { BoardDocument, deriveElementGeometry, isWellFormedString, MAX_TEXT_LENGTH, TEXT_LINE_HEIGHT, resolvedFontFamily, textBlock, textLayout, type Element } from '@whiteboard/model';
 import type { ThreeRenderer } from '@whiteboard/renderer';
 import type { SessionStore } from './session';
 
-type TextElement = Extract<Element, { type: 'text' | 'sticky' }>;
+type TextElement = Extract<Element, { type: 'text' | 'sticky' | 'rect' | 'ellipse' }>;
+const editable = (element: Element | undefined): element is TextElement => !!element && ['text', 'sticky', 'rect', 'ellipse'].includes(element.type);
+const sourceText = (element: TextElement): string => textBlock(element)?.text ?? '';
 const LONG_DRAFT_LENGTH = 5_000;
 const DRAFT_POSITION_DELAY = 100;
 const TEXT_LIMIT_NOTICE = 'Text cannot exceed 50,000 characters. The extra text was not added.';
@@ -29,7 +31,7 @@ export class BoardTextEditor {
     this.unsubscribe = options.board.subscribe(({ ids }) => {
       if (!this.active || !ids.has(this.active.id)) return;
       const current = options.board.read(this.active.id);
-      if (!current || (current.type !== 'text' && current.type !== 'sticky')) this.finish(false);
+      if (!editable(current)) this.finish(false);
       else this.position();
     });
     this.resizeObserver = new ResizeObserver(() => this.position());
@@ -42,19 +44,23 @@ export class BoardTextEditor {
     if (this.active?.composing) return;
     this.finish(true);
     const element = this.options.board.read(id);
-    if (!element || (element.type !== 'text' && element.type !== 'sticky')) return;
+    if (!editable(element)) return;
+    const text = sourceText(element), shape = element.type === 'rect' || element.type === 'ellipse';
     const wrapper = document.createElement('div'), input = document.createElement('div');
     wrapper.className = 'text-editor-anchor'; input.className = 'native-text-editor';
     input.contentEditable = 'plaintext-only'; input.role = 'textbox'; input.spellcheck = true;
     input.setAttribute('aria-label', 'Edit text'); input.setAttribute('aria-multiline', 'true');
+    if (shape) { input.classList.add('shape-text-editor'); input.dataset.placeholder = 'Type a label'; }
     // Chromium keeps a final caret line as an extra LF (or a terminal BR).
     // Start with the same representation so normalization also preserves saved trailing lines.
-    input.textContent = element.props.text.endsWith('\n') ? `${element.props.text}\n` : element.props.text;
+    input.textContent = text.endsWith('\n') ? `${text}\n` : text;
     wrapper.append(input); this.options.canvas.parentElement!.append(wrapper);
-    this.active = { id, originalText: element.props.text, acceptedText: element.props.text, wrapper, input, composing: false, blurPending: false };
+    this.active = { id, originalText: text, acceptedText: text, wrapper, input, composing: false, blurPending: false };
     this.options.renderer.setEditingText(id);
     this.options.onEditingChange?.(id);
-    input.addEventListener('compositionstart', () => { if (this.active?.input === input) this.active.composing = true; });
+    input.addEventListener('compositionstart', () => {
+      if (this.active?.input === input) { this.active.composing = true; if (shape) input.dataset.empty = 'false'; }
+    });
     input.addEventListener('compositionend', () => {
       if (this.active?.input !== input) return;
       this.active.composing = false;
@@ -91,6 +97,7 @@ export class BoardTextEditor {
     this.position(); input.focus();
     const range = document.createRange(); range.selectNodeContents(input);
     const selection = window.getSelection(); selection?.removeAllRanges(); selection?.addRange(range);
+    if (shape) input.scrollTop = input.scrollHeight;
   }
 
   get editingId(): string | null { return this.active?.id ?? null; }
@@ -137,13 +144,19 @@ export class BoardTextEditor {
     this.clearPositionTimer();
     if (!this.active) return;
     const source = this.options.board.read(this.active.id);
-    if (!source || (source.type !== 'text' && source.type !== 'sticky')) return;
+    if (!editable(source)) return;
     const text = this.draft();
-    const element = deriveElementGeometry({ ...source, props: { ...source.props, text: text.length > MAX_TEXT_LENGTH ? this.active.acceptedText : text } }) as TextElement;
+    const draft = text.length > MAX_TEXT_LENGTH ? this.active.acceptedText : text;
+    const previous = textBlock(source), shape = source.type === 'rect' || source.type === 'ellipse';
+    // Empty shapes gain a complete block only in local draft metadata, never on opening.
+    const props = shape ? { text: draft, align: previous?.align ?? 'center', autoSize: false as const, verticalAlign: previous?.verticalAlign ?? 'middle' }
+      : { ...source.props, text: draft };
+    const element = deriveElementGeometry({ ...source, props } as TextElement) as TextElement;
+    const block = textBlock(element)!;
     const camera = this.options.session.getState().camera;
     const canvas = this.options.canvas.getBoundingClientRect();
     const parent = this.options.canvas.parentElement!.getBoundingClientRect();
-    const inset = element.type === 'sticky' ? STICKY_TEXT_INSET : 0;
+    const width = Math.max(1, element.w - block.insetX * 2), lineHeight = element.style.fontSize * TEXT_LINE_HEIGHT;
     Object.assign(this.active.wrapper.style, {
       left: `${canvas.left - parent.left + canvas.width / 2 + (element.x + element.w / 2 - camera.x) * camera.zoom}px`,
       top: `${canvas.top - parent.top + canvas.height / 2 + (element.y + element.h / 2 - camera.y) * camera.zoom}px`,
@@ -151,15 +164,24 @@ export class BoardTextEditor {
       transform: `scale(${camera.zoom}) rotate(${element.rotation}rad) translate(-50%, -50%)`,
     });
     Object.assign(this.active.input.style, {
-      position: 'absolute', left: `${inset}px`, top: `${inset}px`,
-      width: element.type === 'text' && element.props.autoSize ? 'max-content' : `${Math.max(1, element.w - inset * 2)}px`,
-      minWidth: `${Math.min(60, Math.max(1, element.w - inset * 2))}px`, minHeight: `${element.style.fontSize * TEXT_LINE_HEIGHT}px`,
+      position: 'absolute', left: `${block.insetX}px`, top: `${block.insetY}px`,
+      width: element.type === 'text' && block.autoSize ? 'max-content' : `${shape ? Math.max(60, width) : width}px`,
+      minWidth: `${Math.min(60, width)}px`, minHeight: `${lineHeight}px`,
       fontFamily: `"${resolvedFontFamily(element.style.fontFamily)}", "Noto Sans JP", sans-serif`,
       fontSize: `${element.style.fontSize}px`, lineHeight: String(TEXT_LINE_HEIGHT),
-      color: element.style.color, textAlign: element.props.align,
-      whiteSpace: element.type === 'text' && element.props.autoSize ? 'pre' : 'pre-wrap',
+      color: element.style.color, textAlign: block.align,
+      whiteSpace: element.type === 'text' && block.autoSize ? 'pre' : 'pre-wrap',
       outlineWidth: `${2 / camera.zoom}px`,
     });
+    if (shape) {
+      // The committed label keeps signed offsets/clipping. Native editing has a
+      // reachable scroll origin and a one-line surface even for a tiny shape.
+      Object.assign(this.active.input.style, {
+        height: `${Math.max(lineHeight, element.h - block.insetY * 2)}px`,
+        paddingTop: `${Math.max(0, textLayout(element).verticalOffset ?? 0)}px`,
+      });
+      this.active.input.dataset.empty = String(draft.length === 0 && !this.active.composing);
+    }
   }
 
   /** Blur during an IME session must wait for compositionend. */
@@ -179,14 +201,17 @@ export class BoardTextEditor {
     // Merely opening a native editor must not overwrite a peer's intervening text.
     if (text === active.originalText) return;
     const latest = this.options.board.read(active.id);
-    if (latest && (latest.type === 'text' || latest.type === 'sticky') && latest.props.text === text) return;
+    if (editable(latest) && sourceText(latest) === text) return;
     if (this.options.isReadOnly()) { this.options.onError('Text changes were not saved because this board is now view only.'); return; }
-    if (!latest || (latest.type !== 'text' && latest.type !== 'sticky')) { this.options.onError('Text changes were not saved because this text was removed or changed by another edit.'); return; }
+    if (!editable(latest)) { this.options.onError('Text changes were not saved because this text was removed or changed by another edit.'); return; }
     if (!commit) { this.options.onError('Text changes were not saved because the editor was closed.'); return; }
     if (text.length > MAX_TEXT_LENGTH) { this.options.onError('Text was not saved because it exceeds the 50,000 character limit.'); return; }
     if (!isWellFormedString(text)) { this.options.onError('Text was not saved because it contains an incomplete or invalid character. Please enter the character again.'); return; }
-    if (latest.props.text !== text) {
-      try { this.options.board.update(active.id, { props: { ...latest.props, text } }); }
+    if (sourceText(latest) !== text) {
+      try {
+        if (latest.type === 'rect' || latest.type === 'ellipse') this.options.board.setShapeText(active.id, text);
+        else this.options.board.update(active.id, { props: { ...latest.props, text } });
+      }
       catch (error) { this.options.onError(error instanceof Error ? error.message : 'Text could not be saved.'); }
     }
   }

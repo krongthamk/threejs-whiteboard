@@ -61,7 +61,9 @@ This initial deployment listens on loopback. For a remote host, configure an HTT
 
 ## Editing and export
 
-Use the tool rail or `V` select, `R` rectangle, `O` ellipse, `N` note, `T` text, `C` connector, `P` pen, `E` eraser, and `H` pan. Hold Space to pan, use the wheel/trackpad, or zoom around the pointer. Double-click a text object or sticky note to edit. Escape cancels an unfinished drawing gesture. In the text editor, Escape, blur, and Cmd/Ctrl+Enter commit valid text as one undo step; active IME composition finishes first. Native selection and clipboard stay inside the editor. If a peer removes the element or editing becomes view only, an explicit notice explains why changed text was not saved.
+Use the tool rail or `V` select, `R` rectangle, `O` ellipse, `N` note, `T` text, `C` connector, `P` pen, `E` eraser, and `H` pan. Hold Space to pan, use the wheel/trackpad, or zoom around the pointer. Double-click a text object, sticky note, rectangle, or ellipse to edit its text. The Text tool also edits an existing shape; Enter edits a single selected rectangle or ellipse. Escape cancels an unfinished drawing gesture. In the text editor, Escape, blur, and Cmd/Ctrl+Enter commit valid text as one undo step; active IME composition finishes first. Native selection and clipboard stay inside the editor. If a peer removes the element or editing becomes view only, an explicit notice explains why changed text was not saved.
+
+Shape labels use the shape's existing box. New labels start centered horizontally and vertically; the style panel provides font, size, horizontal alignment, and shape-only vertical alignment. Sticky text stays top-aligned. Empty shapes show a placeholder only while editing, and clearing a label restores an empty shape. Overflowing drafts scroll within a temporary editing area; very small shapes get enough room to edit a line. Saved labels remain clipped to their shape's content rectangle.
 
 Letter shortcuts follow physical key positions, including with non-Latin keyboard layouts. Board shortcuts yield to focused form controls, buttons, links, and summaries. Viewers can use the Select and Pan buttons; letter tool shortcuts leave their current tool unchanged.
 
@@ -92,7 +94,7 @@ unchanged.
 
 Line wrapping keeps grapheme clusters together, including combining accents, emoji sequences, flags and decomposed Hangul. Glyph coverage is still limited to the shipped fonts.
 
-Text and sticky notes allow up to 50,000 UTF-16 units; some emoji count as two. Over-limit insertions are rejected visibly without truncating the existing draft. Layout positioning waits briefly during typing above 5,000 units; camera, resize and peer geometry changes update immediately. Existing saved text above the limit is quarantined with an invalid-item notice, never silently shortened.
+Text, sticky notes, and shape labels allow up to 50,000 UTF-16 units; some emoji count as two. Over-limit insertions are rejected visibly without truncating the existing draft. Layout positioning waits briefly during typing above 5,000 units; camera, resize and peer geometry changes update immediately. Existing saved text above the limit is quarantined with an invalid-item notice, never silently shortened.
 
 The document model rejects incomplete Unicode characters before saving text or pasting clipboard content. Coordinates, stroke widths, and derived element dimensions are limited to one billion document units; font size is limited to 1024. A batch that exceeds these limits is rejected before any element changes. Unsupported document schemas remain available for recovery but cannot be edited, undone, or redone.
 
@@ -151,7 +153,7 @@ clip overflow to the content rectangle. Labels follow shape rotation and
 stacking order; the renderer retains its ready text mesh during position or
 color changes. Font coverage includes stored shape text even when clipped or
 hidden: unsupported glyphs produce a warning and prevent PDF export.
-Native shape editing integration is tracked in the
+Step verification and remaining feature work are tracked in the
 [feature implementation ledger](docs/IMPLEMENTATION_STATUS.md).
 
 Read [storage design and measured limits](docs/D3_STORAGE_INVESTIGATION.md), [dependency/license verification](docs/DEPENDENCY_VERIFICATION.md), and [server operations](packages/server/README.md) before changing persistence, pinned Yjs internals, or deployment topology. Schema 1 is rejected rather than silently mutated. Compaction preserves Yjs clocks and offline merge history; it does not erase retired-writer or deleted-generation information.
