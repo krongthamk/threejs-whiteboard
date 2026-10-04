@@ -89,3 +89,16 @@ describe('runtime quarantine and recovery', () => {
     expect(renderer.applyDiff.mock.calls.at(-1)![0]).toEqual([expect.objectContaining({ id: 'healthy', x: 9 })]);
   });
 });
+
+  it('does not re-read selected IDs for unrelated changes or metadata-only events', () => {
+    const board = new BoardDocument();
+    for (let i = 0; i < 100; i++) board.create('rect', { id: `selected-${i}` });
+    board.create('rect', { id: 'unrelated' });
+    runtime = new EditorRuntime({ canvas, board, onError: vi.fn(), onChange: vi.fn(), onEditText: vi.fn() });
+    runtime.session.setState({ selectedIds: Array.from({ length: 100 }, (_, i) => `selected-${i}`) });
+    const read = vi.spyOn(board, 'read');
+    board.update('unrelated', { x: 10 });
+    expect(read.mock.calls.filter(([id]) => id.startsWith('selected-'))).toEqual([]);
+    read.mockClear(); board.meta.set('title', 'Renamed'); expect(read).not.toHaveBeenCalled();
+    board.delete('selected-50'); expect(runtime.session.getState().selectedIds).not.toContain('selected-50');
+  });

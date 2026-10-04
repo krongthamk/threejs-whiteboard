@@ -8,9 +8,10 @@ test('a board render failure shows recovery controls and reload opens the board 
   await page.waitForFunction(() => !!window.whiteboard);
   await page.getByRole('button', { name: 'Open minimap', exact: true }).click();
   await page.evaluate(() => {
-    const { board } = window.whiteboard;
-    board.readAll = () => { throw new Error('Deliberate minimap projection failure'); };
-    // This revision reaches Minimap's real React render, outside the runtime subscriber.
+    const { board, controller } = window.whiteboard;
+    controller.hitIndex.elements.values = () => { throw new Error('Deliberate minimap projection failure'); };
+    // Minimap snapshots the geometry index during its real React render; runtime
+    // and controller subscriptions still update entries through get/set normally.
     board.create('rect', { id: 'healthy-trigger', x: -100, y: -100 });
   });
   await expect(page.getByRole('alert')).toContainText('This board could not be displayed');

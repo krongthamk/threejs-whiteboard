@@ -107,6 +107,9 @@ export class BoardDocument {
   private activeIds = new Set<string>();
   private listeners = new Set<(change: DocumentChange) => void>();
   private changes = new Map<Y.Transaction, Set<string>>();
+  private indices = new Map<string, string>();
+  private connectorTargets = new Map<string, readonly string[]>();
+  private connectorDependents = new Map<string, Set<string>>();
   private maxIndex: string | null = null;
   private maxIndexDirty = true;
   private pending = new Map<string, StampedValue>();
@@ -124,14 +127,16 @@ export class BoardDocument {
       this.meta.set('createdAt', Date.now());
     }, 'initialization');
     doc.getArray<WriterRecord>(WRITER_PREFIX + this.actor);
-    this.discover(); this.own = this.writers.get(this.actor)!;
+    this.discover();
+    for (const id of this.activeIds) this.read(id);
+    this.own = this.writers.get(this.actor)!;
     this.undoManager = new Y.UndoManager(this.own.records, {
       trackedOrigins: new Set([LOCAL_ORIGIN]), captureTimeout: 0,
       deleteFilter: item => !item.content.getContent().some(value => value && typeof value === 'object' && (value as WriterRecord).key === CLOCK_KEY),
     });
     const undo = this.undoManager.undo.bind(this.undoManager), redo = this.undoManager.redo.bind(this.undoManager);
-    this.undoManager.undo = () => { this.assertWriterIdentity(); return undo(); };
-    this.undoManager.redo = () => { this.assertWriterIdentity(); return redo(); };
+    this.undoManager.undo = () => { this.assertSchemaVersion(); this.assertWriterIdentity(); return undo(); };
+    this.undoManager.redo = () => { this.assertSchemaVersion(); this.assertWriterIdentity(); return redo(); };
     if (options.undo === false) this.undoManager.destroy();
     // Yjs 13.6.33 can coalesce a field and clock into one ContentAny Item. The public
     // deleteFilter must see the clock alone, or refusing it would refuse undoing the field too.
@@ -209,8 +214,7 @@ export class BoardDocument {
     if (!id) return;
     if (field === '$base') {
       if (winner && winner.value !== null && winner.value !== undefined) this.activeIds.add(id); else this.activeIds.delete(id);
-      this.maxIndexDirty = true;
-    } else if (parts[2] === 'index') this.maxIndexDirty = true;
+    }
     if (transaction) {
       let changed = this.changes.get(transaction);
       if (!changed) { changed = new Set(); this.changes.set(transaction, changed); }
@@ -219,25 +223,43 @@ export class BoardDocument {
   }
 
   private get(key: string): unknown { return (this.pending.get(key) ?? this.winners.get(key))?.value; }
-  private highestIndex(): string | null {
+  /** Maximum valid projected index, maintained as changed IDs are projected. */
+  highestIndex(): string | null {
     if (this.maxIndexDirty) {
       this.maxIndex = null;
-      const ids = new Set(this.activeIds);
-      for (const key of this.pending.keys()) { const parts = JSON.parse(key) as string[]; if (parts[1] === '$base') ids.add(parts[0]!); }
-      for (const id of ids) {
-        const element = this.read(id); if (!element) continue;
-        const index = element.index;
-        if (this.maxIndex === null || index > this.maxIndex) this.maxIndex = index;
-      }
+      for (const index of this.indices.values()) if (this.maxIndex === null || index > this.maxIndex) this.maxIndex = index;
       this.maxIndexDirty = false;
     }
     return this.maxIndex;
   }
+  nextIndex(): string { return generateKeyBetween(this.highestIndex(), null); }
+  private cacheIndex(id: string, index: string | undefined): void {
+    const previous = this.indices.get(id);
+    if (previous === index) return;
+    if (index === undefined) this.indices.delete(id); else this.indices.set(id, index);
+    if (previous === this.maxIndex) this.maxIndexDirty = true;
+    if (index !== undefined && (this.maxIndex === null || index > this.maxIndex)) this.maxIndex = index;
+  }
+  private cacheConnectorDependencies(id: string, element: Element | undefined): void {
+    const targets = element?.type === 'connector'
+      ? [...new Set([element.props.start, element.props.end].flatMap(binding => 'elementId' in binding ? [binding.elementId] : []))] : [];
+    const previous = this.connectorTargets.get(id) ?? [];
+    if (previous.length === targets.length && previous.every((target, i) => target === targets[i])) return;
+    for (const target of previous) {
+      const dependents = this.connectorDependents.get(target); dependents?.delete(id);
+      if (!dependents?.size) this.connectorDependents.delete(target);
+    }
+    if (!targets.length) this.connectorTargets.delete(id); else this.connectorTargets.set(id, targets);
+    for (const target of targets) {
+      const dependents = this.connectorDependents.get(target) ?? new Set<string>();
+      dependents.add(id); this.connectorDependents.set(target, dependents);
+    }
+  }
   private set(key: string, value: unknown): void {
     const parts = JSON.parse(key) as string[];
-    if (parts[2] === 'index' || parts[1] === '$base' && value === null) this.maxIndexDirty = true;
     const stamped: StampedValue = { stamp: { clock: ++this.maxClock, actor: this.actor }, value };
     this.own.kv.set(key, stamped); this.pending.set(key, stamped);
+    if (parts[2] === 'index' || parts[2] === 'props' || parts[1] === '$base') this.read(parts[0]!);
   }
   private writeClock(): void {
     const existing = this.own.kv.get(CLOCK_KEY);
@@ -262,6 +284,8 @@ export class BoardDocument {
   base(id: string): BaseRecord | undefined { return structuredClone(this.get(baseKey(id)) ?? undefined) as BaseRecord | undefined; }
   add(element: Element): Element {
     assertValidElement(element);
+    element = deriveElementGeometry(element);
+    assertValidElement(element);
     if (this.base(element.id)) throw new Error(`Element already exists: ${element.id}`);
     const generation = `${this.actor}:${Y.getState(this.doc.store, this.doc.clientID)}`;
     this.transact(() => this.set(baseKey(element.id), { generation, element: structuredClone(element) }));
@@ -280,8 +304,9 @@ export class BoardDocument {
   read(id: string): Element | undefined {
     try {
       const element = projectedElement(id, key => this.get(key));
+      this.cacheIndex(id, element?.index); this.cacheConnectorDependencies(id, element);
       this.invalidIds.delete(id); return element;
-    } catch { this.invalidIds.add(id); return undefined; }
+    } catch { this.cacheIndex(id, undefined); this.cacheConnectorDependencies(id, undefined); this.invalidIds.add(id); return undefined; }
   }
   readAll(): Element[] {
     const ids = new Set(this.activeIds);
@@ -295,7 +320,9 @@ export class BoardDocument {
     const element = this.read(id), base = this.base(id); if (!element || !base) return undefined;
     const prepared = structuredClone(patch);
     for (const key of Object.keys(prepared)) if (!FIELDS.includes(key as typeof FIELDS[number])) throw new Error(`Immutable or unknown element field: ${key}`);
-    assertValidElement({ ...element, ...prepared });
+    const merged = { ...element, ...prepared };
+    assertValidElement(merged);
+    assertValidElement(deriveElementGeometry(merged));
     return { id, generation: base.generation, patch: prepared };
   }
   update(id: string, patch: ElementPatch): boolean {
@@ -304,7 +331,11 @@ export class BoardDocument {
     return true;
   }
   updateMany(updates: readonly { id: string; patch: ElementPatch }[]): void {
-    const prepared = updates.map(({ id, patch }) => this.preparePatch(id, patch)).filter(value => value !== undefined);
+    // Multiple updates for one ID replace whole fields in order, just as the
+    // register writes do. Validate their combined state before starting any writes.
+    const patches = new Map<string, ElementPatch>();
+    for (const { id, patch } of updates) patches.set(id, { ...patches.get(id), ...patch });
+    const prepared = [...patches].map(([id, patch]) => this.preparePatch(id, patch)).filter(value => value !== undefined);
     this.transact(() => { for (const update of prepared) for (const [key, value] of Object.entries(update.patch)) this.set(fieldKey(update.id, update.generation, key), value); });
   }
   updateStyle(ids: readonly string[], patch: Partial<ElementStyle>): void {
@@ -319,7 +350,10 @@ export class BoardDocument {
       else if (element.type === 'connector') {
         const moveBinding = (binding: Binding): Binding => {
           if ('elementId' in binding && selected.has(binding.elementId)) return binding;
-          elements ??= new Map(this.readAll().map(e => [e.id, e]));
+          elements ??= new Map();
+          if ('elementId' in binding && !elements.has(binding.elementId)) {
+            const target = this.read(binding.elementId); if (target) elements.set(target.id, target);
+          }
           const p = resolveBinding(binding, elements); return { x: p.x + delta.x, y: p.y + delta.y };
         };
         updates.push({ id, patch: { props: { ...element.props, start: moveBinding(element.props.start), end: moveBinding(element.props.end) } } });
@@ -328,9 +362,16 @@ export class BoardDocument {
     this.updateMany(updates);
   }
   delete(ids: string | readonly string[]): void {
-    const deleted = new Set(typeof ids === 'string' ? [ids] : ids), elements = new Map(this.readAll().map(element => [element.id, element]));
+    const deleted = new Set(typeof ids === 'string' ? [ids] : ids), elements = new Map<string, Element>(), dependents = new Set<string>();
+    for (const id of deleted) {
+      const bound = this.connectorDependents.get(id);
+      if (!bound?.size) continue;
+      const target = this.read(id); if (target) elements.set(id, target);
+      for (const connectorId of bound) if (!deleted.has(connectorId)) dependents.add(connectorId);
+    }
     const updates: { id: string; patch: ElementPatch }[] = [];
-    for (const element of elements.values()) {
+    for (const id of dependents) {
+      const element = this.read(id); if (!element) continue;
         if (element.type !== 'connector' || deleted.has(element.id)) continue;
         const detach = (binding: Binding): Binding => 'elementId' in binding && deleted.has(binding.elementId) ? resolveBinding(binding, elements) : binding;
         const start = detach(element.props.start), end = detach(element.props.end);

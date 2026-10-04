@@ -119,7 +119,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 4. Add a benchmark to `tests/app/performance.spec.ts`: commit one stroke on a 5,000-stroke board in under 16 ms of main-thread time, and one eraser sweep hitting 10 strokes under 50 ms.
 5. Update `packages/renderer/README.md` to describe the actual invalidation rule.
 
-### [ ] 8. Every create-tool pointerdown and every select-all deserialises the whole document (medium, measured)
+### [x] 8. Every create-tool pointerdown and every select-all deserialises the whole document (medium, measured)
 
 **Where:** `packages/app/src/controller.ts:90` (`nextIndex` calls `board.readAll()`), called from `:111, :118, :124, :129`; also `:294` (`zoomToFit`), `:316` (Cmd+A), `:68-84` (`selected()` reads each selected id per pointermove and per revision); `packages/app/src/assets.ts:110, 174`; `packages/app/src/minimap.tsx:22`; `packages/app/src/App.tsx:149`; `packages/model/src/document.ts:147-157` (`highestIndex()` is private and already incremental).
 
@@ -168,7 +168,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 2. Relayout only when `text`, `w`, `fontSize`, `fontFamily`, `align`, `autoSize` or `type` change. When relayout is required, keep the old mesh visible until the replacement's sync callback fires.
 3. Test in `tests/app/text.spec.ts`: during a drag, the renderer stats report zero text disposals.
 
-### [ ] 12. Lone UTF-16 surrogates silently diverge between replicas (medium, reproduced)
+### [x] 12. Lone UTF-16 surrogates silently diverge between replicas (medium, reproduced)
 
 **Where:** `packages/model/src/schema.ts:14` (`assertJson` accepts any string); `packages/app/src/clipboard-model.ts:34` (`validateEnvelope`).
 
@@ -176,7 +176,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 
 **Fix:** In `assertJson`, reject strings where `!value.isWellFormed()` (or normalise with `toWellFormed()` before writing and document that choice). Apply the same check in `validateEnvelope` and in the text editor commit path. Add a unit test with a lone surrogate.
 
-### [ ] 13. `update()` validates stale geometry, so a patch can create an element nobody can move or export (medium, reproduced)
+### [x] 13. `update()` validates stale geometry, so a patch can create an element nobody can move or export (medium, reproduced)
 
 **Where:** `packages/model/src/document.ts:225-231` (`preparePatch` asserts the already-derived read merged with the new props); `packages/model/src/geometry.ts:19-27`; `packages/model/src/schema.ts:36` (finite check only, no magnitude bound).
 
@@ -187,7 +187,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 2. In `assertValidElement`, bound `|x|`, `|y|`, `|w|`, `|h|` and every stroke point to 1e9 and `fontSize` to 1024.
 3. Unit tests for both paths with the reproduction inputs.
 
-### [ ] 14. Undo and redo bypass the schema-version gate (medium, reproduced)
+### [x] 14. Undo and redo bypass the schema-version gate (medium, reproduced)
 
 **Where:** `packages/model/src/document.ts:67-69` (undo/redo wrappers assert writer identity only); `:173-175` (only `transact` asserts the schema).
 

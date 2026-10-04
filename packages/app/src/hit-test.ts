@@ -32,7 +32,7 @@ export class HitIndex {
       const ids = this.dependents.get(binding.elementId); ids?.delete(element.id); if (!ids?.size) this.dependents.delete(binding.elementId);
     }
   }
-  apply(upserts: readonly Element[], removals: readonly string[] = []): void {
+  apply(upserts: readonly Element[], removals: readonly string[] = []): ReadonlySet<string> {
     const changed = new Set([...upserts.map(e => e.id), ...removals]);
     for (const id of [...changed]) for (const dependent of this.dependents.get(id) ?? []) changed.add(dependent);
     for (const element of upserts) { this.removeDependencies(this.elements.get(element.id)); this.elements.set(element.id, element); this.addDependencies(element); }
@@ -43,6 +43,7 @@ export class HitIndex {
       const element = this.elements.get(id);
       if (element) { const value = entry(id, getElementBounds(element, this.elements)); this.entries.set(id, value); this.tree.insert(value); }
     }
+    return changed;
   }
   hit(point: Point, tolerance = 3): Element | undefined {
     return this.tree.search(entry('', { x: point.x - tolerance, y: point.y - tolerance, w: tolerance * 2, h: tolerance * 2 }))

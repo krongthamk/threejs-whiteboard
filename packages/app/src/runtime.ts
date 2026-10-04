@@ -78,8 +78,10 @@ export class EditorRuntime {
         for (const element of upserts) this.elementIds.add(element.id);
         for (const id of removals) this.elementIds.delete(id);
         this.renderer.applyDiff(upserts, removals);
-        const selectedIds = this.session.getState().selectedIds.filter(id => !!this.board.read(id));
-        if (selectedIds.length !== this.session.getState().selectedIds.length) this.session.setState({ selectedIds });
+        if (removals.length) {
+          const removed = new Set(removals), selectedIds = this.session.getState().selectedIds;
+          if (selectedIds.some(id => removed.has(id))) this.session.setState({ selectedIds: selectedIds.filter(id => !removed.has(id)) });
+        }
         options.onChange();
       } catch (error) {
         options.onError(error instanceof Error ? error.message : 'The board could not update. Reload the board.');
@@ -92,7 +94,7 @@ export class EditorRuntime {
     this.textEditor = new BoardTextEditor({
       canvas: options.canvas, board: this.board, renderer: this.renderer, session: this.session,
       isReadOnly: () => this.readOnly,
-      onEditingChange: options.onEditingChange,
+      onEditingChange: options.onEditingChange, onError: options.onError,
     });
     this.controller = new EditorController({
       canvas: options.canvas, board: this.board, renderer: this.renderer, session: this.session,

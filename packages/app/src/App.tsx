@@ -182,7 +182,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
 
 function BoardChrome({ runtime, revision, readOnly }: { runtime: EditorRuntime; revision: number; readOnly: boolean }) {
   const state = useStore(runtime.session);
-  const selected = useMemo(() => state.selectedIds.flatMap(id => { const element = runtime.board.read(id); return element ? [element] : []; }), [runtime, state.selectedIds, revision]);
+  const selected = useMemo(() => state.selectedIds.flatMap(id => { const element = runtime.controller.hitIndex.elements.get(id); return element ? [element] : []; }), [runtime, state.selectedIds, revision]);
   const style = selected[0]?.style ?? state.style;
   const shapeTool = ['rect', 'ellipse', 'sticky'].includes(state.tool);
   const showProperties = selected.length > 0 || shapeTool || ['text', 'draw', 'connector'].includes(state.tool);

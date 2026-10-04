@@ -107,7 +107,7 @@ export class BoardAssets {
       const { camera } = this.options.session.getState(), bounds = this.options.canvas.getBoundingClientRect();
       const maxWidth = Math.max(1, Math.min(600, bounds.width * .6 / camera.zoom));
       const maxHeight = Math.max(1, Math.min(450, bounds.height * .6 / camera.zoom));
-      let index = this.options.board.readAll().at(-1)?.index ?? null;
+      let index = this.options.board.highestIndex();
       const elements = uploaded.map(({ image, assetId }, offset) => {
         this.dimensions(image.width, image.height, image.file.name);
         const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height);
@@ -171,7 +171,7 @@ export class BoardAssets {
       }
       if (!this.writable()) return;
       const prepared = preparePastedElements(envelope, { targetBoardId: this.options.boardId, center,
-        highestIndex: this.options.board.readAll().at(-1)?.index ?? null,
+        highestIndex: this.options.board.highestIndex(),
         newIds: envelope.elements.map(() => crypto.randomUUID()), imageAssetIds });
       this.insert(prepared);
     });

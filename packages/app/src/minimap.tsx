@@ -19,7 +19,7 @@ function MinimapContent({ runtime, revision, onClose }: { runtime: EditorRuntime
     observer.observe(canvas); return () => observer.disconnect();
   }, [runtime]);
   const camera = useStore(runtime.session, state => state.camera);
-  const elements = useMemo(() => runtime.board.readAll(), [runtime, revision]);
+  const elements = useMemo(() => [...runtime.controller.hitIndex.elements.values()], [runtime, revision]);
   const view = useMemo(() => {
     const raw = contentBounds(elements), padding = Math.max(40, Math.max(raw.w, raw.h) * .08);
     const box = { x: raw.x - padding, y: raw.y - padding, w: Math.max(100, raw.w + padding * 2), h: Math.max(100, raw.h + padding * 2) };

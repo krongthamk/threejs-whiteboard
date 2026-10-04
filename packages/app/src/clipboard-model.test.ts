@@ -75,3 +75,20 @@ it('preserves source stacking when an envelope arrives with its array out of ord
   expect(prepared.map(element => element.id)).toEqual(['new-back', 'new-front']);
   expect(prepared[0]!.index > 'b10' && prepared[1]!.index > prepared[0]!.index).toBe(true);
 });
+
+it('rejects unpaired UTF-16 in clipboard board IDs, copied strings and destination IDs', () => {
+  const rect = createElement('rect', { id: 'source' });
+  const envelope = { type: 'whiteboard/clipboard' as const, version: 1 as const, sourceBoardId: 'board', elements: [rect] };
+  expect(() => parseClipboard(JSON.stringify({ ...envelope, sourceBoardId: 'x\ud83dy' }))).toThrow();
+  expect(() => parseClipboard(JSON.stringify({ ...envelope, elements: [{ ...rect, id: 'x\ud83dy' }] }))).toThrow();
+  expect(() => encodeClipboard('x\ud83dy', ['source'], [rect])).toThrow();
+  const options = { targetBoardId: 'target', center: { x: 0, y: 0 }, highestIndex: null, newIds: ['fresh'] };
+  expect(() => preparePastedElements(envelope, { ...options, targetBoardId: 'x\ud83dy' })).toThrow();
+  expect(() => preparePastedElements(envelope, { ...options, newIds: ['x\ud83dy'] })).toThrow();
+});
+
+it('rejects a clipboard whose bounded raw points derive an out-of-bounds stroke width', () => {
+  const element = createElement('stroke', { id: 'stroke' });
+  const envelope = { type: 'whiteboard/clipboard', version: 1, sourceBoardId: 'board', elements: [{ ...element, props: { ...element.props, points: [-1e9, 0, .5, 1e9, 0, .5] } }] };
+  expect(() => parseClipboard(JSON.stringify(envelope))).toThrow();
+});

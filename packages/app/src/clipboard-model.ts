@@ -1,5 +1,5 @@
 import { generateKeyBetween } from 'fractional-indexing';
-import { assertValidElement, compareElements, contentBounds, deriveElementGeometry, resolveBinding,
+import { assertValidElement, isWellFormedString, compareElements, contentBounds, deriveElementGeometry, resolveBinding,
   type Binding, type Element, type Point } from '@whiteboard/model';
 
 export const MAX_CLIPBOARD_BYTES = 8 * 1024 * 1024;
@@ -19,7 +19,7 @@ export interface PasteOptions {
   imageAssetIds?: ReadonlyMap<string, string>;
 }
 function fail(message: string): never { throw new Error(`Invalid whiteboard clipboard: ${message}`); }
-const nonempty = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
+const nonempty = (value: unknown): value is string => isWellFormedString(value) && value.trim().length > 0;
 const plain = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 function checkBytes(text: string): void {
   if (text.length > MAX_CLIPBOARD_BYTES || new TextEncoder().encode(text).byteLength > MAX_CLIPBOARD_BYTES) fail(`content exceeds ${MAX_CLIPBOARD_BYTES} bytes`);
@@ -31,7 +31,7 @@ function validateEnvelope(value: unknown): asserts value is ClipboardEnvelope {
   if (!Array.isArray(value.elements) || value.elements.length === 0 || value.elements.length > MAX_CLIPBOARD_ELEMENTS) fail(`element count must be 1–${MAX_CLIPBOARD_ELEMENTS}`);
   const elements = new Map<string, Element>();
   for (const element of value.elements) {
-    try { assertValidElement(element); } catch { fail('an element has invalid geometry, style, or coherent data'); }
+    try { assertValidElement(element); assertValidElement(deriveElementGeometry(element)); } catch { fail('an element has invalid geometry, style, or coherent data'); }
     if (elements.has(element.id)) fail('element IDs must be unique');
     elements.set(element.id, element);
   }

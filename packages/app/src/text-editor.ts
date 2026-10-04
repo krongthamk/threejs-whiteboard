@@ -1,4 +1,4 @@
-import { BoardDocument, deriveElementGeometry, STICKY_TEXT_INSET, TEXT_LINE_HEIGHT, resolvedFontFamily, type Element } from '@whiteboard/model';
+import { BoardDocument, deriveElementGeometry, isWellFormedString, STICKY_TEXT_INSET, TEXT_LINE_HEIGHT, resolvedFontFamily, type Element } from '@whiteboard/model';
 import type { ThreeRenderer } from '@whiteboard/renderer';
 import type { SessionStore } from './session';
 
@@ -10,6 +10,7 @@ interface TextEditorOptions {
   session: SessionStore;
   isReadOnly(): boolean;
   onEditingChange?(id: string | null): void;
+  onError(message: string): void;
 }
 
 /** Native editing state stays local until one final, coherent props write. */
@@ -123,9 +124,11 @@ export class BoardTextEditor {
     this.options.onEditingChange?.(null);
     // Merely opening a native editor must not overwrite a peer's intervening text.
     if (!commit || this.options.isReadOnly() || text === active.originalText) return;
+    if (!isWellFormedString(text)) { this.options.onError('Text was not saved because it contains an incomplete or invalid character. Please enter the character again.'); return; }
     const latest = this.options.board.read(active.id);
     if (latest && (latest.type === 'text' || latest.type === 'sticky') && latest.props.text !== text) {
-      this.options.board.update(active.id, { props: { ...latest.props, text } });
+      try { this.options.board.update(active.id, { props: { ...latest.props, text } }); }
+      catch (error) { this.options.onError(error instanceof Error ? error.message : 'Text could not be saved.'); }
     }
   }
 

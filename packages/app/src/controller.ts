@@ -1,5 +1,4 @@
 import { bindToElement, compareElements, contentBounds, createElement, deriveElementGeometry, resolveBinding, rotatePoint, type Binding, type BoardDocument, type Element, type ElementOf, type Point } from '@whiteboard/model';
-import { generateKeyBetween } from 'fractional-indexing';
 import { selectionHandles, type CameraState, type SelectionFrame, type SelectionHandle, type ThreeRenderer } from '@whiteboard/renderer';
 import { HitIndex, selectionFrame } from './hit-test';
 import type { SessionStore, Tool } from './session';
@@ -28,6 +27,8 @@ export class EditorController {
   readonly hitIndex: HitIndex;
   private gesture: Gesture | null = null;
   private preview = new Map<string, Element>();
+  private selectionCache: { elements: Element[]; frame: SelectionFrame | null; outlines: SelectionFrame[] } | null = null;
+  private selectionIds = new Set<string>();
   private space = false;
   private destroyed = false;
   private unsubscribeBoard: () => void;
@@ -49,15 +50,18 @@ export class EditorController {
     this.unsubscribeBoard = board.subscribe(({ ids }) => {
       const upserts: Element[] = [], removals: string[] = [];
       for (const id of ids) { const element = board.read(id); if (element) upserts.push(element); else removals.push(id); }
-      this.hitIndex.apply(upserts, removals);
+      const changed = this.hitIndex.apply(upserts, removals);
+      if ([...changed].some(id => this.selectionIds.has(id))) this.selectionCache = null;
       if (this.gesture && this.gesture.kind !== 'create') this.projectGesture();
       else this.refreshSelection();
     });
     this.unsubscribeSession = session.subscribe((state, previous) => {
       if (state.tool !== previous.tool) this.cancelGesture();
+      if (state.selectedIds !== previous.selectedIds) { this.selectionIds = new Set(state.selectedIds); this.selectionCache = null; }
       if (state.selectedIds !== previous.selectedIds || state.camera !== previous.camera) this.refreshSelection();
       this.updateCursor();
     });
+    this.selectionIds = new Set(session.getState().selectedIds);
     this.refreshSelection(); this.updateCursor();
   }
 
@@ -65,14 +69,22 @@ export class EditorController {
     const bounds = this.options.canvas.getBoundingClientRect(), camera = this.options.session.getState().camera;
     return { x: camera.x + (client.x - bounds.left - bounds.width / 2) / camera.zoom, y: camera.y + (client.y - bounds.top - bounds.height / 2) / camera.zoom };
   }
-  private selected(): Element[] { return this.options.session.getState().selectedIds.flatMap(id => { const element = this.preview.get(id) ?? this.options.board.read(id); return element ? [element] : []; }); }
+  private selected(): Element[] { return this.options.session.getState().selectedIds.flatMap(id => { const element = this.preview.get(id) ?? this.hitIndex.elements.get(id); return element ? [element] : []; }); }
   private refreshSelection(marquee?: ReturnType<typeof boxBetween>): void {
-    const elements = this.selected(), projection = this.projectionElements(), frame = selectionFrame(elements, projection);
+    const { frame, outlines } = this.cachedSelection();
     this.options.renderer.setSelection({
-      outlines: elements.length > 1 ? elements.map(element => selectionFrame([element], projection)!) : [],
+      outlines,
       frame: this.options.isReadOnly() ? null : frame, marquee,
       ...(this.options.isReadOnly() && frame ? { outlines: [frame] } : {}),
     });
+  }
+  private cachedSelection(): { elements: Element[]; frame: SelectionFrame | null; outlines: SelectionFrame[] } {
+    if (!this.selectionCache) {
+      const elements = this.selected(), projection = this.projectionElements();
+      this.selectionCache = { elements, frame: selectionFrame(elements, projection),
+        outlines: elements.length > 1 ? elements.map(element => selectionFrame([element], projection)!) : [] };
+    }
+    return this.selectionCache;
   }
   private projectionElements(): ReadonlyMap<string, Element> {
     if (!this.preview.size) return this.hitIndex.elements;
@@ -81,13 +93,13 @@ export class EditorController {
   private select(ids: string[]): void { this.options.session.setState({ selectedIds: [...new Set(ids)] }); }
   private snapped(point: Point): Point { return this.options.session.getState().snap ? { x: Math.round(point.x / 24) * 24, y: Math.round(point.y / 24) * 24 } : point; }
   private handleAt(point: Point): SelectionHandle | null {
-    const frame = selectionFrame(this.selected(), this.projectionElements()); if (!frame || this.options.isReadOnly()) return null;
+    const frame = this.cachedSelection().frame; if (!frame || this.options.isReadOnly()) return null;
     const zoom = this.options.session.getState().camera.zoom;
     // Corners win over edge handles when zoom makes a small selection crowded.
     const handles = selectionHandles(frame, zoom).sort((a, b) => (a.kind.length === 2 ? 0 : 1) - (b.kind.length === 2 ? 0 : 1));
     return handles.find(handle => Math.hypot(point.x - handle.point.x, point.y - handle.point.y) * zoom <= 7)?.kind ?? null;
   }
-  private nextIndex(): string { return generateKeyBetween(this.options.board.readAll().at(-1)?.index ?? null, null); }
+  private nextIndex(): string { return this.options.board.nextIndex(); }
   private connectorAnchor(point: Point): Binding {
     const zoom = this.options.session.getState().camera.zoom;
     const hit = this.hitIndex.hit(point, 16 / zoom);
@@ -130,7 +142,7 @@ export class EditorController {
       this.gesture = { ...common, start, kind: 'create', element };
       this.preview.set(element.id, element); this.options.renderer.applyDiff([element]); this.select([element.id]);
     } else if (state.tool === 'select') {
-      const handle = this.handleAt(point), frame = selectionFrame(this.selected(), this.projectionElements());
+      const handle = this.handleAt(point), frame = this.cachedSelection().frame;
       if (handle && frame) {
         const initial = new Map(this.selected().map(element => [element.id, element]));
         this.gesture = { ...common, kind: 'transform', ids: [...initial.keys()], initial, frame, handle, shift: event.shiftKey };
@@ -207,14 +219,17 @@ export class EditorController {
       elements.push(gesture.element.type === 'connector' ? { ...gesture.element, props: { ...gesture.element.props, end: this.connectorAnchor(gesture.point) } } :
         { ...gesture.element, ...box, w: Math.max(1, box.w), h: Math.max(1, box.h) });
     } else if (gesture.moved) {
+      const selectedIds = new Set(gesture.ids);
       for (const id of gesture.ids) {
-        const latest = this.options.board.read(id); if (!latest) continue;
-        elements.push(gesture.kind === 'move' ? translateElement(latest, gesture.delta, new Set(gesture.ids), this.hitIndex.elements) : transformElement(latest, { ...gesture, elements: this.hitIndex.elements }));
+        const latest = this.hitIndex.elements.get(id); if (!latest) continue;
+        elements.push(gesture.kind === 'move' ? translateElement(latest, gesture.delta, selectedIds, this.hitIndex.elements) : transformElement(latest, { ...gesture, elements: this.hitIndex.elements }));
       }
     }
-    const removals = [...this.preview.keys()].filter(id => !elements.some(element => element.id === id));
-    this.preview = new Map(elements.map(element => [element.id, element]));
-    this.options.renderer.applyDiff(elements, removals.filter(id => !this.options.board.read(id)));
+    const nextPreview = new Map(elements.map(element => [element.id, element]));
+    const removals = [...this.preview.keys()].filter(id => !nextPreview.has(id));
+    this.preview = nextPreview;
+    this.selectionCache = null;
+    this.options.renderer.applyDiff(elements, removals.filter(id => !this.hitIndex.elements.has(id)));
     this.refreshSelection();
   }
 
@@ -256,8 +271,11 @@ export class EditorController {
   private restorePreview(): void {
     const upserts: Element[] = [], removals: string[] = [];
     for (const id of this.preview.keys()) { const element = this.options.board.read(id); if (element) upserts.push(element); else removals.push(id); }
+    if (this.preview.size) this.selectionCache = null;
     this.preview.clear(); this.options.renderer.applyDiff(upserts, removals);
-    this.select(this.options.session.getState().selectedIds.filter(id => !!this.options.board.read(id))); this.refreshSelection();
+    const selectedIds = this.options.session.getState().selectedIds;
+    if (selectedIds.some(id => !this.hitIndex.elements.has(id))) this.select(selectedIds.filter(id => this.hitIndex.elements.has(id)));
+    this.refreshSelection();
   }
   private cancelGesture(): void {
     const gesture = this.gesture; this.gesture = null;
@@ -291,7 +309,7 @@ export class EditorController {
   }
   setZoom(zoom: number): void { this.cancelGesture(); this.zoomAt(zoom); }
   zoomToFit(): void {
-    this.cancelGesture(); const elements = this.options.board.readAll(); if (!elements.length) { this.options.session.setState({ camera: { x: 0, y: 0, zoom: 1 } }); return; }
+    this.cancelGesture(); const elements = [...this.hitIndex.elements.values()]; if (!elements.length) { this.options.session.setState({ camera: { x: 0, y: 0, zoom: 1 } }); return; }
     const b = contentBounds(elements), view = this.options.canvas.getBoundingClientRect();
     this.options.session.setState({ camera: { x: b.x + b.w / 2, y: b.y + b.h / 2, zoom: clampZoom(Math.min((view.width - 160) / Math.max(1, b.w), (view.height - 160) / Math.max(1, b.h), 1)) } });
   }
@@ -313,7 +331,7 @@ export class EditorController {
     if (modifier && key === 'z') { event.preventDefault(); if (event.shiftKey) this.redo(); else this.undo(); return; }
     if (modifier && key === 'y') { event.preventDefault(); this.redo(); return; }
     if (modifier && key === 'd') { event.preventDefault(); this.duplicateSelection(); return; }
-    if (modifier && key === 'a') { event.preventDefault(); this.select(this.options.board.readAll().map(element => element.id)); return; }
+    if (modifier && key === 'a') { event.preventDefault(); this.select([...this.hitIndex.elements.keys()]); return; }
     if (key === 'backspace' || key === 'delete') { event.preventDefault(); this.deleteSelection(); return; }
     if (event.code === 'BracketLeft' || event.code === 'BracketRight') { event.preventDefault(); this.reorder(event.code === 'BracketRight' ? event.shiftKey ? 'front' : 'forward' : event.shiftKey ? 'back' : 'backward'); return; }
     if (key.startsWith('arrow') && !this.options.isReadOnly()) {
