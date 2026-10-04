@@ -143,6 +143,12 @@ coordinated draining and reconnecting affected boards. Initial deployment is
 one shard. Multiple same-host processes must share the configured SQLite/data
 store; multi-host sharding needs shared transactional persistence before use.
 
+Pending upstream WebSocket handshakes are cancelled when the downstream client
+disconnects or errors. They also have a 10-second deadline, configurable through
+`WHITEBOARD_UPGRADE_TIMEOUT_MS` as a positive integer (at most 2,147,483,647).
+A late upgrade cannot attach to an already ended downstream socket. Successful
+tunnels relay both handshake buffers and close their peer on disconnect.
+
 SIGTERM/SIGINT make readiness false, reject new sessions and HTTP mutations,
 leave existing collaboration sockets active for `WHITEBOARD_DRAIN_MS` (default
 5000 ms), then close sockets and finish Hocuspocus store hooks. Clients retain their

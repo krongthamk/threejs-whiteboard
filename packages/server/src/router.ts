@@ -10,9 +10,11 @@ export function shardFor(boardId: string, shards: readonly Shard[]): Shard {
     return score(shard.id) > score(winner.id) ? shard : winner;
   });
 }
-export function createRouter(shards: Shard[], options: { port?: number; host?: string; websocketPath?: string } = {}) {
+export function createRouter(shards: Shard[], options: { port?: number; host?: string; websocketPath?: string; upgradeTimeoutMs?: number } = {}) {
   if (!shards.length || shards.some(shard => typeof shard.id !== 'string' || !shard.id.trim()) || new Set(shards.map(shard => shard.id)).size !== shards.length) throw new Error('Shard IDs must be nonempty and unique');
   for (const shard of shards) if (new URL(shard.url).protocol !== 'http:') throw new Error('Shard URLs must be internal HTTP endpoints');
+  const upgradeTimeoutMs = options.upgradeTimeoutMs ?? 10_000;
+  if (!Number.isSafeInteger(upgradeTimeoutMs) || upgradeTimeoutMs <= 0 || upgradeTimeoutMs > 2_147_483_647) throw new Error('upgradeTimeoutMs must be a positive integer no larger than 2147483647');
   const health = new Map<string, boolean>(shards.map(shard => [shard.id, false]));
   let draining = false;
   const websocketPath = options.websocketPath ?? '/collaboration';
@@ -56,19 +58,37 @@ export function createRouter(shards: Shard[], options: { port?: number; host?: s
   const sockets = new Set<import('node:net').Socket>();
   server.on('connection', socket => { sockets.add(socket); socket.on('close', () => sockets.delete(socket)); });
   server.on('upgrade', (request, socket, head) => {
+    let upstream: ReturnType<typeof httpRequest> | undefined, remote: import('node:net').Socket | undefined;
+    let deadline: ReturnType<typeof setTimeout> | undefined, cancelled = false;
+    const cancel = () => {
+      if (cancelled) return;
+      cancelled = true; clearTimeout(deadline);
+      upstream?.destroy(); remote?.destroy(); socket.destroy();
+    };
+    // Register before starting a request: clients can disappear while an owner
+    // is still deciding whether to upgrade. EOF also closes a half-open tunnel.
+    socket.on('close', cancel); socket.on('error', cancel); socket.on('end', cancel);
     const shard = target(request, true);
-    if (!shard) { socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n'); return; }
+    if (!shard) { socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n', cancel); return; }
+    if (socket.destroyed || socket.readableEnded || socket.writableEnded) { cancel(); return; }
     const destination = upstreamUrl(request, shard);
-    const upstream = httpRequest(destination, { headers: { ...request.headers, host: destination.host } });
-    upstream.on('upgrade', (response, remote, remoteHead) => {
+    deadline = setTimeout(cancel, upgradeTimeoutMs); deadline.unref();
+    upstream = httpRequest(destination, { headers: { ...request.headers, host: destination.host } });
+    upstream.on('upgrade', (response, peer, remoteHead) => {
+      peer.on('error', cancel);
+      if (cancelled || socket.destroyed || socket.readableEnded || socket.writableEnded) { peer.destroy(); cancel(); return; }
+      remote = peer; clearTimeout(deadline);
+      remote.on('close', cancel);
       socket.write(`HTTP/1.1 101 Switching Protocols\r\n${Object.entries(response.headers).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`).join('\r\n')}\r\n\r\n`);
       if (head.length) remote.write(head); if (remoteHead.length) socket.write(remoteHead);
       remote.pipe(socket); socket.pipe(remote);
-      remote.on('error', () => socket.destroy()); socket.on('error', () => remote.destroy());
-      remote.on('close', () => socket.destroy()); socket.on('close', () => remote.destroy());
     });
-    upstream.on('response', response => { socket.end(`HTTP/1.1 ${response.statusCode ?? 502} Upgrade Rejected\r\nConnection: close\r\n\r\n`); response.resume(); });
-    upstream.on('error', () => socket.destroy()); upstream.end();
+    upstream.on('response', response => {
+      clearTimeout(deadline);
+      if (cancelled || socket.destroyed || socket.writableEnded) { response.destroy(); cancel(); return; }
+      response.resume(); socket.end(`HTTP/1.1 ${response.statusCode ?? 502} Upgrade Rejected\r\nConnection: close\r\n\r\n`, cancel);
+    });
+    upstream.on('error', cancel); upstream.end();
   });
   let timer: ReturnType<typeof setInterval> | undefined;
   return { server, refresh, health,
