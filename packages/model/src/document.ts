@@ -2,6 +2,7 @@ import * as Y from 'yjs';
 import { generateKeyBetween } from 'fractional-indexing';
 import { assertValidElement, compareElements, createElement } from './schema.js';
 import { deriveElementGeometry, resolveBinding } from './geometry.js';
+import { textBlock } from './text-layout.js';
 import { CLOCK_KEY, CLOCK_PREFIX, inspectClockRoot, SCHEMA_VERSION, WRITER_PREFIX, REGISTER_FIELDS, causalClockBound, projectedElement, registerKey, validWriterRecord, type StampedValue, type WriterRecord } from './document-validation.js';
 export { CLOCK_KEY, CLOCK_PREFIX, SCHEMA_VERSION, WRITER_PREFIX, type StampedValue, type WriterRecord } from './document-validation.js';
 import type { Binding, Element, ElementInput, ElementOf, ElementPatch, ElementStyle, ElementType, Point } from './types.js';
@@ -343,6 +344,15 @@ export class BoardDocument {
     const prepared = this.preparePatch(id, patch); if (!prepared) return false;
     this.transact(() => { for (const [key, value] of Object.entries(prepared.patch)) this.set(fieldKey(id, prepared.generation, key), value); });
     return true;
+  }
+  /** One coherent props register and one undo step; empty labels restore canonical empty shapes. */
+  setShapeText(id: string, text: string): boolean {
+    const element = this.read(id);
+    if (!element || (element.type !== 'rect' && element.type !== 'ellipse')) return false;
+    const previous = textBlock(element);
+    return this.update(id, { props: text === '' ? {} : {
+      text, align: previous?.align ?? 'center', autoSize: false, verticalAlign: previous?.verticalAlign ?? 'middle',
+    } });
   }
   updateMany(updates: readonly { id: string; patch: ElementPatch }[]): void {
     // Multiple updates for one ID replace whole fields in order, just as the

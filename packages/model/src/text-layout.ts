@@ -1,5 +1,5 @@
 import generated from './font-metrics.generated.json' with { type: 'json' };
-import type { Element } from './types.js';
+import type { Element, ShapeTextProps, TextProps } from './types.js';
 
 interface FontMetrics {
   unitsPerEm: number;
@@ -15,6 +15,22 @@ const FONT_METRICS: Record<string, FontMetrics> = generated.fonts;
 export const STICKY_TEXT_INSET = 12;
 export const STICKY_CORNER_RADIUS = 6;
 export const TEXT_LINE_HEIGHT = 1.25;
+export interface TextBlock extends TextProps {
+  insetX: number;
+  insetY: number;
+  verticalAlign: ShapeTextProps['verticalAlign'];
+}
+
+/** Shared content box metadata; only free auto-size text owns its outer box. */
+export function textBlock(element: Element): TextBlock | null {
+  if (element.type === 'text') return { ...element.props, insetX: 0, insetY: 0, verticalAlign: 'top' };
+  if (element.type === 'sticky') return { ...element.props, insetX: STICKY_TEXT_INSET, insetY: STICKY_TEXT_INSET, verticalAlign: 'top' };
+  if ((element.type !== 'rect' && element.type !== 'ellipse') || typeof element.props.text !== 'string') return null;
+  const ellipseInset = (dimension: number): number => Math.max(STICKY_TEXT_INSET, dimension * (1 - 1 / Math.SQRT2) / 2);
+  return { text: element.props.text, align: element.props.align, autoSize: element.props.autoSize, verticalAlign: element.props.verticalAlign,
+    insetX: element.type === 'ellipse' ? ellipseInset(element.w) : STICKY_TEXT_INSET,
+    insetY: element.type === 'ellipse' ? ellipseInset(element.h) : STICKY_TEXT_INSET };
+}
 export type ShippedFontFamily = 'Inter' | 'IBM Plex Mono' | 'Noto Sans JP';
 export interface FontRun { family: ShippedFontFamily; text: string; start: number; end: number }
 
@@ -186,6 +202,8 @@ export interface TextLayout {
   /** Maps every UTF-16 caret boundary, including the final boundary. */
   sourceToRendered: number[];
   renderedToSource: number[];
+  /** Shape-only offset within the padded content box, including negative overflow. */
+  verticalOffset?: number;
 }
 
 const graphemeSegmenter = new Intl.Segmenter('und', { granularity: 'grapheme' });
@@ -205,10 +223,10 @@ function graphemeBoundaries(text: string): Uint32Array {
 
 /** Explicit shared wraps plus source offsets keep SVG, troika, caret and selections aligned. */
 export function textLayout(element: Element): TextLayout {
-  if (element.type !== 'text' && element.type !== 'sticky') return { text: '', lines: [], sourceToRendered: [0], renderedToSource: [0] };
-  const source = element.props.text;
-  const inset = element.type === 'sticky' ? STICKY_TEXT_INSET : 0;
-  const maxWidth = element.type === 'text' && element.props.autoSize ? Infinity : Math.max(1, element.w - inset * 2);
+  const block = textBlock(element);
+  if (!block) return { text: '', lines: [], sourceToRendered: [0], renderedToSource: [0] };
+  const source = block.text;
+  const maxWidth = element.type === 'text' && block.autoSize ? Infinity : Math.max(1, element.w - block.insetX * 2);
   const measure = textMetrics(source, element.style.fontSize, element.style.fontFamily);
   const boundaries = maxWidth === Infinity ? null : graphemeBoundaries(source);
   const lines: TextLayoutLine[] = [];
@@ -266,7 +284,12 @@ export function textLayout(element: Element): TextLayout {
   }
   sourceToRendered[source.length] = rendered.length;
   renderedToSource[rendered.length] = source.length;
-  return { text: rendered, lines, sourceToRendered, renderedToSource };
+  const layout: TextLayout = { text: rendered, lines, sourceToRendered, renderedToSource };
+  if (element.type === 'rect' || element.type === 'ellipse') {
+    const spareHeight = Math.max(0, element.h - block.insetY * 2) - lines.length * element.style.fontSize * TEXT_LINE_HEIGHT;
+    layout.verticalOffset = block.verticalAlign === 'middle' ? spareHeight / 2 : block.verticalAlign === 'bottom' ? spareHeight : 0;
+  }
+  return layout;
 }
 
 export function textLines(element: Element): string[] { return textLayout(element).lines.map(line => line.text); }

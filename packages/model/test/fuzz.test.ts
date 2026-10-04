@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import * as Y from 'yjs';
-import { assertValidElement, bindToElement, getElementBounds, LOCAL_ORIGIN, resolveConnectorEndpoints, type Element, type ElementType } from '../src/index.js';
+import { assertValidElement, bindToElement, getElementBounds, LOCAL_ORIGIN, resolveConnectorEndpoints, type Element, type ElementType, type ShapeTextProps } from '../src/index.js';
 import { BoardDocument, WRITER_PREFIX, CLOCK_PREFIX } from '../src/document.js';
 import { writeRunEvidence } from '../../../tests/evidence';
 
@@ -26,8 +26,17 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
   const integer = (n: number) => Math.floor(random() * n);
   const choose = <T>(items: readonly T[]): T => items[integer(items.length)]!;
   const coordinate = () => integer(2000) - 1000;
+  const shapeCoverage = { generated: 0, set: 0, cleared: 0, aligned: 0, validated: 0,
+    horizontal: { left: 0, center: 0, right: 0 }, vertical: { top: 0, middle: 0, bottom: 0 } };
+  const shapeProps = (text: string): ShapeTextProps => ({ text, autoSize: false,
+    align: choose(['left', 'center', 'right'] as const), verticalAlign: choose(['top', 'middle', 'bottom'] as const) });
   const base = new BoardDocument();
-  for (let i = 0; i < 28; i++) base.create(types[i % types.length]!, { id: `base-${i}`, x: i * 20, y: i * 10 });
+  for (let i = 0; i < 28; i++) {
+    const type = types[i % types.length]!;
+    const props = type === 'rect' || type === 'ellipse' ? shapeProps(`Base label ${i}\n日本語`) : undefined;
+    base.create(type, { id: `base-${i}`, x: i * 20, y: i * 10, ...(props ? { props } : {}) });
+    if (props) shapeCoverage.generated++;
+  }
   const snapshot = Y.encodeStateAsUpdate(base.doc);
   const clients = [1, 2, 3].map(clientID => { const doc = new Y.Doc(); doc.clientID = clientID; Y.applyUpdate(doc, snapshot, 'network'); return new BoardDocument(doc); });
   base.destroy();
@@ -50,11 +59,14 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     const element = choose(all);
     currentSequence = sequence; currentClient = client.doc.clientID; currentSelected = element?.id ?? '';
     const type = choose(types);
-    const action = integer(15);
+    const action = integer(18);
     if (action === 13 && client.undoManager.undoStack.length) { client.undoManager.undo(); count('undo'); return; }
     if (action === 14 && client.undoManager.redoStack.length) { client.undoManager.redo(); count('redo'); return; }
     if (all.length < 10 || action === 0 && all.length < 48) {
-      client.create(type, { id: `new-${sequence}`, x: coordinate(), y: coordinate() }); count('create'); return;
+      const props = (type === 'rect' || type === 'ellipse') && random() > .5 ? shapeProps(`New label ${sequence}\n日本語`) : undefined;
+      client.create(type, { id: `new-${sequence}`, x: coordinate(), y: coordinate(), ...(props ? { props } : {}) });
+      if (props) shapeCoverage.generated++;
+      count('create'); return;
     }
     if (action === 1 && all.length > 10) { client.delete(element.id); count('delete'); return; }
     if (action === 2) { client.move([element.id], { x: integer(41) - 20, y: integer(41) - 20 }); count('move'); return; }
@@ -82,6 +94,23 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     if (action === 11) {
       client.transact(() => { for (const target of all.slice(0, 3)) client.update(target.id, { x: coordinate(), y: coordinate() }); }); count('multi-element gesture'); return;
     }
+    if (action === 15) {
+      const target = choose(all.filter(e => e.type === 'rect' || e.type === 'ellipse'));
+      if (target) { client.setShapeText(target.id, `Shape ${sequence}\nΩ中 🖊️`); shapeCoverage.set++; count('shape text'); return; }
+    }
+    if (action === 16) {
+      const target = choose(all.filter(e => (e.type === 'rect' || e.type === 'ellipse') && typeof e.props.text === 'string'));
+      if (target) { client.setShapeText(target.id, ''); shapeCoverage.cleared++; count('shape clear'); return; }
+    }
+    if (action === 17) {
+      const target = choose(all.filter(e => (e.type === 'rect' || e.type === 'ellipse') && typeof e.props.text === 'string'));
+      if (target && (target.type === 'rect' || target.type === 'ellipse') && typeof target.props.text === 'string') {
+        const props = shapeProps(target.props.text);
+        client.update(target.id, { props }); shapeCoverage.aligned++;
+        shapeCoverage.horizontal[props.align]++; shapeCoverage.vertical[props.verticalAlign]++;
+        count('shape alignment'); return;
+      }
+    }
     client.update(element.id, { x: coordinate(), y: coordinate() }); count('position');
   }
 
@@ -95,6 +124,10 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     // read() validates the complete raw base+override projection before deriving geometry.
     for (const element of elements) {
       assertValidElement(element);
+      if ((element.type === 'rect' || element.type === 'ellipse') && typeof element.props.text === 'string') {
+        if (element.props.autoSize !== false) throw new Error(`pair ${pair}: shape text owns its box`);
+        shapeCoverage.validated++;
+      }
       if (element.id === '' || map.size !== elements.length) throw new Error(`pair ${pair}: invalid identity`);
       if (element.type === 'stroke') {
         const xs = element.props.points.filter((_, i) => i % 3 === 0), ys = element.props.points.filter((_, i) => i % 3 === 1);
@@ -137,10 +170,12 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     if ((pair + 1) % 1000 === 0) console.log(JSON.stringify({ spike: 'S2-schema2', completedPairs: pair + 1, durationMs: Math.round(performance.now() - started) }));
     if (pair % 200 === 0) clients.forEach(client => client.undoManager.clear());
   }
-  expect(Object.keys(counts).sort()).toEqual(['binding', 'create', 'delete', 'image', 'move', 'multi-element gesture', 'order', 'position', 'redo', 'resize', 'rotate', 'stroke', 'style', 'text', 'undo'].sort());
+  expect(Object.keys(counts).sort()).toEqual(['binding', 'create', 'delete', 'image', 'move', 'multi-element gesture', 'order', 'position', 'redo', 'resize', 'rotate', 'stroke', 'style', 'text', 'undo', 'shape text', 'shape clear', 'shape alignment'].sort());
   expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(20_000);
   expect(validated).toBeGreaterThan(100_000);
-  const result = { spike: 'S2-schema2', seed: SEED, concurrentPairs: 10_000, clients: 3, operations: 20_000, validatedElements: validated, invalidElements: 0, divergentPairs: 0, deliveredUpdates: delivered, operationCounts: counts, durationMs: Math.round(performance.now() - started) };
+  for (const value of [shapeCoverage.generated, shapeCoverage.set, shapeCoverage.cleared, shapeCoverage.aligned, shapeCoverage.validated,
+    ...Object.values(shapeCoverage.horizontal), ...Object.values(shapeCoverage.vertical)]) expect(value).toBeGreaterThan(0);
+  const result = { spike: 'S2-schema2', seed: SEED, concurrentPairs: 10_000, clients: 3, operations: 20_000, validatedElements: validated, invalidElements: 0, divergentPairs: 0, deliveredUpdates: delivered, operationCounts: counts, shapeTextCoverage: shapeCoverage, durationMs: Math.round(performance.now() - started) };
   writeRunEvidence('model', 's2-schema2-fuzz.json', 'packages/model/reports/s2-schema2-fuzz.json', `${JSON.stringify(result, null, 2)}\n`); console.log(JSON.stringify(result));
   clients.forEach(client => client.destroy());
 }, 900_000);

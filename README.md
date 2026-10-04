@@ -138,6 +138,14 @@ The macOS browser CI job installs PyMuPDF 1.26.4 and sets `VERIFY_PDF=1`, so PDF
 - `packages/server`: signed sessions, membership checks, SQLite WAL/FULL update log and compaction, private assets, static serving, router, drain and backup/restore.
 - `packages/loadtest`: real network fuzz, production workload and history/restore drills.
 
+The schema-2 model accepts text blocks on rectangles and ellipses.
+`BoardDocument.setShapeText(id, text)` stores a label in one undo step without
+changing the shape's box; an empty string restores empty props. New labels use
+center/middle alignment, while existing labels retain their alignment. Shared
+layout metadata provides separate ellipse insets and signed vertical offsets.
+Rendering and editing integration is tracked in the
+[feature implementation ledger](docs/IMPLEMENTATION_STATUS.md).
+
 Read [storage design and measured limits](docs/D3_STORAGE_INVESTIGATION.md), [dependency/license verification](docs/DEPENDENCY_VERIFICATION.md), and [server operations](packages/server/README.md) before changing persistence, pinned Yjs internals, or deployment topology. Schema 1 is rejected rather than silently mutated. Compaction preserves Yjs clocks and offline merge history; it does not erase retired-writer or deleted-generation information.
 
 Use the server's `operations backup` and `operations restore` commands for a coherent SQLite/assets snapshot. Backups include the private session secret and verify hashes plus database integrity on restore. The tested 100,000-update drill records reload/projection time and a full database-plus-image restore. Historical measurements and retained summary reports remain linked from the acceptance audit; generated raw traces and images stay local.

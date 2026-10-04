@@ -12,12 +12,13 @@ export interface ElementStyle {
 }
 export type Binding = Point | { elementId: string; nx: number; ny: number; fallback: Point };
 export interface TextProps { text: string; align: 'left' | 'center' | 'right'; autoSize: boolean }
+export interface ShapeTextProps extends TextProps { autoSize: false; verticalAlign: 'top' | 'middle' | 'bottom' }
 export interface StrokeProps { points: number[]; simplified: boolean }
 export interface ConnectorProps { start: Binding; end: Binding; kind: 'straight' | 'elbow' | 'curve' }
 export interface ImageProps { assetId: string; naturalW: number; naturalH: number }
 export interface PropsByType {
-  rect: Record<string, never>;
-  ellipse: Record<string, never>;
+  rect: Record<string, never> | ShapeTextProps;
+  ellipse: Record<string, never> | ShapeTextProps;
   sticky: TextProps;
   text: TextProps;
   stroke: StrokeProps;

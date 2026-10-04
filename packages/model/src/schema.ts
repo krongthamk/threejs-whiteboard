@@ -49,9 +49,11 @@ export function assertValidElement(value: unknown): asserts value is Element {
     !coordinate(style.strokeWidth) || style.strokeWidth < 0 || !finite(style.opacity) || style.opacity < 0 || style.opacity > 1 || !finite(style.fontSize) || style.fontSize <= 0 || style.fontSize > MAX_FONT_SIZE) fail(`${e.id}: style values`);
   if (!record(e.props)) fail(`${e.id}: props`);
   const props = e.props as Record<string, unknown>;
-  if (e.type === 'text' || e.type === 'sticky') {
+  const shapeText = (e.type === 'rect' || e.type === 'ellipse') && Object.keys(props).length !== 0;
+  if (e.type === 'text' || e.type === 'sticky' || shapeText) {
     if (typeof props.text !== 'string' || !['left', 'center', 'right'].includes(String(props.align)) || typeof props.autoSize !== 'boolean') fail(`${e.id}: text coherence`);
     if ((props.text as string).length > MAX_TEXT_LENGTH) fail(`${e.id}: text exceeds the 50,000 character limit`);
+    if (shapeText && (props.autoSize !== false || typeof props.align !== 'string' || typeof props.verticalAlign !== 'string' || !['top', 'middle', 'bottom'].includes(props.verticalAlign))) fail(`${e.id}: shape text coherence`);
   } else if (e.type === 'stroke') {
     if (!Array.isArray(props.points) || props.points.length < 3 || props.points.length % 3 !== 0 || typeof props.simplified !== 'boolean') fail(`${e.id}: stroke coherence`);
     for (let i = 0; i < (props.points as unknown[]).length; i++) {
