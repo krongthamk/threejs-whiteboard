@@ -29,6 +29,49 @@ Hocuspocus spike processes to loadtest, which now declares its existing pinned
 server dependency. No dependency version changes or new external packages are
 introduced.
 
+Finding 51 update — 2026-10-05: the audit now accepts only MIT, ISC,
+BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, CC0-1.0, Unlicense and OFL-1.1
+identifiers. Valid SPDX `AND`/`OR` expressions and parentheses are supported,
+but **every identifier in every branch must be allowlisted**. An approved OR
+alternative does not excuse an unapproved branch. Missing, unknown, malformed,
+exception-bearing and noncanonical expressions fail, as do the existing tldraw
+and `@y/hub` package exclusions. No license exceptions were added. This follows
+the [SPDX expression grammar](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/)
+with the stricter project policy applied to each identifier.
+
+The installed dependency graph previously failed that policy on Lightning CSS
+(MPL-2.0), DOMPurify (MPL-2.0 OR Apache-2.0) and pako (MIT AND Zlib). Tooling now
+uses Vite **7.3.6** (MIT) and `@vitejs/plugin-react-swc` **4.3.3** (MIT), removing
+the Lightning CSS dependency. The SWC binary's `Apache-2.0 AND MIT` expression
+contains only approved identifiers. Vite 7.3 is an
+[upstream maintained release line](https://vite.dev/releases); Vitest **5.0.2**
+is retained and supports Vite 7. The exact dependency graph is locked.
+
+Two overrides are scoped to jsPDF **4.2.1**. Its `fast-png` decoder is pinned to
+**8.0.0** (MIT), which uses `fflate` (MIT) instead of pako. jsPDF uses its decode
+API, whose image dimensions, samples and CRC option remain compatible; fast-png
+8's encoder-option change is outside that call path. Its optional DOMPurify
+dependency is removed because the board exporter uses SVG, never HTML strings.
+An exact Vite alias resolves that optional import to a local module which throws
+if called, so the unused HTML converter fails explicitly in development and
+production. It does not substitute an identity function for sanitization.
+The [jsPDF optional-dependency guidance](https://github.com/parallax/jsPDF/blob/v4.2.1/README.md#optional-dependencies)
+documents the separate HTML path; the
+[fast-png changelog](https://github.com/image-js/fast-png/blob/v8.0.0/CHANGELOG.md)
+records the compressor change. Native PDF text/font/ink and image checks,
+development SVG/PNG PDF export, and explicit HTML-converter rejection cover the
+application’s export paths. Future jsPDF upgrades must recheck these scoped
+overrides rather than silently broadening them.
+
+The compatibility tests also reproduced a jsPDF 4.2.1 byte-order defect in
+16-bit gray-alpha/RGBA PNGs with both the old 6.4 and new 8.0 decoder. Board PDF
+export now converts only those images through the browser's validated pixel
+path; standalone SVG and stored image bytes remain unchanged. Nine independent
+PNG fixtures verify decoder samples, seven verify direct PDF color/mask streams,
+and the native 16-bit-alpha test checks actual PDF raster colors and transparency
+against the browser. This avoids modifying upstream jsPDF or pretending its
+direct 16-bit-alpha API is correct.
+
 Hocuspocus server, provider, and database extension are pinned to **4.7.0**.
 The [official v4.7.0 release](https://github.com/ueberdosis/hocuspocus/releases/tag/v4.7.0)
 explicitly includes [PR #1152](https://github.com/ueberdosis/hocuspocus/pull/1152),

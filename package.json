@@ -27,12 +27,18 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/better-sqlite3": "9.6.0",
-    "@vitejs/plugin-react": "6.1.1",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
-    "vite": "8.3.1",
+    "vite": "7.3.6",
     "vitest": "5.0.2",
     "@whiteboard/model": "workspace:*",
-    "@whiteboard/renderer": "workspace:*"
+    "@whiteboard/renderer": "workspace:*",
+    "@vitejs/plugin-react-swc": "4.3.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "jspdf@4.2.1>fast-png": "8.0.0",
+      "jspdf@4.2.1>dompurify": "-"
+    }
   }
 }

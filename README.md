@@ -83,6 +83,10 @@ Export the board or selection as PNG at 1×–4×, a self-contained SVG, or a si
 
 Closing the export dialog cancels preparation and prevents a late download. Unavailable or corrupt images use placeholders in PNG, SVG and PDF; the completed download keeps the dialog open with a list of affected asset IDs. Valid instances of a shared image remain included.
 
+PDF export converts 16-bit PNGs with alpha to 8-bit display pixels to preserve
+their colors and transparency. Their stored files and standalone SVG bytes stay
+unchanged.
+
 Line wrapping keeps grapheme clusters together, including combining accents, emoji sequences, flags and decomposed Hangul. Glyph coverage is still limited to the shipped fonts.
 
 Text and sticky notes allow up to 50,000 UTF-16 units; some emoji count as two. Over-limit insertions are rejected visibly without truncating the existing draft. Layout positioning waits briefly during typing above 5,000 units; camera, resize and peer geometry changes update immediately. Existing saved text above the limit is quarantined with an invalid-item notice, never silently shortened.
@@ -102,6 +106,11 @@ pnpm test:routed
 node scripts/license-audit.mjs
 pnpm --filter @whiteboard/app build
 ```
+
+The license audit requires every SPDX identifier, including every branch of a
+compound expression, to appear in the project's explicit allowlist. Unknown or
+missing licenses fail. [Dependency verification](docs/DEPENDENCY_VERIFICATION.md)
+records the pinned tooling and PDF decoder choices that satisfy this policy.
 
 `pnpm test:app` builds an isolated test bundle and starts a disposable authenticated server on 3001 plus the app on 5174. Stop the local deployment first to release 3001. Its generated accounts/data never enter deployment storage. `pnpm test:routed` runs the actual app through a two-owner router using separate server instances and shared same-host test SQLite; it checks both owners and reload persistence. S4 uses the separate spike test server on 4175. Install the test browser with `pnpm exec playwright install chrome` if needed.
 

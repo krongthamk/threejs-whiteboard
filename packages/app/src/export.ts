@@ -1,4 +1,4 @@
-import { normalizeImageOrientation } from './image-orientation';
+import { normalizeImageOrientation, normalizeImagePixels } from './image-orientation';
 import { readImageHeader, MAX_IMAGE_BYTES, contentBounds, documentToSvg, resolveBinding, resolveFontRuns, type BoardDocument, type Box, type Element } from '@whiteboard/model';
 import { createRenderer, waitForSignal, IMAGE_ERROR_COLOR, type ThreeRenderer } from '@whiteboard/renderer';
 
@@ -146,9 +146,13 @@ export class BoardExporter {
         const url = await waitForSignal(Promise.resolve().then(() => this.resolveAsset!(id)), sourceSignal);
         let blob = await readBlob(url, sourceSignal);
         if (blob.size > MAX_IMAGE_BYTES) throw new Error('The image exceeds the 20 MiB limit.');
-        const header = readImageHeader(new Uint8Array(await waitForSignal(blob.arrayBuffer(), sourceSignal)));
+        const bytes = new Uint8Array(await waitForSignal(blob.arrayBuffer(), sourceSignal)), header = readImageHeader(bytes);
         // Validate decoding before embedding bytes that could silently disappear in SVG/PDF.
         if (header.orientation) blob = await normalizeImageOrientation(blob, header, sourceSignal);
+        // jsPDF 4.2.1 byte-swaps 16-bit alpha samples with both fast-png 6 and 8.
+        // IHDR offsets are inspected only after bounded container validation. SVG
+        // keeps the original bytes; PDF uses the same display pixels as the browser.
+        else if (options.format === 'pdf' && header.mimeType === 'image/png' && bytes[24] === 16 && (bytes[25] === 4 || bytes[25] === 6)) blob = await normalizeImagePixels(blob, header, sourceSignal);
         else {
           const decoded = createImageBitmap(blob, { resizeWidth: 1, resizeHeight: 1 }).then(bitmap => { bitmap.close(); });
           await waitForSignal(decoded, sourceSignal);

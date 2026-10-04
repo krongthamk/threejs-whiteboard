@@ -115,10 +115,10 @@ test('private boards converge, isolate undo, keep 30s offline edits and restore 
     await bob!.mouse.move(740, 460);
     await expect.poll(() => alice!.evaluate(() => window.whiteboard.renderer.stats().presencePeers)).toBe(1);
     await expect.poll(() => alice!.evaluate(() => window.whiteboard.renderer.stats().presenceLabels)).toBe(1);
-    const offlineAt = Date.now();
-    await contexts[0]!.setOffline(true);
     await alice!.evaluate(() => window.whiteboardConnection!.provider.disconnect());
     await expect(alice!.getByRole('status').filter({ hasText: 'Offline' })).toBeVisible();
+    await contexts[0]!.setOffline(true);
+    const offlineAt = Date.now();
     await alice!.keyboard.press('Shift+ArrowDown');
     await draw(bob!, 'Ellipse', 820, 500);
     await new Promise(resolve => setTimeout(resolve, Math.max(0, 30_050 - (Date.now() - offlineAt))));
@@ -208,7 +208,10 @@ test('live editor downgrade refreshes the local document and later regrant canno
     await expect.poll(async () => (await contents(editor)).length).toBe(1);
     const original = await contents(owner);
     // Preserve a genuine queued offline change while membership is downgraded.
-    await editorContext.setOffline(true); await editor.evaluate(() => window.whiteboardConnection!.provider.disconnect());
+    // Complete the close handshake before network emulation can interrupt it.
+    await editor.evaluate(() => window.whiteboardConnection!.provider.disconnect());
+    await expect(editor.getByRole('status').filter({ hasText: 'Offline' })).toBeVisible();
+    await editorContext.setOffline(true);
     await draw(editor, 'Ellipse', 820, 500); expect(await contents(editor)).toHaveLength(2);
     const changeRole = async (role: string) => owner.evaluate(async ({ id, role }) => {
       const response = await fetch(`/api/boards/${id}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'bob', role }) });

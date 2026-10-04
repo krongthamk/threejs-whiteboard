@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { normalizeImageOrientation } from './image-orientation';
+import { normalizeImageOrientation, normalizeImagePixels } from './image-orientation';
 vi.mock('@whiteboard/renderer', async () => await import('../../renderer/src/abort'));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -42,5 +42,12 @@ it('cancels promptly and closes a bitmap that finishes decoding after cancellati
   const pending = normalizeImageOrientation(new Blob(), header, controller.signal);
   controller.abort(); await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
   finish(bitmap); await Promise.resolve(); await Promise.resolve();
+  expect(bitmap.close).toHaveBeenCalledOnce(); expect(canvas.width).toBe(0);
+});
+
+it('converts ordinary validated pixels when a consumer needs an 8-bit PNG', async () => {
+  const { bitmap, canvas, drawImage } = fixture();
+  const result = await normalizeImagePixels(new Blob(['16-bit samples']), { width: 80, height: 40 });
+  expect(result.type).toBe('image/png'); expect(drawImage).toHaveBeenCalledWith(bitmap, 0, 0);
   expect(bitmap.close).toHaveBeenCalledOnce(); expect(canvas.width).toBe(0);
 });

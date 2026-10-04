@@ -4,7 +4,12 @@ import { waitForSignal } from '@whiteboard/renderer';
 /** Bake validated EXIF transforms into pixels so every export consumer sees the same image. */
 export async function normalizeImageOrientation(blob: Blob, header: ImageHeader, signal?: AbortSignal): Promise<Blob> {
   signal?.throwIfAborted();
-  if (!header.orientation) return blob;
+  return header.orientation ? normalizeImagePixels(blob, header, signal) : blob;
+}
+
+/** Convert browser display pixels to an 8-bit PNG for consumers with narrower PNG support. */
+export async function normalizeImagePixels(blob: Blob, header: Pick<ImageHeader, 'width' | 'height'>, signal?: AbortSignal): Promise<Blob> {
+  signal?.throwIfAborted();
   assertSafeImageDimensions(header.width, header.height);
   const canvas = document.createElement('canvas');
   canvas.width = header.width; canvas.height = header.height;
