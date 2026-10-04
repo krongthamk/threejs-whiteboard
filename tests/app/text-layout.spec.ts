@@ -1,3 +1,5 @@
+import type { ThreeRenderer, RendererStats } from '@whiteboard/renderer';
+import type { BoardExporter } from '../../packages/app/src/export';
 import { pdfInspectionEnvironment } from '../pdf-inspection';
 import { test, expect } from '@playwright/test';
 import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
@@ -199,7 +201,20 @@ for (const scenario of ['offscreen', 'onscreen', 'presence'] as const) test(`col
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
   const measured = await page.evaluate(async scenario => {
-    const { board, exporter, renderer } = window.whiteboard;
+    const { board, renderer } = window.whiteboard;
+    const Renderer = renderer.constructor as typeof ThreeRenderer, Exporter = window.whiteboard.exporter.constructor as typeof BoardExporter;
+    let captured: { projection: RendererStats; text: { visible: boolean; parent?: string; blockBounds?: number[] } | null } | undefined;
+    const exporter = new Exporter(board, undefined, options => {
+      const projection = new Renderer(options), exportPng = projection.exportPng.bind(projection);
+      projection.exportPng = async options => {
+        const blob = await exportPng(options), object = projection.getTextObject('wide-export');
+        // Record readiness before the exporter releases this request's projection.
+        captured = { projection: projection.stats(), text: object ? { visible: object.visible, parent: object.parent?.name,
+          blockBounds: object.textRenderInfo?.blockBounds ? Array.from(object.textRenderInfo.blockBounds) : undefined } : null };
+        return blob;
+      };
+      return projection;
+    });
     const text = `日本語 ${Array(8).fill('office affinity ffi ffl fffi').join(' ')}`;
     const visibleOnScreen = scenario === 'onscreen';
     const element = board.create('text', { id: 'wide-export', x: visibleOnScreen ? 0 : 30_000, y: visibleOnScreen ? 0 : 12_000, style: { fontFamily: 'IBM Plex Mono', fontSize: 32, color: '#111111' }, props: { text, align: 'left', autoSize: true } });
@@ -220,16 +235,19 @@ for (const scenario of ['offscreen', 'onscreen', 'presence'] as const) test(`col
         const at = (y * canvas.width + x) * 4;
         if (Math.max(pixels[at]!, pixels[at + 1]!, pixels[at + 2]!) < 160) { ink++; left = Math.min(left, x); top = Math.min(top, y); right = Math.max(right, x); bottom = Math.max(bottom, y); }
       }
-      const projection = (exporter as unknown as { renderer: typeof renderer }).renderer, object = projection.getTextObject(element.id);
-      results.push({ label, ink, bounds: [left, top, right, bottom], width: canvas.width, height: canvas.height, image: canvas.toDataURL(), projection: projection.stats(), text: object ? { visible: object.visible, parent: object.parent?.name, blockBounds: object.textRenderInfo?.blockBounds } : null });
+      if (!captured) throw new Error('The export projection did not report readiness.');
+      results.push({ label, ink, bounds: [left, top, right, bottom], width: canvas.width, height: canvas.height, image: canvas.toDataURL(), ...captured });
+      captured = undefined;
     }
-    return { element, before, results, display: renderer.stats() };
+    exporter.destroy(); return { element, before, results, display: renderer.stats() };
   }, scenario);
   const stem = `wide-export-${scenario}`;
   for (const result of measured.results) writeFileSync(`${directory}/${stem}-${result.label}.png`, Buffer.from(result.image.split(',')[1]!, 'base64'));
   writeFileSync(`${directory}/${stem}.json`, JSON.stringify({ ...measured, results: measured.results.map(({ image: _image, ...result }) => result), pageErrors: errors }, null, 2));
   expect(measured.element.w).toBeGreaterThan(2500);
   for (const result of measured.results) {
+    expect(result.projection.pendingTexts, result.label).toBe(0);
+    expect(result.text?.blockBounds, result.label).toHaveLength(4);
     expect(result.ink, result.label).toBeGreaterThan(1000);
     expect(result.bounds[0], result.label).toBeGreaterThanOrEqual(48);
     expect(result.bounds[2], result.label).toBeGreaterThan(result.width - 100);

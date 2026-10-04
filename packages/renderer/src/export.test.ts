@@ -11,7 +11,7 @@ vi.mock('three', async importOriginal => {
     target: THREE.WebGLRenderTarget | null = null;
     targets: THREE.WebGLRenderTarget[] = [];
     constructor(options: { canvas: HTMLCanvasElement }) { this.domElement = options.canvas; }
-    setPixelRatio() {} getPixelRatio() { return 1; } setClearColor() {} setSize() {} render() {} dispose() {}
+    setPixelRatio() {} getPixelRatio() { return 1; } setClearColor() {} setSize() {} render() {} dispose() {} forceContextLoss() {}
     getClearColor(color: THREE.Color) { return color.setRGB(1, 1, 1); } getClearAlpha() { return 1; }
     setRenderTarget(target: THREE.WebGLRenderTarget | null) { this.target = target; if (target) this.targets.push(target); }
     getRenderTarget() { return this.target; }

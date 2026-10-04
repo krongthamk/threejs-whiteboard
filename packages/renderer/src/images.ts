@@ -22,6 +22,8 @@ export class ImageProjection {
   private assets = new Map<string, Asset>();
   private index = new RBush<Entry>();
   private visibleIds = new Set<string>();
+  private offscreenHandles = new Map<string, true>();
+  private exportPinnedIds = new Set<string>();
   private depths: ReadonlyMap<string, number> = new Map();
   private geometry = new THREE.PlaneGeometry(1, 1);
   private pending = new Set<Promise<void>>();
@@ -65,6 +67,16 @@ export class ImageProjection {
     }
     for (const id of this.visibleIds) if (!visible.has(id)) { const handle = this.handles.get(id); if (handle) handle.mesh.visible = false; }
     this.visibleIds = visible;
+    for (const id of this.handles.keys()) {
+      if (visible.has(id) || this.exportPinnedIds.has(id)) this.offscreenHandles.delete(id);
+      else if (!this.offscreenHandles.has(id)) this.offscreenHandles.set(id, true);
+    }
+    const configured = this.options.offscreenImageCacheSize ?? 256;
+    const limit = Number.isFinite(configured) ? Math.max(0, Math.floor(configured)) : 256;
+    while (this.offscreenHandles.size > limit) {
+      const id = this.offscreenHandles.keys().next().value!, handle = this.handles.get(id)!;
+      this.removeHandle(handle); this.handles.delete(id);
+    }
     for (const [id, { element, size }] of demands) {
       let asset = this.assets.get(id);
       if (!asset) { asset = { id, controller: new AbortController(), desiredSize: size }; this.assets.set(id, asset); }
@@ -72,8 +84,18 @@ export class ImageProjection {
       this.ensureTexture(asset, element, this.exporting);
       this.bindAsset(asset);
     }
-    // Keep display resources while export visits other tiles; otherwise release offscreen assets.
-    if (!this.exporting) for (const asset of [...this.assets.values()]) if (!demands.has(asset.id)) this.removeAsset(asset);
+    // Retain only previously loaded resources near the viewport, without prefetch
+    // or expanding visibility/readiness. Surviving offscreen handles bound this set.
+    const retained = new Set(demands.keys());
+    for (const id of this.exportPinnedIds) { const handle = this.handles.get(id); if (handle) retained.add(handle.element.props.assetId); }
+    if (!this.exporting) for (const entry of this.index.search({ minX: bounds.x - bounds.w * .25, minY: bounds.y - bounds.h * .25,
+      maxX: bounds.x + bounds.w * 1.25, maxY: bounds.y + bounds.h * 1.25 })) {
+      const handle = this.handles.get(entry.id); if (handle) retained.add(handle.element.props.assetId);
+    }
+    for (const asset of [...this.assets.values()]) {
+      if (!retained.has(asset.id)) this.removeAsset(asset);
+      else if (this.exporting && !demands.has(asset.id) && asset.full) { this.disposeTexture(asset.full); asset.full = undefined; asset.fullError = undefined; }
+    }
   }
   private transform(handle: Handle): void {
     const e = handle.element, depth = this.depths.get(e.id) ?? 0;
@@ -111,6 +133,7 @@ export class ImageProjection {
     if (full ? asset.full || asset.fullTask || asset.fullError : asset.error || asset.displayTask || (asset.display && asset.display.size >= asset.desiredSize)) return;
     const work = (async () => {
       const blob = await this.source(asset), header = asset.header!;
+      if (this.disposed || asset.controller.signal.aborted || this.assets.get(asset.id) !== asset) return null;
       this.bindAsset(asset);
       // Metadata belongs to an immutable asset; declarations belong to each instance.
       // One forged instance cannot borrow a valid texture or poison another instance.
@@ -160,6 +183,7 @@ export class ImageProjection {
     });
   }
   private bindAsset(asset: Asset): void {
+    if (this.disposed || this.assets.get(asset.id) !== asset) return;
     const resource = this.exporting ? asset.full : asset.display, error = this.exporting ? asset.fullError : asset.error;
     let changed = false;
     for (const id of this.visibleIds) {
@@ -176,11 +200,20 @@ export class ImageProjection {
     if (changed) this.invalidate();
   }
   setExporting(exporting: boolean): void {
+    if (exporting && !this.exporting) this.exportPinnedIds = new Set(this.visibleIds);
+    if (!exporting) this.exportPinnedIds.clear();
     this.exporting = exporting;
     if (!exporting) for (const asset of this.assets.values()) { if (asset.full) this.disposeTexture(asset.full); asset.full = undefined; asset.fullError = undefined; this.bindAsset(asset); }
   }
   async whenReady(allowErrors = false): Promise<readonly string[]> {
-    while (this.pending.size) await Promise.all(this.pending);
+    for (;;) {
+      const ids = new Set([...this.visibleIds].map(id => this.handles.get(id)!.element.props.assetId));
+      const tasks = [...ids].map(id => this.assets.get(id)).flatMap(asset => {
+        const task = this.exporting ? asset?.fullTask : asset?.displayTask; return task ? [task] : [];
+      });
+      if (!tasks.length) break;
+      await Promise.all(tasks);
+    }
     const failures = new Set<string>();
     for (const id of this.visibleIds) {
       const handle = this.handles.get(id);
@@ -196,14 +229,15 @@ export class ImageProjection {
   private disposeTexture(resource: TextureResource): void { resource.texture.dispose(); resource.bitmap.close(); }
   private removeAsset(asset: Asset): void {
     this.assets.delete(asset.id); asset.controller.abort();
+    if (asset.displayTask) this.pending.delete(asset.displayTask); if (asset.fullTask) this.pending.delete(asset.fullTask);
     if (asset.display) this.disposeTexture(asset.display); if (asset.full) this.disposeTexture(asset.full);
     for (const handle of this.handles.values()) if (handle.element.props.assetId === asset.id) { handle.mesh.material.map = null; handle.mesh.material.needsUpdate = true; }
   }
-  private removeHandle(handle: Handle): void { handle.mesh.removeFromParent(); handle.mesh.material.dispose(); }
+  private removeHandle(handle: Handle): void { this.offscreenHandles.delete(handle.element.id); handle.mesh.removeFromParent(); handle.mesh.material.dispose(); }
   clear(): void {
     for (const handle of this.handles.values()) this.removeHandle(handle); this.handles.clear();
     for (const asset of [...this.assets.values()]) this.removeAsset(asset);
-    this.elements.clear(); this.index.clear(); this.visibleIds.clear();
+    this.elements.clear(); this.index.clear(); this.visibleIds.clear(); this.exportPinnedIds.clear();
   }
-  dispose(): void { this.disposed = true; this.clear(); this.geometry.dispose(); }
+  dispose(): void { if (this.disposed) return; this.disposed = true; this.clear(); this.geometry.dispose(); }
 }

@@ -138,3 +138,31 @@ test('a real lost export context rejects the PNG and a fresh projection retries 
   expect(result.failure).toContain('graphics context'); expect(result.projections).toBe(2); expect(result.projectionDisposals).toBe(2);
   expect(result.green).toEqual([0, 255, 0, 255]); expect(errors).toEqual([]);
 });
+
+test('each completed PNG owns one disposable projection and releases its WebGL context', async ({ page }) => {
+  await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
+  const result = await page.evaluate(async () => {
+    const { board, renderer: display } = window.whiteboard;
+    board.create('rect', { x: 0, y: 0, w: 80, h: 60, style: { fill: '#00ff00', strokeWidth: 0 } });
+    const Renderer = display.constructor as typeof ThreeRenderer, Exporter = window.whiteboard.exporter.constructor as typeof BoardExporter;
+    let creations = 0, disposals = 0, contextLosses = 0;
+    const exporter = new Exporter(board, undefined, options => {
+      creations++; const projection = new Renderer(options), dispose = projection.dispose.bind(projection), lose = projection.webgl.forceContextLoss.bind(projection.webgl);
+      projection.dispose = () => { disposals++; dispose(); };
+      projection.webgl.forceContextLoss = () => { contextLosses++; lose(); };
+      return projection;
+    });
+    const checkpoints: number[][] = [], pixels: number[][] = [];
+    try {
+      for (let n = 0; n < 2; n++) {
+        const bitmap = await createImageBitmap(await exporter.create({ format: 'png', scale: 1, transparent: false, title: 'Disposable PNG', padding: 0 }));
+        const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+        const paint = canvas.getContext('2d')!; paint.drawImage(bitmap, 0, 0); bitmap.close();
+        pixels.push([...paint.getImageData(40, 30, 1, 1).data]); checkpoints.push([creations, disposals, contextLosses]);
+      }
+    } finally { exporter.destroy(); }
+    return { checkpoints, pixels, disposals };
+  });
+  expect(result.checkpoints).toEqual([[1, 1, 1], [2, 2, 2]]); expect(result.disposals).toBe(2);
+  expect(result.pixels).toEqual([[0, 255, 0, 255], [0, 255, 0, 255]]);
+});

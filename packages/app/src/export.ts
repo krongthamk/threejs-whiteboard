@@ -1,6 +1,6 @@
 import { normalizeImageOrientation } from './image-orientation';
 import { readImageHeader, MAX_IMAGE_BYTES, contentBounds, documentToSvg, resolveBinding, resolveFontRuns, type BoardDocument, type Box, type Element } from '@whiteboard/model';
-import { createRenderer, ExportContextLostError, waitForSignal, IMAGE_ERROR_COLOR, type ThreeRenderer } from '@whiteboard/renderer';
+import { createRenderer, waitForSignal, IMAGE_ERROR_COLOR, type ThreeRenderer } from '@whiteboard/renderer';
 
 export interface ExportOptions { format: 'png' | 'svg' | 'pdf'; selection?: readonly string[]; scale: number; transparent: boolean; title: string; padding?: number; signal?: AbortSignal; onAssetWarnings?: (assetIds: readonly string[]) => void }
 export interface ExportSnapshot { elements: Element[]; bounds: Box }
@@ -84,7 +84,7 @@ export function captureExport(board: BoardDocument, selection?: readonly string[
   return { elements, bounds: { x: raw.x - padding, y: raw.y - padding, w: Math.max(1, raw.w + 2 * padding), h: Math.max(1, raw.h + 2 * padding) } };
 }
 
-/** A cached, document-only projection excludes draft gestures and unselected overlaps. */
+/** A document-only projection excludes draft gestures and unselected overlaps. */
 export class BoardExporter {
   private renderer?: ThreeRenderer;
   private busy = false;
@@ -120,17 +120,13 @@ export class BoardExporter {
   private async png({ elements, bounds }: ExportSnapshot, options: ExportOptions, warn: (id: string) => void): Promise<Blob> {
     const w = Math.ceil(bounds.w * options.scale), h = Math.ceil(bounds.h * options.scale);
     if (w > 32767 || h > 32767 || w * h > 100_000_000) throw new Error('This PNG would be too large. Choose a smaller scale, a selection, or SVG.');
-    this.renderer ??= this.createProjection({ canvas: document.createElement('canvas'), fontUrl: '/fonts/inter-latin-400-normal.woff', monoFontUrl: '/fonts/ibm-plex-mono-latin-400-normal.woff', fallbackFontUrl: '/fonts/noto-sans-jp-400.woff', resolveAsset: this.resolveAsset, background: '#ffffff', grid: false, pixelRatio: 1 });
-    this.renderer.setElements(elements);
-    this.renderer.resize(1, 1);
-    this.renderer.setCamera({ x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2, zoom: 1 / Math.max(bounds.w, bounds.h) });
-    const renderer = this.renderer;
-    try { return await renderer.exportPng({ bounds, scale: options.scale, transparent: options.transparent, signal: options.signal, onAssetError: warn }); }
-    catch (error) {
-      // A lost projection cannot serve a later retry. Other failures retain its cache.
-      if (error instanceof ExportContextLostError || options.signal?.aborted) { renderer.dispose(); this.renderer = undefined; }
-      throw error;
-    }
+    const renderer = this.createProjection({ canvas: document.createElement('canvas'), fontUrl: '/fonts/inter-latin-400-normal.woff', monoFontUrl: '/fonts/ibm-plex-mono-latin-400-normal.woff', fallbackFontUrl: '/fonts/noto-sans-jp-400.woff', resolveAsset: this.resolveAsset, background: '#ffffff', grid: false, pixelRatio: 1 });
+    this.renderer = renderer;
+    try {
+      renderer.setElements(elements); renderer.resize(1, 1);
+      renderer.setCamera({ x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2, zoom: 1 / Math.max(bounds.w, bounds.h) });
+      return await renderer.exportPng({ bounds, scale: options.scale, transparent: options.transparent, signal: options.signal, onAssetError: warn });
+    } finally { renderer.dispose(); this.renderer = undefined; }
   }
 
   private async svg({ elements, bounds }: ExportSnapshot, options: ExportOptions, warn: (id: string) => void): Promise<string> {

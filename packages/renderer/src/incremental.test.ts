@@ -11,7 +11,7 @@ vi.mock('three', async importOriginal => {
   class WebGLRenderer {
     capabilities = { maxTextureSize: 4096 };
     info = { render: { calls: 0, triangles: 0 }, memory: { geometries: 0, textures: 0 } };
-    setPixelRatio() {} getPixelRatio() { return 1; } setClearColor() {} setSize() {} render = vi.fn(); dispose() {}
+    setPixelRatio() {} getPixelRatio() { return 1; } setClearColor() {} setSize() {} render = vi.fn(); dispose = vi.fn(); forceContextLoss = vi.fn();
   }
   return { ...actual, WebGLRenderer };
 });
@@ -371,4 +371,56 @@ describe('render invalidation', () => {
     renderer.render(false); expect(draws()).toBe(failedBefore + 1);
     renderer.render(false); expect(draws()).toBe(failedBefore + 1);
   });
+});
+
+
+describe('bounded offscreen text cache', () => {
+  const regional = (n: number): ElementOf<'sticky'> => ({ ...note(), id: `region-${n}`, x: n * 2000 });
+  async function visit(n: number): Promise<MockText> {
+    renderer.setCamera({ x: n * 2000, y: 0, zoom: 1 }); renderer.render();
+    const mesh = renderer.getTextObject(`region-${n}`) as unknown as MockText;
+    mesh.callbacks.shift()?.(); await renderer.whenReady(); return mesh;
+  }
+  function regions(cap = 2) {
+    renderer.dispose();
+    renderer = new ThreeRenderer({ canvas: { clientWidth: 1000, clientHeight: 800 } as HTMLCanvasElement, fontUrl: '/font.woff', offscreenTextCacheSize: cap });
+    renderer.setElements(Array.from({ length: 7 }, (_, n) => regional(n)));
+  }
+  it('evicts the least recently visited offscreen handle while keeping recent and visible handles', async () => {
+    regions(); const zero = await visit(0), one = await visit(1);
+    expect(await visit(0)).toBe(zero); await visit(2); await visit(3);
+    expect(renderer.stats().textInstances).toBe(3);
+    expect(renderer.getTextObject('region-1')).toBeUndefined(); expect(one.dispose).toHaveBeenCalledOnce();
+    expect(renderer.getTextObject('region-0')).toBe(zero); expect(zero.dispose).not.toHaveBeenCalled();
+    const recreated = await visit(1); expect(recreated).not.toBe(one); expect(recreated.visible).toBe(true);
+  });
+  it('pins edited text even outside the viewport and releases it when editing ends', async () => {
+    regions(0); const zero = await visit(0); renderer.setEditingText('region-0'); await visit(1); await visit(2);
+    expect(renderer.getTextObject('region-0')).toBe(zero); expect(zero.dispose).not.toHaveBeenCalled();
+    renderer.setEditingText(null); renderer.render(); await renderer.whenReady();
+    expect(renderer.getTextObject('region-0')).toBeUndefined(); expect(zero.dispose).toHaveBeenCalledOnce();
+  });
+  it('eviction cancels both active and replacement layouts and late sync cannot resurrect them', async () => {
+    regions(0); const zero = await visit(0);
+    renderer.applyDiff([{ ...regional(0), props: { ...regional(0).props, text: 'Pending replacement' } }]); renderer.render();
+    const replacement = latestText(); await visit(1);
+    expect(zero.dispose).toHaveBeenCalledOnce(); expect(replacement.dispose).toHaveBeenCalledOnce();
+    replacement.callbacks.shift()?.(); await Promise.resolve();
+    expect(renderer.getTextObject('region-0')).toBeUndefined(); expect(renderer.stats().pendingTexts).toBe(0);
+  });
+});
+
+it('disposal releases WebGL resources and loses the context exactly once', () => {
+  renderer.dispose(); renderer.dispose();
+  expect(renderer.webgl.dispose).toHaveBeenCalledOnce(); expect(renderer.webgl.forceContextLoss).toHaveBeenCalledOnce();
+});
+
+it('ready visible text does not wait for a retained offscreen glyph producer', async () => {
+  renderer.setElements([note(), { ...note(), id: 'other', x: 2000 }]); renderer.render();
+  const offscreen = latestText();
+  renderer.setCamera({ x: 2000, y: 0, zoom: 1 }); renderer.render(); latestText().callbacks.shift()!();
+  const result = await Promise.race([renderer.whenReady().then(() => 'ready'), new Promise<string>(resolve => setTimeout(() => resolve('blocked'), 20))]);
+  expect(result).toBe('ready'); expect(renderer.stats().pendingTexts).toBe(1);
+  offscreen.callbacks.shift()!(); await Promise.resolve();
+  expect(renderer.stats().pendingTexts).toBe(0);
 });

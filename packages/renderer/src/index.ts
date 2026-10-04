@@ -13,12 +13,12 @@ import { LiveStroke } from './live-stroke';
 import { PresenceProjection } from './presence';
 import { ImageProjection } from './images';
 import { syncTextAtlas, whenTextAtlasReady } from './text-atlas';
-import type { Bounds, CameraState, PngOptions, RemotePresence, RenderElement, Renderer, RendererOptions, RendererStats } from './types';
+import type { Bounds, CameraState, PngOptions, RemotePresence, RenderElement, RendererOptions, RendererStats } from './types';
 export * from './types';
 export { selectionHandles, type SelectionState, type SelectionFrame, type SelectionHandle } from './selection';
 
 interface TextIndexEntry { minX: number; minY: number; maxX: number; maxY: number; id: string }
-interface TextHandle { mesh: Text; ready: boolean; placeholder: THREE.Mesh; cancel: () => void; layout: ReturnType<typeof textLayout>; error?: Error }
+interface TextHandle { mesh: Text; ready: boolean; placeholder: THREE.Mesh; cancel: () => void; layout: ReturnType<typeof textLayout>; error?: Error; task?: Promise<void> }
 interface StrokeChunk { ids: string[]; mesh: THREE.Mesh }
 export interface TextCaret { charIndex: number; x: number; y: number; height: number }
 let configuredFallbackFont: string | undefined;
@@ -28,7 +28,7 @@ export class ExportContextLostError extends Error {
 }
 
 /** A disposable projection. Every geometry and text handle can be rebuilt from the document. */
-export class ThreeRenderer implements Renderer {
+export class ThreeRenderer {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
   readonly webgl: THREE.WebGLRenderer;
@@ -57,6 +57,8 @@ export class ThreeRenderer implements Renderer {
   private textIndex = new RBush<TextIndexEntry>();
   private textHandles = new Map<string, TextHandle>();
   private replacementTexts = new Map<string, TextHandle>();
+  private offscreenTexts = new Map<string, true>();
+  private exportPinnedTextIds = new Set<string>();
   private textDisposals = 0;
   private visibleTextIds = new Set<string>();
   private pendingTexts = new Set<Promise<void>>();
@@ -557,6 +559,13 @@ export class ThreeRenderer implements Renderer {
       const handle = this.textHandles.get(id); handle?.mesh.removeFromParent(); handle?.placeholder.removeFromParent();
     }
     this.visibleTextIds = visible;
+    for (const id of this.textHandles.keys()) {
+      if (visible.has(id) || id === this.editingTextId || this.exportPinnedTextIds.has(id)) this.offscreenTexts.delete(id);
+      else if (!this.offscreenTexts.has(id)) this.offscreenTexts.set(id, true);
+    }
+    const configured = this.options.offscreenTextCacheSize ?? 256;
+    const limit = Number.isFinite(configured) ? Math.max(0, Math.floor(configured)) : 256;
+    while (this.offscreenTexts.size > limit) this.disposeText(this.offscreenTexts.keys().next().value!);
     this.viewportDirty = false;
   }
 
@@ -623,9 +632,9 @@ export class ThreeRenderer implements Renderer {
         }
         reject(error);
       });
-      handle.cancel = () => { cancel(); resolve(); };
+      handle.cancel = () => { cancel(); this.pendingTexts.delete(ready); resolve(); };
     });
-    this.pendingTexts.add(ready); void ready.then(() => this.pendingTexts.delete(ready), () => this.pendingTexts.delete(ready));
+    handle.task = ready; this.pendingTexts.add(ready); void ready.then(() => this.pendingTexts.delete(ready), () => this.pendingTexts.delete(ready));
     return handle;
   }
 
@@ -669,7 +678,13 @@ export class ThreeRenderer implements Renderer {
 
   async whenReady(options: { allowImageErrors?: boolean; onAssetError?: (assetId: string) => void } = {}): Promise<void> {
     this.flush(); if (this.viewportDirty) this.updateVisibleTexts();
-    while (this.pendingTexts.size) await Promise.all(this.pendingTexts);
+    for (;;) {
+      const needed = new Set(this.visibleTextIds); if (this.editingTextId) needed.add(this.editingTextId);
+      const tasks = [...needed].flatMap(id => [this.textHandles.get(id)?.task, this.replacementTexts.get(id)?.task])
+        .filter((task): task is Promise<void> => !!task && this.pendingTexts.has(task));
+      if (!tasks.length) break;
+      await Promise.all(tasks);
+    }
     for (const id of this.visibleTextIds) { const error = this.textHandles.get(id)?.error; if (error) throw error; }
     const failures = await this.images.whenReady(options.allowImageErrors);
     for (const id of failures) options.onAssetError?.(id);
@@ -685,7 +700,9 @@ export class ThreeRenderer implements Renderer {
     const maxSize = Math.min(4096, this.webgl.capabilities.maxTextureSize);
     const clear = this.webgl.getClearColor(new THREE.Color()), alpha = this.webgl.getClearAlpha();
     const gridVisible = this.layers.grid.visible, selectionVisible = this.layers.selectionUI.visible, presenceVisible = this.layers.presence.visible, liveStrokeVisible = this.liveStroke.mesh.visible;
-    const editing = this.editingTextId; this.editingTextId = null;
+    const editing = this.editingTextId; this.exportPinnedTextIds = new Set(this.visibleTextIds);
+    if (editing) this.exportPinnedTextIds.add(editing);
+    this.editingTextId = null;
     this.layers.grid.visible = this.layers.selectionUI.visible = this.layers.presence.visible = false;
     this.liveStroke.mesh.visible = false;
     this.images.setExporting(true);
@@ -741,7 +758,7 @@ export class ThreeRenderer implements Renderer {
       this.layers.selectionUI.visible = selectionVisible; this.layers.presence.visible = presenceVisible;
       this.liveStroke.mesh.visible = liveStrokeVisible;
       this.images.setExporting(false);
-      this.editingTextId = editing; this.viewportDirty = true;
+      this.exportPinnedTextIds.clear(); this.editingTextId = editing; this.viewportDirty = true;
       if (!lost && !signal?.aborted && !this.webgl.getContext().isContextLost()) this.render();
     }
   }
@@ -766,7 +783,7 @@ export class ThreeRenderer implements Renderer {
     if (handle) { this.replacementTexts.delete(id); this.releaseText(handle); }
   }
   private disposeText(id: string): void {
-    this.disposeReplacement(id);
+    this.offscreenTexts.delete(id); this.disposeReplacement(id);
     const handle = this.textHandles.get(id);
     if (handle) { this.textHandles.delete(id); this.releaseText(handle); }
   }
@@ -785,10 +802,11 @@ export class ThreeRenderer implements Renderer {
     this.textIndex.clear();
   }
   dispose(): void {
+    if (this.disposed) return;
     this.disposed = true; this.clearProjection(); this.selectionOverlay.dispose(); this.liveStroke.dispose(); this.placeholderGeometry.dispose(); this.placeholderMaterial.dispose();
     this.images.dispose(); this.presence.dispose();
     this.queuedPresence = null;
-    if (this.grid) disposeMesh(this.grid); this.webgl.dispose();
+    if (this.grid) disposeMesh(this.grid); this.webgl.dispose(); this.webgl.forceContextLoss();
   }
 }
 

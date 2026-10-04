@@ -1,5 +1,4 @@
-import type { Element, ElementOf, ElementStyle } from '@whiteboard/model';
-import type { SelectionState } from './selection';
+import type { Element, ElementStyle } from '@whiteboard/model';
 /** Document coordinates are CSS pixels at 100%, with positive y pointing down. */
 export interface CameraState { x: number; y: number; zoom: number }
 export interface Bounds { x: number; y: number; w: number; h: number }
@@ -17,25 +16,6 @@ export interface RendererStats {
   imageInstances: number; visibleImages: number; pendingImages: number; imageErrors: number;
 }
 export interface PngOptions { bounds: Bounds; scale?: number; transparent?: boolean; signal?: AbortSignal; onAssetError?: (assetId: string) => void }
-export interface Renderer {
-  setElements(elements: readonly RenderElement[]): void;
-  applyDiff(upserts: readonly RenderElement[], removals?: readonly string[]): void;
-  setCamera(camera: CameraState): void;
-  getCamera(): CameraState;
-  setSelection(selection: SelectionState): void;
-  setLiveStroke(element: ElementOf<'stroke'> | null): void;
-  setPresence(presences: readonly RemotePresence[]): void;
-  getImageError(id: string): Error | undefined;
-  getMaxImageDimension(): number;
-  setPixelRatio(ratio: number): void;
-  resize(width: number, height: number): void;
-  /** Explicit draw by default; false skips a frame with no projection changes. */
-  render(force?: boolean): void;
-  whenReady(): Promise<void>;
-  exportPng(options: PngOptions): Promise<Blob>;
-  stats(): RendererStats;
-  dispose(): void;
-}
 export interface RendererOptions {
   canvas: HTMLCanvasElement; fontUrl: string; monoFontUrl?: string;
   /** Defaults to noto-sans-jp-400.woff beside fontUrl. Configured before first troika layout. */
@@ -46,5 +26,8 @@ export interface RendererOptions {
   resolveAsset?: (assetId: string) => string | Promise<string>;
   imageLoadTimeoutMs?: number;
   maxDisplayImageSize?: number;
+  /** Maximum detached handles retained after their last viewport visit (default 256). */
+  offscreenTextCacheSize?: number;
+  offscreenImageCacheSize?: number;
   pixelRatio?: number; background?: string; grid?: boolean;
 }

@@ -142,7 +142,8 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
   ].filter(Boolean).join(' and ') : '';
   const statusLabel = !access ? 'Local board' : status === 'limited' ? 'Sync paused' : status === 'live' ? 'Connected' : status === 'offline' ? 'Offline · edits on this device' : status === 'unauthorized' ? 'Access unavailable' : status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…';
   return <main className="workspace">
-    <canvas ref={canvasRef} className="board-canvas" aria-label="Whiteboard canvas" tabIndex={0} />
+    {/* A disposed renderer releases its WebGL context; each replacement owns a fresh canvas. */}
+    <canvas key={`${access?.board.id ?? 'local'}:${access?.session.user.id ?? 'local'}:${connectionRevision}`} ref={canvasRef} className="board-canvas" aria-label="Whiteboard canvas" tabIndex={0} />
     <input ref={fileInputRef} type="file" hidden multiple accept="image/png,image/jpeg,image/webp" aria-label="Import images" onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (runtime && files.length) void runtime.assets.importFiles(files); }} />
     <header className="board-header surface">
       {access ? <button className="icon-button board-back" aria-label="Back to boards" title="Back to boards" onClick={access.onBack}><ArrowLeft size={20} /></button> : <div className="brand-mark" aria-hidden="true"><SquarePen size={22} strokeWidth={1.7} /></div>}
