@@ -1,3 +1,5 @@
+> Historical snapshot from the 2026-09-29 build; not maintained. Later evidence-retention and link corrections are preserved. See the [current implementation status](../../IMPLEMENTATION_STATUS.md) for ongoing work.
+
 # Editor interface direction
 
 The subject is a shared working surface for a self-hosted team. Its primary job

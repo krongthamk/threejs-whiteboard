@@ -1,7 +1,7 @@
 # Build Plan: Collaborative three.js Whiteboard
 
 **Date:** 2026-09-29
-**Source:** [RESEARCH.md](./RESEARCH.md) (2026-09-29). Section references below (e.g. R§3.4) point into that report.
+**Source:** [RESEARCH.md](history/2026-09-29/RESEARCH.md) (2026-09-29). Section references below (e.g. R§3.4) point into that report.
 **Target:** self-hosted, infinite-canvas whiteboard rendered with three.js; freehand, shapes, text, sticky notes, connectors, selection/transform, pan/zoom, undo/redo, export; real-time collaboration for up to 40 concurrent users per board.
 
 **Accepted deployment/benchmark target (2026-09-29):** the user selected this Mac as the initial deployment and benchmark target: Apple M1 Pro, 8 logical cores, 32 GiB memory. This replaces the hardware reference to a “2020-class laptop” in S1 and supplies the initial Phase 5 deployment target. All numeric gates remain unchanged; results must identify this hardware and must not imply validation of another machine.

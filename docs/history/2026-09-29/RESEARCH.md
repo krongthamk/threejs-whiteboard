@@ -1,3 +1,5 @@
+> Historical snapshot from the 2026-09-29 build; not maintained. Later evidence-retention and link corrections are preserved. See the [current implementation status](../../IMPLEMENTATION_STATUS.md) for ongoing work.
+
 # Building a Miro / Excalidraw-class Collaborative Whiteboard on three.js
 
 **Research date:** 2026-09-29

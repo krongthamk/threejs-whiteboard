@@ -102,7 +102,7 @@ launch and completion. The final source had passed the repository's 82 tests,
 including all 15 server/static tests. Optional static serving was disabled in
 the load fixture and is covered separately by those HTTP tests.
 
-See the [S3 report](../../docs/S3_LOAD_REPORT.md#final-source-locked-acceptance-run)
+See the [S3 report](../../docs/history/2026-09-29/S3_LOAD_REPORT.md#final-source-locked-acceptance-run)
 for the full workload contract, five-minute memory windows, latency tail,
 source audit, plots and preserved failed/reference runs. This passes the stated
 production load gate on the selected Mac; the writer/lifecycle storage-growth

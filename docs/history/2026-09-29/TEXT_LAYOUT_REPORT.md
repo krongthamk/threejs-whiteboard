@@ -1,3 +1,5 @@
+> Historical snapshot from the 2026-09-29 build; not maintained. Later evidence-retention and link corrections are preserved. See the [current implementation status](../../IMPLEMENTATION_STATUS.md) for ongoing work.
+
 # Deterministic mixed-script text layout
 
 **Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
@@ -13,7 +15,7 @@ The generator records Troika's **raw last-glyph endpoint**, which differs from i
 ## Evidence
 
 - `pnpm exec vitest run packages/model/test/text-layout.test.ts packages/model/test/model.test.ts`: **29 passed**. Covers exact shipped bytes, proportional/mono advances, ligatures, final glyph endpoints, fallback carry across explicit/wrapped lines, UTF-16 mappings, markup escaping, z order and embedded font data.
-- `pnpm typecheck`: pass. The root final fullunit artifact subsequently reports **85/85 passed**, including the permanent10,000-pair fuzz: [unit JSON](benchmarks/final/unit.json).
+- `pnpm typecheck`: pass. The root final fullunit artifact subsequently reports **85/85 passed**, including the permanent10,000-pair fuzz: [unit JSON](../../benchmarks/final/unit.json).
 - `VERIFY_PDF=1 pnpm exec playwright test --config playwright.app.config.ts tests/app/text-layout.spec.ts tests/app/pdf.spec.ts`: **5 passed, 23.6 seconds, exit 0**.
 - 26 actual Troika cases: maximum model/Troika width error **0px**. Ordinary browser glyph width error **0.000139px** maximum. Native default punctuation differences are recorded explicitly rather than treated as matching metrics.
 - Native editing and export evidence: actual Japanese composition remains uncommitted until completion; keyboard selection/caret, explicit newline, blur/reopen and one undo item preserve exact text. Both Inter and Mono commit to **464.32 × 80px** for the mixed fixture; native input has no clipped scroll area.

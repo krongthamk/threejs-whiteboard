@@ -42,7 +42,7 @@ Replacing jsPDF with pdf-lib/fontkit is not an established shortcut: pdf-lib's c
 | Exports | PNG/SVG/PDF regional comparisons including marks; standalone SVG selection/copy; PDF extraction/search/copy preserves original source, without duplicate extraction; onscreen/offscreen, cold/warm, tiled and small-text export; failed-font retry. |
 | Runtime | Production WASM/CSP/local asset resolution, Node import, bounded caches, disposal and many-label performance; no external font requests. |
 
-Suggested test ownership: model cases in `packages/model/test/text-layout.test.ts`; editor/rendering in new `tests/app/thai.spec.ts`; selectable/vector exports in `tests/app/pdf.spec.ts` and `tests/app/export.spec.ts`. Update README and `docs/TEXT_LAYOUT_REPORT.md` with measured scope. Existing Latin/JP SDF performance evidence does not establish Thai outline-rendering performance.
+Suggested test ownership: model cases in `packages/model/test/text-layout.test.ts`; editor/rendering in new `tests/app/thai.spec.ts`; selectable/vector exports in `tests/app/pdf.spec.ts` and `tests/app/export.spec.ts`. Update README and a new `docs/THAI_SUPPORT_REPORT.md` with measured scope; preserve the archived `docs/history/2026-09-29/TEXT_LAYOUT_REPORT.md` as historical evidence. Existing Latin/JP SDF performance evidence does not establish Thai outline-rendering performance.
 
 ## Unproven tradeoffs
 

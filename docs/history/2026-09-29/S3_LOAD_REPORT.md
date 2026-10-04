@@ -1,3 +1,5 @@
+> Historical snapshot from the 2026-09-29 build; not maintained. Later evidence-retention and link corrections are preserved. See the [current implementation status](../../IMPLEMENTATION_STATUS.md) for ongoing work.
+
 # S3 Hocuspocus load spike
 
 **Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
@@ -123,7 +125,7 @@ It exposed ordinary `setInterval` drift and motivated the deadline scheduler.
 ## Dependency provenance
 
 The server/provider pins and official proof that 4.7.0 contains the #1151 fix
-are in [DEPENDENCY_VERIFICATION.md](./DEPENDENCY_VERIFICATION.md).
+are in [DEPENDENCY_VERIFICATION.md](../../DEPENDENCY_VERIFICATION.md).
 
 ## Memory diagnosis during the run
 
@@ -182,7 +184,7 @@ field values. The transport replacement uses the actual stamped
 `WriterBoardDocument` with its complete base/generation records, independent
 property overrides, Lamport ledger, and default same-transaction clock mode.
 There is no history capture in this load workload. The model semantic/history
-evidence and lifecycle limits are in [D3_STORAGE_INVESTIGATION.md](D3_STORAGE_INVESTIGATION.md).
+evidence and lifecycle limits are in [D3_STORAGE_INVESTIGATION.md](../../D3_STORAGE_INVESTIGATION.md).
 
 The replacement harness distributes 40 full independent Y.Doc/provider/socket
 clients across 8 processes of 5 clients, each capped at 1 GiB V8 heap. The failed
@@ -273,7 +275,7 @@ smoke-applicable independent checks: 2,000 acknowledgements, 8,000 cursors,
 matching live/persisted hashes, p95 32.59 ms, CPU maximum 27.48%, and clean exit
 of all nine children. The 180-day churn drill completed before the final retry;
 its assumptions, growth and recovery evidence are in
-[the operations report](../packages/server/OPERATIONS_REPORT.md).
+[the operations report](../../../packages/server/OPERATIONS_REPORT.md).
 
 Two explicitly reviewed server changes were made **after** that archive:
 HTTP logout immediately closes this process's passive subscriptions using the
@@ -355,7 +357,7 @@ time. The full repository unit checks shared this Mac during the final portion;
 their actual scheduling/resource effects are retained in the trace.
 
 Visual memory review used the full trace plot, PDF and window statistics. Those
-generated files are no longer tracked. The [production reference summary](../packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.json)
+generated files are no longer tracked. The [production reference summary](../../../packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.json)
 and recorded five-minute windows remain:
 
 | Minutes | RSS min / median (MiB) | Used heap min / median (MiB) |
@@ -443,7 +445,7 @@ the remaining update log has 4,616 updates / 3,907,038 bytes, the stored snapsho
 is 1,671,854 bytes, and the current encoded state is 1,673,486 bytes.
 
 Visual review used the full trace plot, PDF and window statistics. Those
-generated files are no longer tracked. The [final production summary](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.json)
+generated files are no longer tracked. The [final production summary](../../../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.json)
 and recorded post-warmup five-minute windows remain:
 
 | Minutes | Samples | RSS min / median (MiB) | Used heap min / median (MiB) |

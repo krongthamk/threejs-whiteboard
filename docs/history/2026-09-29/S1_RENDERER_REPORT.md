@@ -1,3 +1,5 @@
+> Historical snapshot from the 2026-09-29 build; not maintained. Later evidence-retention and link corrections are preserved. See the [current implementation status](../../IMPLEMENTATION_STATUS.md) for ongoing work.
+
 # S1 renderer benchmark
 
 **Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
@@ -8,10 +10,10 @@ The final measured renderer keeps the planned three.js architecture. No Canvas 2
 
 ## Evidence
 
-- [Raw final measurements and assertions](benchmarks/s1/s1-results.json), including browser/GPU identity and timestamps. `passed: true`, no browser errors.
+- [Raw final measurements and assertions](../../benchmarks/s1/s1-results.json), including browser/GPU identity and timestamps. `passed: true`, no browser errors.
 - Mixed-board screenshot, visually inspected for actual rendered shapes, strokes, and text.
-- [Reproducible runner](../spikes/renderer/run-benchmark.mjs) and [browser fixture](../spikes/renderer/main.ts).
-- [Renderer API and color policy](../packages/renderer/README.md).
+- [Reproducible runner](../../../spikes/renderer/run-benchmark.mjs) and [browser fixture](../../../spikes/renderer/main.ts).
+- [Renderer API and color policy](../../../packages/renderer/README.md).
 
 Target: Apple M1 Pro, 8 logical cores, 32 GiB memory, Darwin 25.6.0. Installed Chrome **154.0.8037.58**, headless, reports **ANGLE Metal Renderer: Apple M1 Pro**. This is hardware rendering, not SwiftShader. Viewport is 1440 × 1000 CSS pixels; the actual drawing buffer is **1440 × 928**, DPR 1. The maximum texture size is 16,384.
 

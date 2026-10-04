@@ -1,3 +1,5 @@
+> Historical snapshot from the 2026-09-29 build; not maintained. Later evidence-retention and link corrections are preserved. See the [current implementation status](../../IMPLEMENTATION_STATUS.md) for ongoing work.
+
 # S2 — coherent Yjs document model
 
 **Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
@@ -8,7 +10,7 @@ Measured 2026-09-29 with Yjs 13.6.33, y-utility 0.1.4 and Vitest 5.0.2. **PASS f
 
 The original nested-map schema passed S2, including its two peer-preserving native-history repairs. S3 then measured persistent linear Yjs metadata growth under the exact 40-writer workload and its full run timed out during final synchronization. A single shared YKeyValue array also failed interleaved-writer growth and peer-preserving undo. Those failures triggered the plan's failed-spike exception; they were not removed from the evidence.
 
-The original model's 870,897-validation result remains in s2-fuzz.json. Its implementation, tests and report are preserved in [baseline-v1](../spikes/model-kv/baseline-v1). The alternatives, rejected assertions, private-API dependence and retention measurements are documented in [the isolated storage report](../spikes/model-kv/REPORT.md) and [D3_STORAGE_INVESTIGATION.md](D3_STORAGE_INVESTIGATION.md).
+The original model's 870,897-validation result remains in s2-fuzz.json. Its implementation, tests and report are preserved in [baseline-v1](../../../spikes/model-kv/baseline-v1). The alternatives, rejected assertions, private-API dependence and retention measurements are documented in [the isolated storage report](../../../spikes/model-kv/REPORT.md) and [D3_STORAGE_INVESTIGATION.md](../../D3_STORAGE_INVESTIGATION.md).
 
 ## Production representation and API
 
@@ -39,7 +41,7 @@ pnpm exec tsc --noEmit
 
 The permanent fuzz uses seed `334462` (`0x51a7e`), three fixed replica IDs, and exactly two concurrent local operations before delivery for every pair. It varies packet ordering and repeats packets, drains cleanup updates until quiescence, compares complete raw writer arrays and coherent projections after every pair, and checks nondecreasing local clocks. Every visible element is schema-validated; additional assertions verify exact derived stroke boxes, finite resolved connector endpoints, valid fractional indexes, and finite nonnegative bounds. The suite requires all 15 operation classes and exactly 20,000 operations; undo histories are periodically cleared.
 
-[Production raw result](../packages/model/reports/s2-schema2-fuzz.json):
+[Production raw result](../../../packages/model/reports/s2-schema2-fuzz.json):
 
 - 10,000 concurrent pairs; 20,000 operations; 946,710 validated elements.
 - Zero invalid elements and zero divergent pairs; 47,954 delivered updates.
@@ -63,6 +65,6 @@ Stroke triplets use world coordinates; reads derive their boxes from coherent po
 
 The pure `documentToSvg` helper shares stroke outlines, connector arrows, sticky corners, geometry and explicit line wrapping with the renderer. It safely escapes markup, resolves assets through a callback, and embeds supplied font data. Its text family list includes the resolved Inter/IBM Plex Mono family and locally supplied Noto Sans JP fallback.
 
-Font metrics are generated from the exact shipped Inter/IBM Plex Mono WOFF bytes with troika 0.52.5's parser and checked SHA-256 hashes. Independent browser measurement of 60 strings/sizes found maximum width error **0.0003052 px** and zero mismatches in six real DOM wrapping cases; [raw browser evidence](../packages/model/reports/font-metrics-browser.json) is retained. Unsupported scripts use deterministic fallback advances. UTF-16 source/render mappings preserve caret positions across inserted and consumed wraps. Regenerate with `node packages/model/scripts/generate-font-metrics.mjs`; verify with the spike server running and `node packages/model/scripts/verify-font-metrics.mjs`.
+Font metrics are generated from the exact shipped Inter/IBM Plex Mono WOFF bytes with troika 0.52.5's parser and checked SHA-256 hashes. Independent browser measurement of 60 strings/sizes found maximum width error **0.0003052 px** and zero mismatches in six real DOM wrapping cases; [raw browser evidence](../../../packages/model/reports/font-metrics-browser.json) is retained. Unsupported scripts use deterministic fallback advances. UTF-16 source/render mappings preserve caret positions across inserted and consumed wraps. Regenerate with `node packages/model/scripts/generate-font-metrics.mjs`; verify with the spike server running and `node packages/model/scripts/verify-font-metrics.mjs`.
 
 This report establishes S2 and the model integration evidence. It does not claim S3 acceptance, universal bounded retention, browser performance gates, or completion of later phases.

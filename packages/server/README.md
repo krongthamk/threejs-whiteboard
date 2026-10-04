@@ -127,7 +127,7 @@ Replacing an existing malformed record with different malformed content is rejec
 `src/spike.ts` is the failed original Phase 0 nested-map transport benchmark;
 `src/spike-writer-kv.ts` is the replacement in-memory candidate. Neither is a
 production authentication or persistence implementation. See
-`../../docs/S3_LOAD_REPORT.md` for final measured acceptance, preserved failures and scope limits.
+[the historical S3 report](../../docs/history/2026-09-29/S3_LOAD_REPORT.md) for final measured acceptance, preserved failures and scope limits.
 
 ## Routing, drain, and backup operations
 
