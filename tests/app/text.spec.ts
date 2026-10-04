@@ -55,7 +55,7 @@ test('real Japanese IME is visible after native composition and makes one commit
   expect(external).toEqual([]);
 });
 
-test('blur during composition waits and Escape leaves the document untouched', async ({ page }) => {
+test('blur during composition waits and Escape commits one undoable edit', async ({ page }) => {
   const input = await edit(page);
   await input.evaluate(element => {
     element.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
@@ -64,9 +64,11 @@ test('blur during composition waits and Escape leaves the document untouched', a
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(0);
   await input.evaluate(element => element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '途中' })));
   expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: '途中' });
-  await edit(page); await page.keyboard.type('Discard me'); await page.keyboard.press('Escape');
+  await edit(page); await page.keyboard.type('Keep this draft'); await page.keyboard.press('Escape');
+  expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: 'Keep this draft' });
+  expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(2);
+  await page.keyboard.press('ControlOrMeta+z');
   expect(await page.evaluate(() => window.whiteboard.board.read('note')?.props)).toMatchObject({ text: '途中' });
-  expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
 });
 
 test('rotated zoomed editor follows the document and keeps an intervening style change', async ({ page }, testInfo) => {

@@ -7,6 +7,8 @@ const TYPES: readonly string[] = ['rect', 'ellipse', 'sticky', 'text', 'stroke',
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 export const MAX_COORDINATE = 1e9;
 export const MAX_FONT_SIZE = 1024;
+/** UTF-16 units, matching native selection offsets and the model's caret maps. */
+export const MAX_TEXT_LENGTH = 50_000;
 const coordinate = (v: unknown): v is number => finite(v) && Math.abs(v) <= MAX_COORDINATE;
 /** Surrogate pairs are accepted; unpaired UTF-16 code units cannot round-trip through Yjs. */
 export const isWellFormedString = (value: unknown): value is string => typeof value === 'string' && !/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(value);
@@ -49,6 +51,7 @@ export function assertValidElement(value: unknown): asserts value is Element {
   const props = e.props as Record<string, unknown>;
   if (e.type === 'text' || e.type === 'sticky') {
     if (typeof props.text !== 'string' || !['left', 'center', 'right'].includes(String(props.align)) || typeof props.autoSize !== 'boolean') fail(`${e.id}: text coherence`);
+    if ((props.text as string).length > MAX_TEXT_LENGTH) fail(`${e.id}: text exceeds the 50,000 character limit`);
   } else if (e.type === 'stroke') {
     if (!Array.isArray(props.points) || props.points.length < 3 || props.points.length % 3 !== 0 || typeof props.simplified !== 'boolean') fail(`${e.id}: stroke coherence`);
     for (let i = 0; i < (props.points as unknown[]).length; i++) {

@@ -120,12 +120,16 @@ it('rejects huge stroke expansion that produces infinite SVG dimensions or NaN s
 });
 
 it('validates the final staged geometry when a batch contains repeated element IDs', () => {
-  const board = new BoardDocument(); const text = board.create('text', { id: 'text', props: { text: '', align: 'left', autoSize: false } });
-  // Each change alone is safe: fixed boxes ignore font size, and at the original
-  // 16px size these lines fit the bound. Combined at1024px their derived height exceeds1e9.
-  const props = { ...text.props, text: '\n'.repeat(800_000), autoSize: true };
+  const board = new BoardDocument(); const stroke = board.create('stroke', { id: 'stroke' });
+  // The 50k text cap makes the old 800k-line overflow trigger invalid input.
+  // Bounded stroke coordinates still prove validation of the final staged state:
+  // intermediate width 2e9 is invalid, but the final whole-props replacement is safe.
+  const invalid = { points: [-1e9, 0, .5, 1e9, 0, .5], simplified: false };
+  const valid = { points: [-1e9, 0, .5, 0, 0, .5], simplified: false };
+  expect(() => board.updateMany([{ id: stroke.id, patch: { props: invalid } }, { id: stroke.id, patch: { props: valid } }])).not.toThrow();
+  const accepted = board.read(stroke.id); expect(accepted).toMatchObject({ w: 1e9, props: valid });
   const before = Y.encodeStateAsUpdate(board.doc), history = board.undoManager.undoStack.length, updates = vi.fn(); board.doc.on('update', updates);
-  expect(() => board.updateMany([{ id: text.id, patch: { style: { ...text.style, fontSize: 1024 } } }, { id: text.id, patch: { props } }])).toThrow(/geometry/);
-  expect(board.read('text')).toEqual(text); expect(Y.encodeStateAsUpdate(board.doc)).toEqual(before);
+  expect(() => board.updateMany([{ id: stroke.id, patch: { props: valid } }, { id: stroke.id, patch: { props: invalid } }])).toThrow(/geometry/);
+  expect(board.read(stroke.id)).toEqual(accepted); expect(Y.encodeStateAsUpdate(board.doc)).toEqual(before);
   expect(updates).not.toHaveBeenCalled(); expect(board.undoManager.undoStack).toHaveLength(history); board.destroy();
 });

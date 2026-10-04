@@ -61,7 +61,7 @@ This initial deployment listens on loopback. For a remote host, configure an HTT
 
 ## Editing and export
 
-Use the tool rail or `V` select, `R` rectangle, `O` ellipse, `N` note, `T` text, `C` connector, `P` pen, `E` eraser, and `H` pan. Hold Space to pan, use the wheel/trackpad, or zoom around the pointer. Double-click a text object or sticky note to edit. Escape cancels the active gesture. Native text selection, clipboard and IME stay inside the text editor; each completed edit is one undo step.
+Use the tool rail or `V` select, `R` rectangle, `O` ellipse, `N` note, `T` text, `C` connector, `P` pen, `E` eraser, and `H` pan. Hold Space to pan, use the wheel/trackpad, or zoom around the pointer. Double-click a text object or sticky note to edit. Escape cancels an unfinished drawing gesture. In the text editor, Escape, blur, and Cmd/Ctrl+Enter commit valid text as one undo step; active IME composition finishes first. Native selection and clipboard stay inside the editor. If a peer removes the element or editing becomes view only, an explicit notice explains why changed text was not saved.
 
 Letter shortcuts follow physical key positions, including with non-Latin keyboard layouts. Board shortcuts yield to focused form controls, buttons, links, and summaries. Viewers can use the Select and Pan buttons; letter tool shortcuts leave their current tool unchanged.
 
@@ -80,6 +80,8 @@ Drop or paste PNG/JPEG/WebP images, or use Add images. Original bytes stay in th
 Export the board or selection as PNG at 1×–4×, a self-contained SVG, or a single-page vector PDF. Background transparency is optional. PNG export reuses tiles up to 4,096 pixels per side, limited further by the GPU, subject to the browser's final canvas limit (32,767 pixels per side / 100 million pixels). A lost graphics context reports an error and a new export can retry. Export reads the document snapshot, excluding selection handles, remote presence, and unfinished gestures. Only used fonts and referenced image bytes are included in SVG/PDF. Latin and Japanese are the validated shipped font coverage; other scripts need suitable local fonts and equivalent tests. During native text editing, browser font fallback and punctuation spacing can differ from the committed canvas; text, selection and IME remain native. Committed sizing and export use the same measured font runs.
 
 Closing the export dialog cancels preparation and prevents a late download. Unavailable or corrupt images use placeholders in PNG, SVG and PDF; the completed download keeps the dialog open with a list of affected asset IDs. Valid instances of a shared image remain included.
+
+Text and sticky notes allow up to 50,000 UTF-16 units; some emoji count as two. Over-limit insertions are rejected visibly without truncating the existing draft. Layout positioning waits briefly during typing above 5,000 units; camera, resize and peer geometry changes update immediately. Existing saved text above the limit is quarantined with an invalid-item notice, never silently shortened.
 
 The document model rejects incomplete Unicode characters before saving text or pasting clipboard content. Coordinates, stroke widths, and derived element dimensions are limited to one billion document units; font size is limited to 1024. A batch that exceeds these limits is rejected before any element changes. Unsupported document schemas remain available for recovery but cannot be edited, undone, or redone.
 
