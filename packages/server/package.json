@@ -9,7 +9,6 @@
     "operations": "tsx src/backup-cli.ts",
     "router": "tsx src/router-cli.ts",
     "test": "pnpm -w exec vitest run packages/server",
-    "spike": "tsx src/spike.ts",
     "typecheck": "pnpm -w typecheck"
   },
   "dependencies": {
@@ -20,6 +19,7 @@
   },
   "devDependencies": {
     "@hocuspocus/provider": "4.7.0",
-    "ws": "8.22.0"
+    "ws": "8.22.0",
+    "@types/ws": "8.18.1"
   }
 }

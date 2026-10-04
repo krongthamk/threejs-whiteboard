@@ -18,15 +18,7 @@
     "types": [
       "node",
       "vite/client"
-    ],
-    "paths": {
-      "@whiteboard/model": [
-        "./packages/model/src/index.ts"
-      ],
-      "@whiteboard/renderer": [
-        "./packages/renderer/src/index.ts"
-      ]
-    }
+    ]
   },
   "include": [
     "packages",

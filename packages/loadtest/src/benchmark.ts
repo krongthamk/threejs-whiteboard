@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { cpus, platform, release, totalmem } from 'node:os';
 import * as Y from 'yjs';
-import { createWhiteboardServer } from './server.js';
+import { createWhiteboardServer } from '../../server/src/server.js';
 import { BoardDocument } from '../../model/src/index.js';
 
 const data = process.env.BENCHMARK_DATA_DIR;

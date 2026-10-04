@@ -36,4 +36,4 @@ process.on('message', async (message: { type: string }) => {
   if (message.type === 'stop') { await server.destroy(); if (process.connected) process.disconnect?.(); }
 });
 await server.listen();
-process.send?.({ type: 'ready', port, pid: process.pid, hardware: { cpu: cpus()[0]?.model, logicalCores: cpus().length, memoryBytes: totalmem(), platform: platform(), release: release(), node: process.version } });
+process.send?.({ type: 'ready', port: (server.httpServer.address() as import('node:net').AddressInfo).port, pid: process.pid, hardware: { cpu: cpus()[0]?.model, logicalCores: cpus().length, memoryBytes: totalmem(), platform: platform(), release: release(), node: process.version } });

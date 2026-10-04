@@ -15,7 +15,7 @@ const output = process.env.RESULT_FILE ? resolve(process.env.RESULT_FILE) : file
 mkdirSync(dirname(output), { recursive: true });
 const rawFile = output.replace(/\.json$/, '.ndjson');
 const record = (data: object) => appendFileSync(rawFile, `${JSON.stringify(data)}\n`);
-const server = fork(fileURLToPath(new URL('../../server/src/spike.ts', import.meta.url)), [], {
+const server = fork(fileURLToPath(new URL('./spike.ts', import.meta.url)), [], {
   execArgv: ['--import', 'tsx'], stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
   env: { ...process.env, SPIKE_PORT: process.env.SPIKE_PORT ?? '12345' },
 });

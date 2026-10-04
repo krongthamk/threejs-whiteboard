@@ -18,6 +18,17 @@ and absent under the new config. A standalone unsupported-engine install
 changes from exit 0 to `ERR_PNPM_UNSUPPORTED_ENGINE`; no dependency versions
 changed. Logs are under ignored `test-results/verification/tooling52/`.
 
+Finding 55 update — 2026-10-05: unused direct app dependencies `@fontsource/inter`,
+`@fontsource/ibm-plex-mono`, and `y-protocols` are removed. The checked-in licensed
+font files remain the application’s font source. Root duplicate type and Yjs
+entries are removed; app owns its RBush types, server owns its WebSocket types,
+and the retained spikes are a workspace package owning their Yjs/YKeyValue
+imports. Tests and spikes resolve the model and renderer through workspace
+package exports instead of TypeScript/Vite source aliases. Finding 29 moves
+Hocuspocus spike processes to loadtest, which now declares its existing pinned
+server dependency. No dependency version changes or new external packages are
+introduced.
+
 Hocuspocus server, provider, and database extension are pinned to **4.7.0**.
 The [official v4.7.0 release](https://github.com/ueberdosis/hocuspocus/releases/tag/v4.7.0)
 explicitly includes [PR #1152](https://github.com/ueberdosis/hocuspocus/pull/1152),

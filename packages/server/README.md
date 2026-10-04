@@ -128,9 +128,11 @@ registers, element values, or metadata reset the sender with reason
 malformed records remain quarantined while healthy edits and repairs are allowed.
 Replacing an existing malformed record with different malformed content is rejected.
 
-`src/spike.ts` is the failed original Phase 0 nested-map transport benchmark;
-`src/spike-writer-kv.ts` is the replacement in-memory candidate. Neither is a
-production authentication or persistence implementation. See
+The experimental servers now live in the [loadtest package](../loadtest/README.md).
+Its `src/spike.ts` is the failed original Phase 0 nested-map transport benchmark;
+`src/spike-writer-kv.ts` is the replacement in-memory candidate. Its
+`src/benchmark.ts` wraps the production server for isolated measurements.
+Production server entry points contain no benchmark process. See
 [the historical S3 report](../../docs/history/2026-09-29/S3_LOAD_REPORT.md) for final measured acceptance, preserved failures and scope limits.
 
 ## Routing, drain, and backup operations

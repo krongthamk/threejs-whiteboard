@@ -13,10 +13,4 @@ export default defineConfig({
       },
     },
   },
-  resolve: {
-    alias: {
-      '@whiteboard/model': fileURLToPath(new URL('../packages/model/src/index.ts', import.meta.url)),
-      '@whiteboard/renderer': fileURLToPath(new URL('../packages/renderer/src/index.ts', import.meta.url)),
-    },
-  },
 })

@@ -1,0 +1,11 @@
+{
+  "name": "@whiteboard/spikes",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@whiteboard/model": "workspace:*",
+    "@whiteboard/renderer": "workspace:*",
+    "y-utility": "0.1.4",
+    "yjs": "13.6.33"
+  }
+}

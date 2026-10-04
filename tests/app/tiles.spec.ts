@@ -5,7 +5,6 @@ import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
 test.afterEach(({}, testInfo) => recordBrowserEvidence(testInfo, 'docs/benchmarks/phase4'));
 import type { ThreeRenderer } from '@whiteboard/renderer';
 import type { BoardExporter } from '../../packages/app/src/export';
-import type * as THREE from 'three';
 
 for (const simulateCanvasLimitedGpu of [false, true]) test(`PNG crosses its bounded GPU tile boundary without seams (${simulateCanvasLimitedGpu ? '32768px canvas-limited control' : 'native GPU'})`, async ({ page }, testInfo) => {
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
@@ -22,7 +21,7 @@ for (const simulateCanvasLimitedGpu of [false, true]) test(`PNG crosses its boun
     board.create('rect', { x: limit - 6, y: 8, w: 12, h: 32, style: { fill: '#0000ff', strokeWidth: 0 } });
     board.create('rect', { x: 2, y: 2, w: 12, h: 12, style: { fill: '#00ff00', strokeWidth: 0 } });
     let renderedTiles = 0, targetDisposals = 0;
-    const targets = new Set<THREE.WebGLRenderTarget>(), allocations: number[][] = [];
+    const targets = new Set<NonNullable<ReturnType<ThreeRenderer['webgl']['getRenderTarget']>>>(), allocations: number[][] = [];
     const exporter = new Exporter(board, undefined, options => {
       const projection = new Renderer(options), render = projection.webgl.render.bind(projection.webgl);
       projection.webgl.capabilities.maxTextureSize = reportedLimit;
@@ -67,7 +66,7 @@ test('controlled two-axis PNG tiles equal the untiled pixels, including transluc
     const Renderer = display.constructor as typeof ThreeRenderer, Exporter = window.whiteboard.exporter.constructor as typeof BoardExporter;
     const nativeLimit = display.webgl.capabilities.maxTextureSize;
     let controlled = false, renderedTiles = 0, targetDisposals = 0;
-    const targets = new Set<THREE.WebGLRenderTarget>(), allocations: number[][] = [];
+    const targets = new Set<NonNullable<ReturnType<ThreeRenderer['webgl']['getRenderTarget']>>>(), allocations: number[][] = [];
     const exporter = new Exporter(board, undefined, options => {
       const projection = new Renderer(options), render = projection.webgl.render.bind(projection.webgl);
       // Read the current test policy per render too, for cached and disposable projections alike.

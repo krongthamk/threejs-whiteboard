@@ -1,8 +1,9 @@
 import { fork, spawn as launchProcess, type ChildProcess } from 'node:child_process';
-import { appendFileSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { captureSourceInputs, freezeSourceInputs, repositoryRoot } from './source-inputs.js';
 
 const production = process.env.PRODUCTION === '1';
 const port = production ? '12347' : '12346';
@@ -10,18 +11,12 @@ const durationSeconds = Number(process.env.DURATION_SECONDS ?? 1800);
 const stem = fileURLToPath(new URL(`../results/s3-${production ? 'production' : 'writer'}-${new Date().toISOString().replaceAll(':', '-')}`, import.meta.url));
 mkdirSync(dirname(stem), { recursive: true });
 const record = (value: object) => appendFileSync(`${stem}.ndjson`, `${JSON.stringify(value)}\n`);
-const sourcePaths = ['packages/loadtest/src/run-writer-kv.ts', 'packages/loadtest/src/writer-client-worker.ts', 'packages/server/src/spike-writer-kv.ts', 'spikes/model-kv/writer-model.ts', 'spikes/model-kv/model.ts', 'packages/model/src/index.ts', 'packages/model/src/schema.ts', 'packages/model/src/types.ts', 'packages/loadtest/package.json', 'packages/server/package.json', 'packages/model/package.json', 'pnpm-lock.yaml'];
-if (production) sourcePaths.push('packages/loadtest/src/production-client-worker.ts', 'packages/loadtest/src/production-identity.ts', 'packages/server/src/benchmark.ts', 'packages/server/src/server.ts', 'packages/server/src/store.ts', 'packages/server/src/static.ts');
-sourcePaths.push(...readdirSync(fileURLToPath(new URL('../../model/src', import.meta.url))).filter(path => /\.(ts|json)$/.test(path)).map(path => `packages/model/src/${path}`));
-const sourceInputs = Object.fromEntries([...new Set(sourcePaths)].map(path => [path, readFileSync(fileURLToPath(new URL(`../../../${path}`, import.meta.url)), 'utf8')]));
+const sourceInputs = captureSourceInputs(production);
 const sourceHashes = Object.fromEntries(Object.entries(sourceInputs).map(([path, content]) => [path, createHash('sha256').update(content).digest('hex')]));
 writeFileSync(`${stem}.sources.json`, JSON.stringify({ sha256: sourceHashes, sources: sourceInputs }, null, 2));
 record({ type: 'source-hashes', at: Date.now(), sha256: sourceHashes });
-const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url)), frozenRoot = `${stem}.inputs`;
-for (const [path, content] of Object.entries(sourceInputs)) { const destination = join(frozenRoot, path); mkdirSync(dirname(destination), { recursive: true }); writeFileSync(destination, content); }
-writeFileSync(join(frozenRoot, 'package.json'), JSON.stringify({ type: 'module' }));
-symlinkSync(join(repositoryRoot, 'node_modules'), join(frozenRoot, 'node_modules'), 'dir');
-for (const name of ['model', 'server', 'loadtest']) symlinkSync(join(repositoryRoot, 'packages', name, 'node_modules'), join(frozenRoot, 'packages', name, 'node_modules'), 'dir');
+const frozenRoot = `${stem}.inputs`;
+freezeSourceInputs(sourceInputs, frozenRoot);
 const sleepGuard = process.platform === 'darwin' ? launchProcess('/usr/bin/caffeinate', ['-i', '-w', String(process.pid)], { stdio: 'ignore' }) : undefined;
 sleepGuard?.unref();
 record({ type: 'runtime', coordinatorPid: process.pid, frozenRoot, sleepGuardPid: sleepGuard?.pid, maximumSchedulerGapMs: 1000, sampleTimeoutMs: 10000 });
@@ -52,7 +47,7 @@ async function event(process: Process, type: string, timeout = 60000): Promise<a
   throw new Error(`Process ${process.child.pid} failed before ${type}: ${JSON.stringify(process.events.get('failed'))}`);
 }
 async function request(process: Process, type: string, timeout = 60000): Promise<any> { process.events.delete(type); process.child.send({ type }); return event(process, type, timeout); }
-const server = spawn(production ? '../../server/src/benchmark.ts' : '../../server/src/spike-writer-kv.ts', { SPIKE_PORT: port, BENCHMARK_DATA_DIR: `${stem}.storage` });
+const server = spawn(production ? './benchmark.ts' : './spike-writer-kv.ts', { SPIKE_PORT: port, BENCHMARK_DATA_DIR: `${stem}.storage` });
 const workers: Process[] = [];
 let sampling: ReturnType<typeof setInterval> | undefined, progress: ReturnType<typeof setInterval> | undefined;
 let startedAt = 0;

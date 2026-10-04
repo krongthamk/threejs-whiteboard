@@ -16,7 +16,8 @@
     "@hocuspocus/provider": "4.7.0",
     "yjs": "13.6.33",
     "ws": "8.22.0",
-    "y-utility": "0.1.4"
+    "y-utility": "0.1.4",
+    "@hocuspocus/server": "4.7.0"
   },
   "devDependencies": {
     "@types/ws": "8.18.1"

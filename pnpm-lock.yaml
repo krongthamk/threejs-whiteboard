@@ -17,24 +17,21 @@ importers:
       '@types/node':
         specifier: 26.6.3
         version: 26.6.3
-      '@types/rbush':
-        specifier: 4.0.0
-        version: 4.0.0
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
       '@types/react-dom':
         specifier: 19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@types/three':
-        specifier: 0.186.0
-        version: 0.186.0
-      '@types/ws':
-        specifier: 8.18.1
-        version: 8.18.1
       '@vitejs/plugin-react':
         specifier: 6.1.1
         version: 6.1.1(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(tsx@4.23.15))
+      '@whiteboard/model':
+        specifier: workspace:*
+        version: link:packages/model
+      '@whiteboard/renderer':
+        specifier: workspace:*
+        version: link:packages/renderer
       tsx:
         specifier: 4.23.15
         version: 4.23.15
@@ -47,21 +44,9 @@ importers:
       vitest:
         specifier: 5.0.2
         version: 5.0.2(@types/node@26.6.3)(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(tsx@4.23.15))
-      y-utility:
-        specifier: 0.1.4
-        version: 0.1.4(yjs@13.6.33)
-      yjs:
-        specifier: 13.6.33
-        version: 13.6.33
 
   packages/app:
     dependencies:
-      '@fontsource/ibm-plex-mono':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@fontsource/inter':
-        specifier: 5.3.0
-        version: 5.3.0
       '@hocuspocus/provider':
         specifier: 4.7.0
         version: 4.7.0(y-protocols@1.0.7(yjs@13.6.33))(yjs@13.6.33)
@@ -95,19 +80,23 @@ importers:
       y-indexeddb:
         specifier: 9.0.12
         version: 9.0.12(yjs@13.6.33)
-      y-protocols:
-        specifier: 1.0.7
-        version: 1.0.7(yjs@13.6.33)
       yjs:
         specifier: 13.6.33
         version: 13.6.33
       zustand:
         specifier: 5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.2.0)
+    devDependencies:
+      '@types/rbush':
+        specifier: 4.0.0
+        version: 4.0.0
 
   packages/loadtest:
     dependencies:
       '@hocuspocus/provider':
+        specifier: 4.7.0
+        version: 4.7.0(y-protocols@1.0.7(yjs@13.6.33))(yjs@13.6.33)
+      '@hocuspocus/server':
         specifier: 4.7.0
         version: 4.7.0(y-protocols@1.0.7(yjs@13.6.33))(yjs@13.6.33)
       ws:
@@ -182,9 +171,27 @@ importers:
       '@hocuspocus/provider':
         specifier: 4.7.0
         version: 4.7.0(y-protocols@1.0.7(yjs@13.6.33))(yjs@13.6.33)
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
       ws:
         specifier: 8.22.0
         version: 8.22.0
+
+  spikes:
+    dependencies:
+      '@whiteboard/model':
+        specifier: workspace:*
+        version: link:../packages/model
+      '@whiteboard/renderer':
+        specifier: workspace:*
+        version: link:../packages/renderer
+      y-utility:
+        specifier: 0.1.4
+        version: 0.1.4(yjs@13.6.33)
+      yjs:
+        specifier: 13.6.33
+        version: 13.6.33
 
 packages:
 
@@ -350,12 +357,6 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
-
-  '@fontsource/ibm-plex-mono@5.3.0':
-    resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
-
-  '@fontsource/inter@5.3.0':
-    resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
 
   '@hocuspocus/common@4.7.0':
     resolution: {integrity: sha512-KyS6dXoIcWsd+v3gwd6nnZW04M77df5XstPNkOwqoDxwuncygobEN7xsf0x2PmdvlQdQyRaLm2SF4r1GZZGRnA==}
@@ -1276,10 +1277,6 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
-
-  '@fontsource/ibm-plex-mono@5.3.0': {}
-
-  '@fontsource/inter@5.3.0': {}
 
   '@hocuspocus/common@4.7.0':
     dependencies:

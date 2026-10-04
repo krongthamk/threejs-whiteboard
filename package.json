@@ -26,16 +26,13 @@
     "@types/node": "26.6.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@types/three": "0.186.0",
-    "@types/rbush": "4.0.0",
-    "@types/ws": "8.18.1",
     "@types/better-sqlite3": "9.6.0",
     "@vitejs/plugin-react": "6.1.1",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vite": "8.3.1",
     "vitest": "5.0.2",
-    "y-utility": "0.1.4",
-    "yjs": "13.6.33"
+    "@whiteboard/model": "workspace:*",
+    "@whiteboard/renderer": "workspace:*"
   }
 }
