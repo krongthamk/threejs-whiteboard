@@ -1,3 +1,4 @@
+import { xml } from './xml.js';
 import { arrowheadPoints, connectorPoints, contentBounds, STICKY_TEXT_INSET, strokeOutline } from './geometry.js';
 import { compareElements } from './schema.js';
 import type { Box, Element, Point } from './types.js';
@@ -13,9 +14,6 @@ export interface SvgOptions {
   title?: string;
 }
 
-function xml(value: string): string {
-  return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character]!);
-}
 function n(value: number): string { return String(Math.round(value * 10000) / 10000); }
 function path(points: readonly Point[], closed = false): string {
   return points.map((point, i) => `${i === 0 ? 'M' : 'L'}${n(point.x)} ${n(point.y)}`).join(' ') + (closed ? ' Z' : '');

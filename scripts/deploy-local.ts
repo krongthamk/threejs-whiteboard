@@ -1,3 +1,4 @@
+import { xml } from '../packages/model/src/xml.js';
 import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -23,7 +24,6 @@ for (const file of readdirSync(join(staticDirectory, 'assets'))) {
 const label = 'com.threejs-whiteboard.local', domain = `gui/${process.getuid!()}`, serviceTarget = `${domain}/${label}`;
 const dataDirectory = join(homedir(), 'Library/Application Support/ThreejsWhiteboard');
 const agents = join(homedir(), 'Library/LaunchAgents'), logs = join(dataDirectory, 'logs'), plistPath = join(agents, `${label}.plist`);
-const xml = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character]!);
 
 function hash(bytes: Uint8Array): string { return createHash('sha256').update(bytes).digest('hex'); }
 function command(executable: string, args: string[], timeout = 5000) {
