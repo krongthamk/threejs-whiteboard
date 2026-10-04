@@ -74,3 +74,14 @@ test('context loss interrupts pending tile readiness and cleans export resources
     expect(renderer.layers.selectionUI.visible).toBe(true); expect(renderer.webgl.getRenderTarget()).toBe(null);
   } finally { ready.mockRestore(); finish(); await pending.catch(() => {}); }
 });
+
+test('abort interrupts pending tile readiness without waiting for its producer', async () => {
+  let finish!: () => void;
+  const ready = vi.spyOn(renderer, 'whenReady').mockImplementation(() => new Promise<void>(resolve => { finish = resolve; }));
+  const controller = new AbortController(), options = { bounds: { x: 0, y: 0, w: 130, h: 134 }, scale: 1, signal: controller.signal };
+  const pending = renderer.exportPng(options); controller.abort();
+  try {
+    const result = await Promise.race([pending.then(() => 'resolved', error => error.name), new Promise<string>(resolve => setTimeout(() => resolve('still waiting'), 25))]);
+    expect(result).toBe('AbortError'); expect(renderer.layers.selectionUI.visible).toBe(true); expect(renderer.webgl.getRenderTarget()).toBe(null);
+  } finally { ready.mockRestore(); finish(); await pending.catch(() => {}); }
+});

@@ -16,7 +16,7 @@ export interface RendererStats {
   presencePeers: number; presenceLabels: number; pendingPresenceLabels: number; presenceErrors: number;
   imageInstances: number; visibleImages: number; pendingImages: number; imageErrors: number;
 }
-export interface PngOptions { bounds: Bounds; scale?: number; transparent?: boolean }
+export interface PngOptions { bounds: Bounds; scale?: number; transparent?: boolean; signal?: AbortSignal; onAssetError?: (assetId: string) => void }
 export interface Renderer {
   setElements(elements: readonly RenderElement[]): void;
   applyDiff(upserts: readonly RenderElement[], removals?: readonly string[]): void;

@@ -283,7 +283,7 @@ function BoardSettings({ access, kind, onClose }: { access: BoardAccess; kind: '
   const [value, setValue] = useState(kind === 'rename' ? access.board.title : '');
   const [role, setRole] = useState<'editor' | 'viewer'>('editor');
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
-  return <Modal title={kind === 'rename' ? 'Rename board' : 'Share this board'} onClose={() => !busy && onClose()}>
+  return <Modal title={kind === 'rename' ? 'Rename board' : 'Share this board'} onClose={onClose}>
     <form className="simple-form" onSubmit={event => { event.preventDefault(); setBusy(true); setError(''); setMessage(''); void (async () => {
       try {
         if (kind === 'rename') { access.onBoardChange(await api.renameBoard(access.board.id, value.trim())); onClose(); }

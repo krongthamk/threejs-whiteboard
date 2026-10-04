@@ -9,7 +9,16 @@ export function Modal({ title, children, onClose, className = '' }: { title: str
     dialog.showModal();
     return () => { dialog.close(); if (previous instanceof HTMLElement && previous.isConnected) previous.focus({ preventScroll: true }); };
   }, []);
+  // Disabling a submitting control can move browser focus to body. Keep Escape
+  // and keyboard containment in the dialog while its asynchronous work runs.
+  useLayoutEffect(() => {
+    const dialog = ref.current!, active = document.activeElement;
+    if (dialog.open && (!dialog.contains(active) || active?.matches(':disabled'))) {
+      dialog.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({ preventScroll: true });
+    }
+  });
   return <dialog ref={ref} className={`modal surface ${className}`} aria-labelledby={titleId}
+    onClose={event => { if (!event.currentTarget.open) onClose(); }}
     onCancel={event => { event.preventDefault(); onClose(); }}
     onKeyDown={event => event.stopPropagation()}
     onClick={event => {

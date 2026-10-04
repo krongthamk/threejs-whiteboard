@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { waitForSignal } from './abort';
+export { waitForSignal } from './abort';
+export { IMAGE_ERROR_COLOR } from './images';
 import RBush from 'rbush';
 import { Text, configureTextBuilder, getCaretAtPoint, getSelectionRects } from 'troika-three-text';
 import { arrowheadPoints, compareElements, connectorPoints, getElementBounds, rotatePoint, STICKY_TEXT_INSET, textLayout } from '@whiteboard/model';
@@ -658,15 +661,17 @@ export class ThreeRenderer implements Renderer {
     this.webgl.render(this.scene, this.camera);
   }
 
-  async whenReady(): Promise<void> {
+  async whenReady(options: { allowImageErrors?: boolean; onAssetError?: (assetId: string) => void } = {}): Promise<void> {
     this.flush(); if (this.viewportDirty) this.updateVisibleTexts();
     while (this.pendingTexts.size) await Promise.all(this.pendingTexts);
     for (const id of this.visibleTextIds) { const error = this.textHandles.get(id)?.error; if (error) throw error; }
-    await this.images.whenReady();
+    const failures = await this.images.whenReady(options.allowImageErrors);
+    for (const id of failures) options.onAssetError?.(id);
   }
 
-  async exportPng({ bounds, scale = 2, transparent = false }: PngOptions): Promise<Blob> {
+  async exportPng({ bounds, scale = 2, transparent = false, signal, onAssetError }: PngOptions): Promise<Blob> {
     if (!(bounds.w > 0 && bounds.h > 0 && scale > 0)) throw new Error('PNG bounds and scale must be positive');
+    signal?.throwIfAborted();
     this.flush();
     const width = Math.ceil(bounds.w * scale), height = Math.ceil(bounds.h * scale);
     const output = document.createElement('canvas'); output.width = width; output.height = height;
@@ -683,9 +688,9 @@ export class ThreeRenderer implements Renderer {
     const contextLoss = new Promise<never>((_, reject) => { rejectLost = reject; });
     void contextLoss.catch(() => {});
     const onContextLost = (event: Event) => { event.preventDefault(); lost ??= new ExportContextLostError(); rejectLost(lost); };
-    const checkContext = () => { if (lost || this.webgl.getContext().isContextLost()) throw lost ?? new ExportContextLostError(); };
+    const checkContext = () => { if (lost || this.webgl.getContext().isContextLost()) throw lost ?? new ExportContextLostError(); signal?.throwIfAborted(); };
     const awaitExport = async <T,>(work: Promise<T>): Promise<T> => {
-      checkContext(); const result = await Promise.race([work, contextLoss]); checkContext(); return result;
+      checkContext(); const result = await waitForSignal(Promise.race([work, contextLoss]), signal); checkContext(); return result;
     };
     this.webgl.domElement.addEventListener('webglcontextlost', onContextLost);
     let target: THREE.WebGLRenderTarget | undefined;
@@ -696,9 +701,10 @@ export class ThreeRenderer implements Renderer {
       target.texture.colorSpace = THREE.LinearSRGBColorSpace;
       const pixels = new Uint8Array(targetWidth * targetHeight * 4), flipped = new Uint8ClampedArray(pixels.length);
       for (let top = 0; top < height; top += maxSize) for (let left = 0; left < width; left += maxSize) {
+        if (top || left) await awaitExport(new Promise<void>(resolve => setTimeout(resolve, 0)));
         const tileWidth = Math.min(maxSize, width - left), tileHeight = Math.min(maxSize, height - top);
         const tileBounds = { x: bounds.x + left / scale, y: bounds.y + top / scale, w: tileWidth / scale, h: tileHeight / scale };
-        this.updateVisibleTexts(tileBounds, scale); await awaitExport(this.whenReady());
+        this.updateVisibleTexts(tileBounds, scale); await awaitExport(this.whenReady({ allowImageErrors: true, onAssetError }));
         // Another renderer may own shared glyph generation needed by this tile.
         await awaitExport(whenTextAtlasReady());
         const camera = this.camera.clone(); camera.zoom = 1;
@@ -730,7 +736,7 @@ export class ThreeRenderer implements Renderer {
       this.liveStroke.mesh.visible = liveStrokeVisible;
       this.images.setExporting(false);
       this.editingTextId = editing; this.viewportDirty = true;
-      if (!lost && !this.webgl.getContext().isContextLost()) this.render();
+      if (!lost && !signal?.aborted && !this.webgl.getContext().isContextLost()) this.render();
     }
   }
 

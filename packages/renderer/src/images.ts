@@ -4,6 +4,8 @@ import { getElementBounds, readImageHeader, assertSafeImageDimensions, MAX_IMAGE
 import { cssColor } from './shapes';
 import type { Bounds, RendererOptions } from './types';
 
+export const IMAGE_ERROR_COLOR = '#fee2e2';
+
 type ImageElement = ElementOf<'image'>;
 interface Entry { id: string; minX: number; minY: number; maxX: number; maxY: number }
 interface TextureResource { texture: THREE.Texture; bitmap: ImageBitmap; size: number }
@@ -168,7 +170,7 @@ export class ImageProjection {
       handle.error = mismatch ?? error;
       const material = handle.mesh.material, texture = handle.error ? null : resource?.texture ?? null;
       if (material.map !== texture) { material.map = texture; material.needsUpdate = true; changed = true; }
-      const color = cssColor(texture ? '#ffffff' : handle.error ? '#fee2e2' : '#dce3ed');
+      const color = cssColor(texture ? '#ffffff' : handle.error ? IMAGE_ERROR_COLOR : '#dce3ed');
       if (!material.color.equals(color)) { material.color.copy(color); changed = true; }
     }
     if (changed) this.invalidate();
@@ -177,9 +179,14 @@ export class ImageProjection {
     this.exporting = exporting;
     if (!exporting) for (const asset of this.assets.values()) { if (asset.full) this.disposeTexture(asset.full); asset.full = undefined; asset.fullError = undefined; this.bindAsset(asset); }
   }
-  async whenReady(): Promise<void> {
+  async whenReady(allowErrors = false): Promise<readonly string[]> {
     while (this.pending.size) await Promise.all(this.pending);
-    for (const id of this.visibleIds) { const error = this.handles.get(id)?.error; if (error) throw error; }
+    const failures = new Set<string>();
+    for (const id of this.visibleIds) {
+      const handle = this.handles.get(id);
+      if (handle?.error) { if (!allowErrors) throw handle.error; failures.add(handle.element.props.assetId); }
+    }
+    return [...failures];
   }
   getError(id: string): Error | undefined { return this.handles.get(id)?.error; }
   stats(): { imageInstances: number; visibleImages: number; pendingImages: number; imageErrors: number } {
