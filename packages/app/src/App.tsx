@@ -4,7 +4,7 @@ import {
   MousePointer2, Square, Circle, StickyNote, Hand, Undo2, Redo2,
   Plus, Minus, Scan, ChevronDown, SquarePen, ArrowUpToLine, ArrowDownToLine,
   Copy, Trash2, X, Keyboard, Check, ArrowLeft, LogOut, Users, Pencil,
-  Type, PenLine, Eraser, ArrowUpRight, Download, ImagePlus,
+  Type, PenLine, Eraser, ArrowUpRight, Download, ImagePlus, Slash,
 } from 'lucide-react';
 import { SCHEMA_VERSION, textBlock, type ElementPatch, type ElementStyle, type ShapeTextProps, type TextProps } from '@whiteboard/model';
 import { EditorRuntime, type BoardDiagnostics } from './runtime';
@@ -240,6 +240,7 @@ function BoardChrome({ runtime, revision, readOnly }: { runtime: EditorRuntime; 
       <div className="panel-heading"><h2>{selected.length ? `${selected.length} selected` : tools.find(tool => tool.id === state.tool)?.name}</h2><span className="property-marker" /></div>
       {showFill && <fieldset><legend>Fill</legend><div className="color-grid">
         {fills.map(fill => <button key={fill} className={`color-swatch ${style.fill === fill ? 'chosen' : ''}`} style={{ background: fill }} aria-label={`Fill ${fill}`} aria-pressed={style.fill === fill} onClick={() => changeStyle({ fill })}>{style.fill === fill && <Check size={14} />}</button>)}
+        <button className={`color-swatch ${style.fill === 'none' ? 'chosen' : ''}`} style={{ background: 'transparent' }} aria-label="No fill" title="No fill" aria-pressed={style.fill === 'none'} onClick={() => changeStyle({ fill: 'none' })}><Slash size={14} /></button>
         <label className="custom-color" title="Custom fill"><ColorField label="Custom fill" value={style.fill} onCommit={fill => changeStyle({ fill })} /><Plus size={15} /></label>
       </div></fieldset>}
       {showStroke && <>

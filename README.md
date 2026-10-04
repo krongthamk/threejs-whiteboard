@@ -65,6 +65,10 @@ Use the tool rail or `V` select, `R` rectangle, `O` ellipse, `N` note, `T` text,
 
 Shape labels use the shape's existing box. New labels start centered horizontally and vertically; the style panel provides font, size, horizontal alignment, and shape-only vertical alignment. Sticky text stays top-aligned. Empty shapes show a placeholder only while editing, and clearing a label restores an empty shape. Overflowing drafts scroll within a temporary editing area; very small shapes get enough room to edit a line. Saved labels remain clipped to their shape's content rectangle.
 
+Choose **No fill** in the Fill palette to show content beneath a shape while
+retaining its outline and label. The shape keeps its usual selection target;
+PNG and SVG preserve the transparent interior.
+
 Letter shortcuts follow physical key positions, including with non-Latin keyboard layouts. Board shortcuts yield to focused form controls, buttons, links, and summaries. Viewers can use the Select and Pan buttons; letter tool shortcuts leave their current tool unchanged.
 
 On touch screens, use two fingers to pan or pinch to zoom. Adding the second finger cancels any unfinished drawing or edit gesture, without adding an undo step; navigation also works for viewers.

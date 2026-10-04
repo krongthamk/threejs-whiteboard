@@ -540,3 +540,21 @@ it.each([['rect', false], ['rect', true], ['ellipse', false], ['ellipse', true]]
   renderer.applyDiff([], [element.id]); renderer.render();
   expect(badge.visible).toBe(false); expect(frame.geometry.drawRange.count).toBe(0);
 });
+
+it.each(['rect', 'ellipse'] as const)('none fill retains %s stroke, opaque instance identity, count, depth and ready label', async type => {
+  const element = shapeLabel(type), text = await readyShape(element);
+  renderer.applyDiff([{ ...element, id: 'other-shape', x: 400, index: 'zz', props: {} }]); renderer.render();
+  const mesh = renderer.layers.shapes.children.find(child => child instanceof THREE.InstancedMesh) as THREE.InstancedMesh;
+  const matrix = new THREE.Matrix4(); mesh.getMatrixAt(0, matrix);
+  const border = mesh.geometry.getAttribute('borderColor') as THREE.InstancedBufferAttribute;
+  const beforeBorder = [...border.array], beforeStats = renderer.stats();
+  renderer.applyDiff([{ ...element, style: { ...element.style, fill: 'none' } }]); renderer.render();
+  expect(renderer.layers.shapes.children).toContain(mesh); expect(mesh.count).toBe(2);
+  const fill = mesh.geometry.getAttribute('fillColor') as THREE.InstancedBufferAttribute;
+  expect([fill.getX(0), fill.getY(0), fill.getZ(0), fill.getW(0)]).toEqual([0, 0, 0, 0]);
+  expect([...border.array]).toEqual(beforeBorder); expect(border.getW(0)).toBe(1);
+  const afterMatrix = new THREE.Matrix4(); mesh.getMatrixAt(0, afterMatrix); expect(afterMatrix.elements).toEqual(matrix.elements);
+  expect(mesh.material).toMatchObject({ transparent: false, depthWrite: true });
+  expect(renderer.getTextObject(element.id)).toBe(text); expect(text.dispose).not.toHaveBeenCalled();
+  expect(renderer.stats()).toMatchObject({ shapeInstances: beforeStats.shapeInstances, textInstances: beforeStats.textInstances, textDisposals: beforeStats.textDisposals, pendingTexts: 0 });
+});
