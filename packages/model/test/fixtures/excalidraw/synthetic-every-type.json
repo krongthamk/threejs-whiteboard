@@ -1,0 +1,437 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "Handmade converter unit fixture; not an Excalidraw app export",
+  "elements": [
+    {
+      "id": "bound",
+      "type": "text",
+      "x": 20,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "text": "Wrapped\nlabel",
+      "originalText": "  Shape 日本語 \n\n",
+      "containerId": "container",
+      "fontFamily": 1,
+      "fontSize": 20,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "lineHeight": 1.25
+    },
+    {
+      "id": "container",
+      "type": "rectangle",
+      "x": 20,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "#dbe9ff",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 1,
+      "fillStyle": "hachure",
+      "strokeStyle": "solid",
+      "groupIds": [
+        "group-a"
+      ]
+    },
+    {
+      "id": "oval",
+      "type": "ellipse",
+      "x": 200,
+      "y": 30,
+      "width": 100,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid"
+    },
+    {
+      "id": "diamond",
+      "type": "diamond",
+      "x": 350,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid"
+    },
+    {
+      "id": "free",
+      "type": "text",
+      "x": -100,
+      "y": 200,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "text": "Mono text",
+      "originalText": "Mono \t\ntext\n",
+      "fontFamily": 3,
+      "fontSize": 18,
+      "textAlign": "right",
+      "verticalAlign": "top",
+      "autoResize": false,
+      "containerId": null
+    },
+    {
+      "id": "ink",
+      "type": "freedraw",
+      "x": 100,
+      "y": 200,
+      "width": 120,
+      "height": 80,
+      "angle": 0.3,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -30,
+          20
+        ],
+        [
+          40,
+          50
+        ]
+      ],
+      "pressures": [
+        0.2,
+        0.8,
+        0.5
+      ],
+      "simulatePressure": false
+    },
+    {
+      "id": "line",
+      "type": "line",
+      "x": -100,
+      "y": 300,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "dashed",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          50,
+          -20
+        ],
+        [
+          100,
+          0
+        ]
+      ],
+      "pressures": [],
+      "roundness": {
+        "type": 2
+      }
+    },
+    {
+      "id": "straight",
+      "type": "arrow",
+      "x": 140,
+      "y": 70,
+      "width": 60,
+      "height": 0,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          60,
+          0
+        ]
+      ],
+      "startBinding": {
+        "elementId": "container",
+        "focus": 0,
+        "gap": 0
+      },
+      "endBinding": {
+        "elementId": "oval",
+        "fixedPoint": [
+          0,
+          0.5
+        ],
+        "mode": "inside"
+      },
+      "endArrowhead": "arrow",
+      "startArrowhead": null
+    },
+    {
+      "id": "curve",
+      "type": "arrow",
+      "x": 20,
+      "y": 400,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          50,
+          -30
+        ],
+        [
+          100,
+          0
+        ]
+      ],
+      "endBinding": null,
+      "startBinding": null,
+      "endArrowhead": "arrow",
+      "elbowed": false
+    },
+    {
+      "id": "elbow",
+      "type": "arrow",
+      "x": 20,
+      "y": 500,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          50,
+          0
+        ],
+        [
+          50,
+          50
+        ],
+        [
+          100,
+          50
+        ]
+      ],
+      "elbowed": true,
+      "startBinding": null,
+      "endBinding": null,
+      "startArrowhead": "circle",
+      "endArrowhead": "bar"
+    },
+    {
+      "id": "picture",
+      "type": "image",
+      "x": 450,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "fileId": "pixel",
+      "scale": [
+        1,
+        1
+      ],
+      "crop": null,
+      "status": "saved"
+    },
+    {
+      "id": "frame",
+      "type": "frame",
+      "x": 500,
+      "y": 200,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "name": "Planning"
+    },
+    {
+      "id": "magicframe",
+      "type": "magicframe",
+      "x": 650,
+      "y": 200,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "name": null
+    },
+    {
+      "id": "embed",
+      "type": "embeddable",
+      "x": 20,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "link": "https://example.com"
+    },
+    {
+      "id": "iframe",
+      "type": "iframe",
+      "x": 20,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "link": "https://example.com"
+    },
+    {
+      "id": "sticky",
+      "type": "stickynote",
+      "x": 20,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid"
+    },
+    {
+      "id": "unknown",
+      "type": "future-type",
+      "x": 20,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid"
+    },
+    {
+      "id": "deleted",
+      "type": "rectangle",
+      "x": 20,
+      "y": 30,
+      "width": 120,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#123456",
+      "backgroundColor": "transparent",
+      "opacity": 100,
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fillStyle": "solid",
+      "strokeStyle": "solid",
+      "isDeleted": true
+    }
+  ],
+  "files": {
+    "pixel": {
+      "id": "pixel",
+      "mimeType": "image/png",
+      "dataURL": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aP8sAAAAASUVORK5CYII="
+    }
+  }
+}

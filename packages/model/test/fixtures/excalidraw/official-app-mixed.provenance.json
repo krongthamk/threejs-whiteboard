@@ -1,0 +1,124 @@
+{
+  "classification": "Genuine official Excalidraw app UI-created mixed scene, exported via official Save to file. UI was machine driven using Playwright native mouse, keyboard, tool/menu clicks and filechooser.setFiles.",
+  "notSyntheticFactoryFixture": true,
+  "sourceApplication": {
+    "url": "https://excalidraw.com/",
+    "title": "Excalidraw Whiteboard",
+    "observedAtUTC": "2026-10-04T22:58:23.502Z",
+    "localDate": "2026-10-05 Asia/Bangkok",
+    "deployedReleaseVersion": "Not asserted; no release/version exposed in observed UI. Exact loaded main bundle is identified below.",
+    "observedMainBundle": {
+      "url": "https://excalidraw.com/assets/index-BUcDoVnm.js",
+      "status": 200,
+      "resourceType": "script",
+      "bytes": 2233882,
+      "sha256": "34f7f4e8126efa2f671b3b5bb875cb010cfdcc556dddf344190af1c2001c6cb3"
+    },
+    "browserVersion": "154.0.8037.95"
+  },
+  "original": {
+    "file": "original.excalidraw",
+    "suggestedFilename": "Untitled-2026-10-05-0556.excalidraw",
+    "downloadURL": "blob:https://excalidraw.com/62535680-babe-4c42-b887-1641efd8ff9c",
+    "downloadTimeUTC": "2026-10-04T22:57:58.778Z",
+    "bytes": 11544,
+    "sha256": "dd49a1f29fefca2a51fee4c5983a570db27688a3fb003d11929a9af12305d55f",
+    "type": "excalidraw",
+    "version": 2,
+    "source": "https://excalidraw.com",
+    "unchanged": "Saved directly from the real Playwright download event. Never parsed and reserialized into the original file."
+  },
+  "scene": {
+    "elementCounts": {
+      "rectangle": 1,
+      "text": 2,
+      "ellipse": 1,
+      "diamond": 1,
+      "arrow": 1,
+      "line": 1,
+      "image": 1,
+      "freedraw": 1,
+      "frame": 1
+    },
+    "boundText": {
+      "id": "7E6z6f9TLJTe7Ux5YYblL",
+      "containerId": "Mvvz2TXWVRnk7mOQY2rJr",
+      "text": "Bound rectangle\n日本語 label"
+    },
+    "arrow": {
+      "id": "aewPn17Wtk9Ppz7gKcOL4",
+      "startBinding": {
+        "elementId": "Mvvz2TXWVRnk7mOQY2rJr",
+        "mode": "orbit",
+        "fixedPoint": [
+          1,
+          0.5001
+        ]
+      },
+      "endBinding": {
+        "elementId": "fIo3BfVKxhwqiVgJELmIw",
+        "mode": "orbit",
+        "fixedPoint": [
+          0,
+          0.5001
+        ]
+      },
+      "reciprocalTargetBindingsVerified": true
+    },
+    "image": {
+      "id": "GLJ2EAH8XLHD3hYVnQkzt",
+      "fileId": "c972a5bee66eef985ae885f0156a567bd5e665eb",
+      "x": 1000.5,
+      "y": 470.5,
+      "width": 159,
+      "height": 159,
+      "scale": [
+        -1,
+        -1
+      ],
+      "crop": null
+    },
+    "frame": {
+      "id": "Z7wFkiZM1-H07-hCs7xfe",
+      "memberIds": [
+        "Pe6uQSqh3fsgG_2n6qlrH"
+      ]
+    }
+  },
+  "asset": {
+    "originalRepositoryPath": "packages/server/test/fixtures/assets/legacy-image-1.png",
+    "localCopy": "input-image.png",
+    "classification": "Existing synthetic local test fixture; not third-party or user content. 1x1 RGBA steel-blue pixel [70,130,180,255], enlarged by native official-app resize to a visible 159x159 image.",
+    "bytes": 70,
+    "sha256": "e14ecec03505720b591eff6793c61a1f4eb6cdd47d8471e466e5135b9984bff1",
+    "mimeType": "image/png",
+    "embeddedExportBytesMatchInput": true
+  },
+  "isolation": {
+    "profile": "Fresh nonpersistent Playwright context; no user browser/profile/storage state",
+    "sceneCreation": "All elements created through visible toolbar/menu/native keyboard/mouse operations. No fabricated element JSON import, app API or internal constructor calls.",
+    "launch": "Chromium channel chrome, headless, --disable-blink-features=FileSystemAccessLocal",
+    "fileAPIsObserved": {
+      "open": "undefined",
+      "save": "undefined"
+    },
+    "fallbackReason": "Headless Chrome exposed native File System Access functions but UI produced neither Playwright filechooser nor download. First complete attempt is retained under attempt-native-fs; one ineffective --disable-features=FileSystemAccessAPI capability check is under attempt-ineffective-base-flag. Final browser capability flag removes only native OS picker API so official app uses its own file-input/download fallback. No app implementation replacement.",
+    "publishing": "No account/login/live collaboration/public sharing or publishing action"
+  },
+  "procedure": "procedure.md",
+  "automationScript": "capture.mjs",
+  "nativeActionLog": "actions.json",
+  "trace": "trace.zip",
+  "visual": "mixed-with-image-frame.png",
+  "manualVisualReview": "The assistant viewed the full screenshot: bound labeled rectangle, arrow between rectangle and ellipse, diamond, free text, independent line, framed freehand and enlarged steel-blue image are visibly distinct. Screenshot coordinates correspond to export x/y/width/height.",
+  "validation": "verify-provenance.py asserts required types, both arrow bindings and reciprocal references, bound-label references, frame membership, visible image dimensions and exact input/embedded bytes. No browser reopen performed.",
+  "artifactHashes": {
+    "capture.mjs": "42384d6eb0b671698d3ba01f5c4daa33c00a8ac0667a294449ec42ca7d13328c",
+    "actions.json": "8b8d808ecb336497b78b16bf4bd772c3a0767ba2c670d9925ee0df392ca86e7e",
+    "build-observations.json": "ff225f508d2cb856ac68fe13c1cd8b020f4477ca26f8bcf8325f0d274a6bda46",
+    "trace.zip": "d12d109ebe6a2b32b2a53d732be6ef11ff6fb781a040451f2a5e382e79bb2174",
+    "mixed-with-image-frame.png": "7dae39d9dd10e9a2bca9205c9024a03559984cd60387f940798d81025f4e54c2",
+    "scene.png": "7dae39d9dd10e9a2bca9205c9024a03559984cd60387f940798d81025f4e54c2",
+    "input-image.png": "e14ecec03505720b591eff6793c61a1f4eb6cdd47d8471e466e5135b9984bff1"
+  }
+}

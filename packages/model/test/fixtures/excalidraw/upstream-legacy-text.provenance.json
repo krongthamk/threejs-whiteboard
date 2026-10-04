@@ -1,0 +1,71 @@
+{
+  "repository": "https://github.com/excalidraw/excalidraw",
+  "pinnedCommit": "ed10ac7dca7e40f3f4a31269b4bfba980d0db41e",
+  "files": [
+    {
+      "path": "packages/excalidraw/tests/fixtures/test_embedded_v1.svg",
+      "download": "test_embedded_v1.svg",
+      "bytes": 1981,
+      "gitBlob": "3f26177683b412b878931f3e7c13a0d834cbf0b4",
+      "sha256": "3b943fe54b31f915d40e04e0746a2f4435bd6009f8c477de5a0e2ff00e942c3f",
+      "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/fixtures/test_embedded_v1.svg"
+    },
+    {
+      "path": "packages/excalidraw/tests/fixtures/smiley_embedded_v2.svg",
+      "download": "smiley_embedded_v2.svg",
+      "bytes": 1769,
+      "gitBlob": "203e0440817806926ad842d8d14e63774b308d4c",
+      "sha256": "05c475cdf6b11833df5541fbd03035c36e526d9285e3e5aa9ee89f4850734ff5",
+      "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/fixtures/smiley_embedded_v2.svg"
+    },
+    {
+      "path": "packages/excalidraw/tests/fixtures/diagramFixture.ts",
+      "download": "diagramFixture.ts",
+      "bytes": 1194,
+      "gitBlob": "6c2c993cc5e5db660886b6cf44f654bbb142d0fd",
+      "sha256": "706555054419a958ac7bd6169b8a27960ed36913235a74cc16ca1071d5c61804",
+      "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/fixtures/diagramFixture.ts"
+    },
+    {
+      "path": "packages/excalidraw/tests/export.test.tsx",
+      "download": "export.test.tsx",
+      "bytes": 5774,
+      "gitBlob": "365db0c6b1483424aeffe42e60bfdc593a4b6ee2",
+      "sha256": "b39ccd3751963360db12cbdaeee018673853057b2665c901cb35384e8560304f",
+      "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/export.test.tsx"
+    },
+    {
+      "path": "packages/excalidraw/data/json.ts",
+      "download": "json.ts",
+      "bytes": 4239,
+      "gitBlob": "a49d58cd029534981ff991a898dc5f59fbc77045",
+      "sha256": "d38e58836b569507a40f6f3a745d600c589202a43627762ee7a578331a3d514d",
+      "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/data/json.ts"
+    },
+    {
+      "path": "packages/element/src/types.ts",
+      "download": "types.ts",
+      "bytes": 14954,
+      "gitBlob": "68891be19f8ba4021759292698cd63be5ef94af0",
+      "sha256": "ae55b7f4e5e62aa33c36ae54c26b34e7c5853c0a4bb9accbf384a635b4070ef4",
+      "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/element/src/types.ts"
+    },
+    {
+      "path": "LICENSE",
+      "download": "LICENSE",
+      "bytes": 1067,
+      "gitBlob": "8a844bc750a313db95d147bea9e4c9537b2cebc0",
+      "sha256": "1352d204fdb90d5e482c13139d848bc2c9300a9a7de358a0a558a23e72d0d8be",
+      "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/LICENSE"
+    }
+  ],
+  "extractedFixture": {
+    "path": "upstream-test-embedded-v1.excalidraw",
+    "bytes": 906,
+    "sha256": "f7a80231fe0a78f4b996b3373423c42a8fa1dbb0f3086d57d740597c796127a3",
+    "method": "Base64 decode exactly the bytes between payload-start/payload-end comments in test_embedded_v1.svg; no JSON parsing/reserialization or supplementation.",
+    "classification": "Official upstream embedded SVG-export scene fixture, covered by import embedded svg (legacy v1) in export.test.tsx. This does not attest a human GUI-save session.",
+    "coverage": "One legacy text element test, no files field. Useful for legacy exporter compatibility, insufficient for the required full mixed-type acceptance scene.",
+    "syntheticAlternativeRejected": "diagramFixture.ts is explicitly assembled from elementFixture factories and is not a genuine app-save/export fixture."
+  }
+}

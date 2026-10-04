@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import * as Y from 'yjs';
-import { assertValidElement, bindToElement, getElementBounds, LOCAL_ORIGIN, resolveConnectorEndpoints, type Element, type ElementType, type ShapeTextProps } from '../src/index.js';
+import { assertValidElement, bindToElement, importExcalidraw, getElementBounds, LOCAL_ORIGIN, resolveConnectorEndpoints, type Element, type ElementType, type ShapeTextProps } from '../src/index.js';
 import { BoardDocument, WRITER_PREFIX, CLOCK_PREFIX } from '../src/document.js';
 import { writeRunEvidence } from '../../../tests/evidence';
 
@@ -30,6 +30,40 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     horizontal: { left: 0, center: 0, right: 0 }, vertical: { top: 0, middle: 0, bottom: 0 } };
   const shapeProps = (text: string): ShapeTextProps => ({ text, autoSize: false,
     align: choose(['left', 'center', 'right'] as const), verticalAlign: choose(['top', 'middle', 'bottom'] as const) });
+  const importCoverage = { batches: 0, generated: 0, validated: 0, noneFill: 0, labels: 0, pressureStrokes: 0,
+    pointEndpoints: 0, boundEndpoints: 0, kinds: { straight: 0, curve: 0, elbow: 0 } };
+  const observeImport = (element: Element) => {
+    if (element.style.fill === 'none') importCoverage.noneFill++;
+    if ((element.type === 'rect' || element.type === 'ellipse') && typeof element.props.text === 'string') importCoverage.labels++;
+    if (element.type === 'stroke' && element.props.points.some((n, i) => i % 3 === 2 && n !== .5)) importCoverage.pressureStrokes++;
+    if (element.type === 'connector') {
+      importCoverage.kinds[element.props.kind]++;
+      for (const endpoint of [element.props.start, element.props.end]) {
+        if ('elementId' in endpoint) importCoverage.boundEndpoints++; else importCoverage.pointEndpoints++;
+      }
+    }
+  };
+  let importSerial = 0;
+  function importScene(client: BoardDocument, sequence: number): void {
+    const serial = importSerial++, offset = sequence < 0 ? 0 : coordinate();
+    const raw = (id: string, type: string, changes: Record<string, unknown> = {}) => ({ id, type, x: offset, y: offset,
+      width: 120, height: 90, angle: .2, strokeColor: '#123456', backgroundColor: 'transparent', opacity: 100,
+      strokeWidth: 2, roughness: 1, fillStyle: 'hachure', strokeStyle: 'dashed', ...changes });
+    const scene = { type: 'excalidraw', version: 2, elements: [raw('rect', 'rectangle'), raw('ellipse', 'ellipse'),
+      raw('label', 'text', { containerId: 'rect', originalText: `Imported ${serial} 日本語\n  source  \n`, text: 'wrapped',
+        textAlign: choose(['left', 'center', 'right'] as const), verticalAlign: choose(['top', 'middle', 'bottom'] as const), fontFamily: 3, fontSize: 18 }),
+      raw('pressure', 'freedraw', { points: [[-10, 5], [20, 40], [100, 15]], pressures: [.1, .9, .3] }),
+      ...(['straight', 'curve', 'elbow'] as const).map(kind => raw(kind, 'arrow', {
+        points: kind === 'curve' ? [[0, 0], [40, 30], [140, 90]] : [[0, 0], [140, 90]], elbowed: kind === 'elbow',
+        startBinding: { elementId: 'rect', focus: 0, gap: 0, fixedPoint: null }, endBinding: null,
+      }))] };
+    let id = 0;
+    const converted = importExcalidraw(scene, { newId: () => `import-${client.doc.clientID}-${serial}-${id++}`, firstIndex: client.highestIndex() });
+    expect(converted.report.skipped).toEqual([]); expect(converted.elements).toHaveLength(6);
+    client.transact(() => { for (const element of converted.elements) client.add(element); });
+    importCoverage.batches++; importCoverage.generated += converted.elements.length;
+    converted.elements.forEach(observeImport);
+  }
   const base = new BoardDocument();
   for (let i = 0; i < 28; i++) {
     const type = types[i % types.length]!;
@@ -37,6 +71,7 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     base.create(type, { id: `base-${i}`, x: i * 20, y: i * 10, ...(props ? { props } : {}) });
     if (props) shapeCoverage.generated++;
   }
+  importScene(base, -1);
   const snapshot = Y.encodeStateAsUpdate(base.doc);
   const clients = [1, 2, 3].map(clientID => { const doc = new Y.Doc(); doc.clientID = clientID; Y.applyUpdate(doc, snapshot, 'network'); return new BoardDocument(doc); });
   base.destroy();
@@ -70,7 +105,7 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     }
     if (action === 1 && all.length > 10) { client.delete(element.id); count('delete'); return; }
     if (action === 2) { client.move([element.id], { x: integer(41) - 20, y: integer(41) - 20 }); count('move'); return; }
-    if (action === 3) { client.updateStyle([element.id], { fill: `#${integer(0x1000000).toString(16).padStart(6, '0')}`, opacity: random(), strokeWidth: integer(16), fontSize: 8 + integer(50) }); count('style'); return; }
+    if (action === 3) { client.updateStyle([element.id], { fill: random() > .75 ? 'none' : `#${integer(0x1000000).toString(16).padStart(6, '0')}`, opacity: random(), strokeWidth: integer(16), fontSize: 8 + integer(50) }); count('style'); return; }
     if (action === 4) { client.update(element.id, { w: 1 + integer(500), h: 1 + integer(500) }); count('resize'); return; }
     if (action === 5) { client.update(element.id, { rotation: random() * Math.PI * 2 }); count('rotate'); return; }
     if (action === 6) { client.reorder(element.id, choose(['forward', 'backward', 'front', 'back'] as const)); count('order'); return; }
@@ -94,6 +129,7 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     if (action === 11) {
       client.transact(() => { for (const target of all.slice(0, 3)) client.update(target.id, { x: coordinate(), y: coordinate() }); }); count('multi-element gesture'); return;
     }
+    if (action === 12 && all.length <= 42) { importScene(client, sequence); count('excalidraw import'); return; }
     if (action === 15) {
       const target = choose(all.filter(e => e.type === 'rect' || e.type === 'ellipse'));
       if (target) { client.setShapeText(target.id, `Shape ${sequence}\nΩ中 🖊️`); shapeCoverage.set++; count('shape text'); return; }
@@ -124,6 +160,7 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     // read() validates the complete raw base+override projection before deriving geometry.
     for (const element of elements) {
       assertValidElement(element);
+      if (element.id.startsWith('import-')) { importCoverage.validated++; observeImport(element); }
       if ((element.type === 'rect' || element.type === 'ellipse') && typeof element.props.text === 'string') {
         if (element.props.autoSize !== false) throw new Error(`pair ${pair}: shape text owns its box`);
         shapeCoverage.validated++;
@@ -170,12 +207,14 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     if ((pair + 1) % 1000 === 0) console.log(JSON.stringify({ spike: 'S2-schema2', completedPairs: pair + 1, durationMs: Math.round(performance.now() - started) }));
     if (pair % 200 === 0) clients.forEach(client => client.undoManager.clear());
   }
-  expect(Object.keys(counts).sort()).toEqual(['binding', 'create', 'delete', 'image', 'move', 'multi-element gesture', 'order', 'position', 'redo', 'resize', 'rotate', 'stroke', 'style', 'text', 'undo', 'shape text', 'shape clear', 'shape alignment'].sort());
+  expect(Object.keys(counts).sort()).toEqual(['excalidraw import', 'binding', 'create', 'delete', 'image', 'move', 'multi-element gesture', 'order', 'position', 'redo', 'resize', 'rotate', 'stroke', 'style', 'text', 'undo', 'shape text', 'shape clear', 'shape alignment'].sort());
   expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(20_000);
   expect(validated).toBeGreaterThan(100_000);
   for (const value of [shapeCoverage.generated, shapeCoverage.set, shapeCoverage.cleared, shapeCoverage.aligned, shapeCoverage.validated,
     ...Object.values(shapeCoverage.horizontal), ...Object.values(shapeCoverage.vertical)]) expect(value).toBeGreaterThan(0);
-  const result = { spike: 'S2-schema2', seed: SEED, concurrentPairs: 10_000, clients: 3, operations: 20_000, validatedElements: validated, invalidElements: 0, divergentPairs: 0, deliveredUpdates: delivered, operationCounts: counts, shapeTextCoverage: shapeCoverage, durationMs: Math.round(performance.now() - started) };
+  for (const value of [importCoverage.batches, importCoverage.generated, importCoverage.validated, importCoverage.noneFill,
+    importCoverage.labels, importCoverage.pressureStrokes, importCoverage.pointEndpoints, importCoverage.boundEndpoints, ...Object.values(importCoverage.kinds)]) expect(value).toBeGreaterThan(0);
+  const result = { spike: 'S2-schema2', seed: SEED, concurrentPairs: 10_000, clients: 3, operations: 20_000, validatedElements: validated, invalidElements: 0, divergentPairs: 0, deliveredUpdates: delivered, operationCounts: counts, shapeTextCoverage: shapeCoverage, excalidrawImportCoverage: importCoverage, durationMs: Math.round(performance.now() - started) };
   writeRunEvidence('model', 's2-schema2-fuzz.json', 'packages/model/reports/s2-schema2-fuzz.json', `${JSON.stringify(result, null, 2)}\n`); console.log(JSON.stringify(result));
   clients.forEach(client => client.destroy());
 }, 900_000);

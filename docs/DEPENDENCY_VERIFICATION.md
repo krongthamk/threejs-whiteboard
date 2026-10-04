@@ -2,6 +2,14 @@
 
 Checked on 2026-09-29.
 
+F2.2 Excalidraw converter update — 2026-10-05: no new packages or font assets.
+The pure converter reuses the pinned `fractional-indexing` package and the
+model's image-header validation. Color parsing uses standard CSS color values
+and local arithmetic; it does not import a browser or renderer into the model.
+The genuine test scene was created through the official Excalidraw app using
+synthetic text and the repository's existing PNG fixture. Its unchanged bytes
+and capture provenance are stored with the converter fixtures.
+
 F1 shape text update — 2026-10-05: no packages, dependency versions, or font
 assets are added or changed. Shape labels reuse the existing Yjs model, Troika
 projection, SVG/PDF export path, and bundled Inter, IBM Plex Mono, and Noto Sans

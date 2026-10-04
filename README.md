@@ -157,7 +157,15 @@ clip overflow to the content rectangle. Labels follow shape rotation and
 stacking order; the renderer retains its ready text mesh during position or
 color changes. Font coverage includes stored shape text even when clipped or
 hidden: unsupported glyphs produce a warning and prevent PDF export.
-Step verification and remaining feature work are tracked in the
+The model package also exposes `importExcalidraw(json, options)` for Excalidraw
+version-2 files and clipboard envelopes. It returns validated native elements
+with fresh IDs, image payloads, and a report of skipped records and lossy
+conversions. Bound shape labels and supported arrow bindings remain editable;
+image crops and flips are described for the app to bake during asset upload.
+Image asset IDs in this pure result are temporary and must be replaced before
+insertion. The converter caps source JSON at 50 MiB, raw elements at 10,000 and
+active images at 100; file callers must check original bytes before parsing.
+Step verification and app integration work are tracked in the
 [feature implementation ledger](docs/IMPLEMENTATION_STATUS.md).
 
 Read [storage design and measured limits](docs/D3_STORAGE_INVESTIGATION.md), [dependency/license verification](docs/DEPENDENCY_VERIFICATION.md), and [server operations](packages/server/README.md) before changing persistence, pinned Yjs internals, or deployment topology. Schema 1 is rejected rather than silently mutated. Compaction preserves Yjs clocks and offline merge history; it does not erase retired-writer or deleted-generation information.
