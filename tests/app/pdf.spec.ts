@@ -1,3 +1,4 @@
+import { pdfInspectionEnvironment } from '../pdf-inspection';
 import { test, expect } from '@playwright/test';
 import { evidenceDirectory, recordBrowserEvidence, repositoryPath } from '../evidence';
 import { execFileSync } from 'node:child_process';
@@ -81,7 +82,7 @@ for i in range(4):
  a=ink_bounds(cold,y0,y1);b=ink_bounds(reference,y0,y1);c=ink_bounds(projection,y0,y1)
  regions.append({'row':i,'pdfInk':a,'svgInk':b,'pngInk':c,'maxInkBoundsDelta':max(abs(x-y) for x,y in zip(a,b)) if a and b else None,'pngSvgInkBoundsDelta':max(abs(x-y) for x,y in zip(b,c)) if b and c else None})
 print(json.dumps({'lines':lines,'warmLines':warm_lines,'coldWarmPixelsEqual':cold.samples==warm.samples,'pdfSize':[cold.width,cold.height],'svgSize':[reference.width,reference.height],'regions':regions},ensure_ascii=False))
-`, directory, text], { env: { ...process.env, PYTHONPATH: process.env.PDF_PYTHONPATH ?? '/private/tmp/whiteboard-pdf' }, encoding: 'utf8' });
+`, directory, text], { env: pdfInspectionEnvironment(), encoding: 'utf8' });
     writeFileSync(`${directory}/inspection.json`, report);
     const inspected = JSON.parse(report) as { lines: { text: string; spans: { text: string; font: string }[] }[]; coldWarmPixelsEqual: boolean; regions: { row: number; maxInkBoundsDelta: number | null; pngSvgInkBoundsDelta: number | null }[] };
     expect(inspected.lines.map(line => line.text)).toEqual([text, text, text, text]);

@@ -1,3 +1,4 @@
+import { pdfInspectionEnvironment } from '../pdf-inspection';
 import { test, expect } from '@playwright/test';
 import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
 import { writeFileSync } from 'node:fs';
@@ -132,7 +133,7 @@ def ink(pix,row):
    if max(data[at:at+3])<160:points.append((x,y))
  return [min(x for x,y in points),min(y for x,y in points),max(x for x,y in points),max(y for x,y in points)]
 print(json.dumps({'text':page.get_text(),'rows':[{'pdf':ink(pdf,row),'svg':ink(svg,row),'delta':max(abs(a-b) for a,b in zip(ink(pdf,row),ink(svg,row)))} for row in range(2)]},ensure_ascii=False))
-`, directory, stem], { env: { ...process.env, PYTHONPATH: '/private/tmp/whiteboard-pdf' }, encoding: 'utf8' }));
+`, directory, stem], { env: pdfInspectionEnvironment(), encoding: 'utf8' }));
       writeFileSync(`${directory}/${stem}-pdf.json`, JSON.stringify(inspection, null, 2));
       expect(inspection.text.replaceAll('\n', '')).toBe(text.replaceAll('\n', ''));
       for (const row of inspection.rows) expect(row.delta).toBeLessThanOrEqual(2);
@@ -186,7 +187,7 @@ def compare(left,right):
    if differs(a,ai,b,bi) and (not nearby(a,ai,b,bi,right)or not nearby(b,bi,a,ai,left)):mismatch+=1
  return {'foreground':foreground,'edgeTolerantMismatch':mismatch/max(1,foreground)}
 print(json.dumps({'text':page.get_text(),'png':a,'svg':b,'pdf':c,'pngSvgDelta':max(abs(x-y)for x,y in zip(a,b)),'pdfSvgDelta':max(abs(x-y)for x,y in zip(c,b)),'pngSvg':compare(png,svg),'pdfSvg':compare(pdf,svg),'pageWidth':pdf.width,'pageHeight':pdf.height},ensure_ascii=False))
-`, directory], { env: { ...process.env, PYTHONPATH: '/private/tmp/whiteboard-pdf' }, encoding: 'utf8' }));
+`, directory], { env: pdfInspectionEnvironment(), encoding: 'utf8' }));
     writeFileSync(`${directory}/ligatures.json`, JSON.stringify(inspection, null, 2));
     expect(inspection.text.trim()).toBe(text); expect(inspection.pngSvgDelta).toBeLessThanOrEqual(1); expect(inspection.pdfSvgDelta).toBeLessThanOrEqual(2); expect(inspection.pdf[2]).toBeLessThan(inspection.pageWidth - 10);
     expect(inspection.pngSvg.edgeTolerantMismatch).toBeLessThan(.18); expect(inspection.pdfSvg.edgeTolerantMismatch).toBeLessThan(.18);

@@ -223,7 +223,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 3. Rename the "could not be renewed" copy to describe expiry.
 4. Playwright test in `tests/app/collaboration.spec.ts`: force expiry via the test hook and assert the sign-in screen appears and queued edits survive re-login.
 
-### [ ] 18. Headline acceptance gates are opt-in, hardware-skipped or manual (medium)
+### [x] 18. Headline acceptance gates are opt-in, hardware-skipped or manual (medium)
 
 **Where:** `tests/app/pdf.spec.ts:58-99` (behind `VERIFY_PDF=1`), `tests/app/export.spec.ts:106-110` and `tests/app/text-layout.spec.ts:121-139, 163-193` (hard-coded `PYTHONPATH: '/private/tmp/whiteboard-pdf'`); `tests/app/performance.spec.ts:6` (skipped unless `RUN_APP_BENCHMARK=1`); `tests/app/tiles.spec.ts:10, 23` (skips on any 32,768-limit GPU while `docs/benchmarks/final/README.md:9` says "no skips"); `packages/server/src/server.test.ts:91, 95` (sleep 100 ms then assert nothing arrived), `:257` (real 30 s sleep).
 

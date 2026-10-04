@@ -81,7 +81,7 @@ pnpm --filter @whiteboard/app build
 
 Ordinary unit and browser runs write current artifacts under ignored `test-results/` using paths anchored to the repository or each Playwright test. Historical reports under `packages/model/reports/`, `spikes/model-kv/reports/` and `docs/benchmarks/` are refreshed only with `RECORD_EVIDENCE=1`; select that flag intentionally when recording replacement evidence.
 
-Performance measurements require a quiet, hardware-accelerated browser. Do not run GPU benchmarks concurrently with browser export/UI tests. The Mac-specific app gate is opt-in:
+Performance measurements require a quiet, hardware-accelerated browser. Do not run GPU benchmarks concurrently with browser export/UI tests. The app hardware gates run when selected locally or through the macOS `workflow_dispatch` benchmark job, which runs the app and renderer benchmarks sequentially:
 
 ```sh
 RUN_APP_BENCHMARK=1 pnpm test:app
@@ -93,7 +93,7 @@ pnpm --filter @whiteboard/loadtest history
 
 The live model harness uses three separately authenticated users and 10,000 concurrent pairs. The production load test uses 40 sockets at 5 document operations/s and 20 cursor updates/s for 30 minutes, recording raw samples, exact completion, latency, CPU, memory and persisted convergence. Short smoke tests do not satisfy that gate. Keep the host awake; interrupted or excessive-scheduler-gap runs are failures, not partial passes.
 
-PDF raster inspection in the export suite is opt-in with `VERIFY_PDF=1` and PyMuPDF 1.26.4 installed in `/private/tmp/whiteboard-pdf`; ordinary browser tests still generate and download PDF. Shipped WOFF fonts and their licenses are committed; the TTF PDF containers can be regenerated with `scripts/build-export-fonts.py` and FontTools 4.59.2.
+The macOS browser CI job installs PyMuPDF 1.26.4 and sets `VERIFY_PDF=1`, so PDF text, font, and ink inspection always runs there. To run the same inspection locally, install that version for `python3` and set `VERIFY_PDF=1`; set `PDF_PYTHONPATH` when using a custom installation directory. Without the flag, local browser tests still generate and download PDF. Tile tests always exercise multiple GPU render targets and record why a controlled boundary was needed when the native texture limit exceeds the browser canvas limit. Shipped WOFF fonts and their licenses are committed; the TTF PDF containers can be regenerated with `scripts/build-export-fonts.py` and FontTools 4.59.2.
 
 ## Architecture and operations
 

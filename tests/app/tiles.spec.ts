@@ -5,31 +5,46 @@ import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
 test.afterEach(({}, testInfo) => recordBrowserEvidence(testInfo, 'docs/benchmarks/phase4'));
 import type { ThreeRenderer } from '@whiteboard/renderer';
 
-test('PNG crosses the real GPU texture limit without a seam or vertical inversion', async ({ page }, testInfo) => {
+for (const simulateCanvasLimitedGpu of [false, true]) test(`PNG crosses a GPU tile boundary without seams (${simulateCanvasLimitedGpu ? '32768px canvas-limited control' : 'native GPU'})`, async ({ page }, testInfo) => {
   await page.goto('/?local=1'); await page.waitForFunction(() => !!window.whiteboard);
-  const result = await page.evaluate(async () => {
-    const { board, renderer, exporter } = window.whiteboard;
-    const limit = renderer.webgl.capabilities.maxTextureSize;
-    if (limit + 40 > 32767) return { limit, skipped: true };
+  const result = await page.evaluate(async simulateCanvasLimitedGpu => {
+    const { board, exporter } = window.whiteboard;
+    const background = board.create('rect', { x: 0, y: 0, w: 1, h: 1, style: { fill: '#ff0000', strokeWidth: 0 } });
+    // Initialize the actual export projection before overriding its tile limit.
+    await exporter.create({ format: 'png', scale: 1, transparent: false, title: 'Initialize tile projection', padding: 0 });
+    const renderer = (exporter as unknown as { renderer: ThreeRenderer }).renderer;
+    const nativeLimit = renderer.webgl.capabilities.maxTextureSize;
+    const reportedLimit = simulateCanvasLimitedGpu ? 32768 : nativeLimit;
+    const nativeSkipReason = reportedLimit + 40 > 32767 ? `GPU boundary ${reportedLimit + 40}px exceeds the application's 32767px canvas limit; using a controlled GPU tile boundary.` : null;
+    const limit = nativeSkipReason ? Math.min(nativeLimit, 2048) : nativeLimit;
     const width = limit + 40, height = 48;
-    board.create('rect', { x: 0, y: 0, w: width, h: height, style: { fill: '#ff0000', strokeWidth: 0 } });
+    board.update(background.id, { w: width, h: height });
     board.create('rect', { x: limit - 6, y: 8, w: 12, h: 32, style: { fill: '#0000ff', strokeWidth: 0 } });
     board.create('rect', { x: 2, y: 2, w: 12, h: 12, style: { fill: '#00ff00', strokeWidth: 0 } });
-    const bitmap = await createImageBitmap(await exporter.create({ format: 'png', scale: 1, transparent: false, title: 'Native tile boundary', padding: 0 }));
+    let renderedTiles = 0;
+    const render = renderer.webgl.render;
+    let blob: Blob;
+    try {
+      renderer.webgl.capabilities.maxTextureSize = limit;
+      renderer.webgl.render = (scene, camera) => { if (renderer.webgl.getRenderTarget()) renderedTiles++; render.call(renderer.webgl, scene, camera); };
+      blob = await exporter.create({ format: 'png', scale: 1, transparent: false, title: 'GPU tile boundary', padding: 0 });
+    } finally { renderer.webgl.capabilities.maxTextureSize = nativeLimit; renderer.webgl.render = render; }
+    const bitmap = await createImageBitmap(blob);
     const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
     const context = canvas.getContext('2d')!; context.drawImage(bitmap, 0, 0); bitmap.close();
     const pixel = (x: number, y: number) => [...context.getImageData(x, y, 1, 1).data];
-    return { limit, skipped: false, width: canvas.width, height: canvas.height, expectedWidth: width,
+    return { nativeLimit, reportedLimit, limit, nativeSkipReason, renderedTiles, width: canvas.width, height: canvas.height, expectedWidth: width,
       seam: [limit - 2, limit - 1, limit, limit + 1].map(x => pixel(x, 24)),
       red: [pixel(limit - 10, 24), pixel(limit + 10, 24), pixel(width - 1, 24), pixel(6, 40)], top: pixel(6, 6) };
-  });
-  test.skip(result.skipped, `GPU limit ${result.limit} exceeds the application's 32767px PNG limit; controlled two-axis test still covers tiling.`);
-  expect(result.width).toBe(result.expectedWidth); expect(result.height).toBe(48);
-  for (const pixel of result.seam!) expect(pixel).toEqual([0, 0, 255, 255]);
-  for (const pixel of result.red!) expect(pixel).toEqual([255, 0, 0, 255]);
-  expect(result.top).toEqual([0, 255, 0, 255]);
+  }, simulateCanvasLimitedGpu);
   const directory = evidenceDirectory(testInfo);
-  writeFileSync(`${directory}/native-tiles.json`, JSON.stringify(result, null, 2));
+  writeFileSync(`${directory}/${simulateCanvasLimitedGpu ? 'canvas-limited-tiles' : 'native-tiles'}.json`, JSON.stringify(result, null, 2));
+  expect(result.renderedTiles).toBe(2);
+  if (simulateCanvasLimitedGpu) expect(result.nativeSkipReason).toContain('32767px canvas limit');
+  expect(result.width).toBe(result.expectedWidth); expect(result.height).toBe(48);
+  for (const pixel of result.seam) expect(pixel).toEqual([0, 0, 255, 255]);
+  for (const pixel of result.red) expect(pixel).toEqual([255, 0, 0, 255]);
+  expect(result.top).toEqual([0, 255, 0, 255]);
 });
 
 test('controlled two-axis PNG tiles equal the untiled pixels, including translucent seam crossings', async ({ page }, testInfo) => {

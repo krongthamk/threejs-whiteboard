@@ -143,14 +143,19 @@ test('assets require source read and target edit permissions, and copies retain 
 test('real WebSocket edits persist, viewers cannot write, and revoked sessions cannot keep editing', async () => {
   const { app, options, board, tokens } = await setup();
   const owner = await client(app.port, board.id, tokens.owner!), viewer = await client(app.port, board.id, tokens.viewer!);
+  let viewerRejection: any, revokedRejection: any;
+  viewer.provider.on('stateless', ({ payload }: { payload: string }) => { viewerRejection = JSON.parse(payload); viewer.socket.disconnect(); });
+  owner.provider.on('stateless', ({ payload }: { payload: string }) => { revokedRejection = JSON.parse(payload); owner.socket.disconnect(); });
   owner.doc.getMap('test').set('position', 123);
   await until(() => viewer.doc.getMap('test').get('position') === 123 && app.store.stats(board.id).updateCount > 0);
   viewer.doc.getMap('test').set('forbidden', true);
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await until(() => !!viewerRejection);
+  expect(viewerRejection).toMatchObject({ type: 'permission-changed', role: 'viewer', resetRequired: true, reason: 'read-only-write-rejected' });
   expect(owner.doc.getMap('test').get('forbidden')).toBeUndefined();
   const session = app.store.authenticate(tokens.owner!)!; app.store.logout(session.sessionId);
   owner.doc.getMap('test').set('afterRevoke', true);
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await until(() => !!revokedRejection);
+  expect(revokedRejection).toMatchObject({ type: 'permission-changed', role: null, resetRequired: true });
   const persisted = new Y.Doc(); Y.applyUpdate(persisted, app.store.loadDocument(board.id)!);
   expect(persisted.getMap('test').toJSON()).toEqual({ position: 123 }); persisted.destroy();
   owner.provider.destroy(); owner.socket.destroy(); viewer.provider.destroy(); viewer.socket.destroy();

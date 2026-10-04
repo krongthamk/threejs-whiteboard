@@ -1,3 +1,4 @@
+import { pdfInspectionEnvironment } from '../pdf-inspection';
 import { test, expect } from '@playwright/test';
 import { evidenceDirectory, recordBrowserEvidence } from '../evidence';
 import { writeFileSync } from 'node:fs';
@@ -104,7 +105,7 @@ test('mixed Latin/Japanese board exports PNG, embedded SVG and PDF through the r
   for (const control of comparison.negativeControls) expect(control.edgeTolerantMismatch > .18 || control.inkBoundsDifference === null || control.inkBoundsDifference > 1, control.name).toBe(true);
   expect(errors).toEqual([]);
   if (process.env.VERIFY_PDF === '1') {
-    const output = execFileSync('python3', ['-c', 'import fitz,json,sys; d=fitz.open(sys.argv[1]); p=d[0]; p.get_pixmap(matrix=fitz.Matrix(2.6666667,2.6666667)).save(sys.argv[2]); print(json.dumps({"pages":len(d),"text":p.get_text(),"width":p.rect.width,"height":p.rect.height},ensure_ascii=False))', `${directory}/mixed.pdf`, `${directory}/pdf-raster.png`], { env: { ...process.env, PYTHONPATH: '/private/tmp/whiteboard-pdf' }, encoding: 'utf8' });
+    const output = execFileSync('python3', ['-c', 'import fitz,json,sys; d=fitz.open(sys.argv[1]); p=d[0]; p.get_pixmap(matrix=fitz.Matrix(2.6666667,2.6666667)).save(sys.argv[2]); print(json.dumps({"pages":len(d),"text":p.get_text(),"width":p.rect.width,"height":p.rect.height},ensure_ascii=False))', `${directory}/mixed.pdf`, `${directory}/pdf-raster.png`], { env: pdfInspectionEnvironment(), encoding: 'utf8' });
     const inspected = JSON.parse(output); writeFileSync(`${directory}/pdf-inspection.json`, output);
     expect(inspected.pages).toBe(1); expect(inspected.text).toContain('日本語'); expect(inspected.text).toContain('A shared place to think');
   }
