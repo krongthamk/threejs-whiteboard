@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "purpose": "Immutable plain text/sticky layout baseline captured before F1 model edits. Never regenerate expected data after F1.",
+  "capturedCommit": "d9192fc8e53cc035cb030f6de243b2a08f63cd37",
+  "caseCount": 100,
+  "serialization": "JSON.stringify(value, null, 2) + newline; property order and every UTF-16 caret map are significant.",
+  "runtime": {
+    "node": "v26.8.1",
+    "icu": "78.3",
+    "unicode": "17.0"
+  },
+  "sourceBlobs": [
+    {
+      "path": "packages/model/src/types.ts",
+      "gitBlob": "a492f2a6feb41daf4d48b551a7e0d55de36084a7",
+      "sha256": "0697f1f9f07415ed43e60abb255b1420eba024aeee386dd0fa39f44b254fcb1b"
+    },
+    {
+      "path": "packages/model/src/schema.ts",
+      "gitBlob": "4da507429f383203bbdd317e65eb0dd7c7154eef",
+      "sha256": "c7328c583156f86395c44dce24f5349f4ea6df8283eeb562d55a81de77ce9b5b"
+    },
+    {
+      "path": "packages/model/src/geometry.ts",
+      "gitBlob": "ab9474fb473dc8ffbc30536dc4665a4e5df1358f",
+      "sha256": "2c187a2f81d891aff786090d8e812977e6b49fc2751d1730793eb31d4fc29662"
+    },
+    {
+      "path": "packages/model/src/text-layout.ts",
+      "gitBlob": "7aa82ef071f5b026629768e1e98f15bce9c88796",
+      "sha256": "ceaaafdc3bef0f797694d4e2de377e3cd04063cce88438e8b5aa268fa621781e"
+    },
+    {
+      "path": "packages/model/src/font-metrics.generated.json",
+      "gitBlob": "bc6d5a40a544511fb72b561e442bfd80812bd541",
+      "sha256": "2167099f286760193e5a716102c737f37c314daee357d8b147b2f5e1169c8794"
+    }
+  ],
+  "shippedFonts": [
+    {
+      "family": "Inter",
+      "file": "inter-latin-400-normal.woff",
+      "sha256": "e20fa0b4fd2dd26e4d14b3ac3cc922509c3a63fa5e910e90c614544aa042dd45"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "file": "ibm-plex-mono-latin-400-normal.woff",
+      "sha256": "328d50b6ece9ca25c46eea3e885ba497f6237f2fb84ef7b92f88e14a1a25e381"
+    },
+    {
+      "family": "Noto Sans JP",
+      "file": "noto-sans-jp-400.woff",
+      "sha256": "d7e347e1a204d011ff275d848ef0cf983630cefcf773339e1c74f0b23be53d64"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "inputs.json",
+      "sha256": "ea06d37bd27ae05c0ab552d3d4b15c4fe38006e3e74d4c4606e2f09469f820c8"
+    },
+    {
+      "path": "expected.json",
+      "sha256": "79c6d4f65c1220367bdf97810b5d35f5152b69d565fdbca079e86c30f144acc1"
+    }
+  ]
+}
