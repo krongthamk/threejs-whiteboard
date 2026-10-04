@@ -17,6 +17,7 @@ function setup(board: BoardDocument) {
   const canvasEvents = new Map<string, (event: unknown) => void>();
   vi.stubGlobal('window', { addEventListener: (name: string, fn: (event: unknown) => void) => events.set(name, fn), removeEventListener() {} });
   vi.stubGlobal('HTMLElement', class {});
+  vi.stubGlobal('Element', class {});
   const canvas = { style: { touchAction: '' }, addEventListener: (name: string, fn: (event: unknown) => void) => canvasEvents.set(name, fn), removeEventListener() {},
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }), focus() {}, setPointerCapture() {}, hasPointerCapture: () => false } as unknown as HTMLCanvasElement;
   const session = createSession('cache-unit');
@@ -29,7 +30,7 @@ function setup(board: BoardDocument) {
 it('create, select-all and fit use cached projections rather than readAll', () => {
   const board = new BoardDocument(); board.create('rect', { id: 'a' }); const fixture = setup(board);
   const readAll = vi.spyOn(board, 'readAll');
-  fixture.events.get('keydown')!({ key: 'a', ctrlKey: true, preventDefault() {} });
+  fixture.events.get('keydown')!({ key: 'a', code: 'KeyA', ctrlKey: true, preventDefault() {} });
   expect(fixture.session.getState().selectedIds).toEqual(['a']);
   fixture.controller.zoomToFit();
   fixture.session.setState({ tool: 'rect' }); fixture.canvasEvents.get('pointerdown')!(fixture.pointer);

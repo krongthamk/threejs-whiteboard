@@ -20,7 +20,7 @@ type Gesture = PointerGesture & (
 );
 const clampZoom = (zoom: number) => Math.max(.02, Math.min(64, zoom));
 const boxBetween = (a: Point, b: Point) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) });
-const editingTarget = (target: EventTarget | null) => target instanceof HTMLElement && !!target.closest('input,textarea,select,[contenteditable="true"],[role="textbox"]');
+const interactiveTarget = (target: EventTarget | null) => target instanceof Element && !!target.closest('input,textarea,select,button,a,summary,[contenteditable="true"],[role="textbox"],[role="button"]');
 
 /** Session gestures project previews; only completed gestures enter the document. */
 export class EditorController {
@@ -324,14 +324,14 @@ export class EditorController {
     this.options.board.transact(() => { for (const element of selected) this.options.board.reorder(element.id, direction); });
   }
   private keyDown = (event: KeyboardEvent): void => {
-    if (editingTarget(event.target) || event.isComposing) return;
+    if (interactiveTarget(event.target) || event.isComposing) return;
     const modifier = event.metaKey || event.ctrlKey, key = event.key.toLowerCase();
     if (event.code === 'Space') { event.preventDefault(); this.space = true; this.updateCursor(); return; }
     if (key === 'escape') { event.preventDefault(); if (this.gesture) this.cancelGesture(); else { this.select([]); this.options.session.setState({ tool: 'select' }); } return; }
-    if (modifier && key === 'z') { event.preventDefault(); if (event.shiftKey) this.redo(); else this.undo(); return; }
-    if (modifier && key === 'y') { event.preventDefault(); this.redo(); return; }
-    if (modifier && key === 'd') { event.preventDefault(); this.duplicateSelection(); return; }
-    if (modifier && key === 'a') { event.preventDefault(); this.select([...this.hitIndex.elements.keys()]); return; }
+    if (modifier && event.code === 'KeyZ') { event.preventDefault(); if (event.shiftKey) this.redo(); else this.undo(); return; }
+    if (modifier && event.code === 'KeyY') { event.preventDefault(); this.redo(); return; }
+    if (modifier && event.code === 'KeyD') { event.preventDefault(); this.duplicateSelection(); return; }
+    if (modifier && event.code === 'KeyA') { event.preventDefault(); this.select([...this.hitIndex.elements.keys()]); return; }
     if (key === 'backspace' || key === 'delete') { event.preventDefault(); this.deleteSelection(); return; }
     if (event.code === 'BracketLeft' || event.code === 'BracketRight') { event.preventDefault(); this.reorder(event.code === 'BracketRight' ? event.shiftKey ? 'front' : 'forward' : event.shiftKey ? 'back' : 'backward'); return; }
     if (key.startsWith('arrow') && !this.options.isReadOnly()) {
@@ -339,9 +339,9 @@ export class EditorController {
       const movement: Record<string, Point> = { arrowleft: { x: -delta, y: 0 }, arrowright: { x: delta, y: 0 }, arrowup: { x: 0, y: -delta }, arrowdown: { x: 0, y: delta } };
       if (movement[key]) { event.preventDefault(); this.cancelGesture(); this.options.board.move(this.options.session.getState().selectedIds, movement[key]!); } return;
     }
-    if (!modifier && !event.altKey) {
-      const shortcuts: Record<string, Tool> = { v: 'select', r: 'rect', o: 'ellipse', n: 'sticky', h: 'pan', p: 'draw', e: 'eraser', t: 'text', c: 'connector' };
-      if (shortcuts[key]) { event.preventDefault(); this.options.session.setState({ tool: shortcuts[key] }); }
+    if (!modifier && !event.altKey && !this.options.isReadOnly()) {
+      const shortcuts: Record<string, Tool> = { KeyV: 'select', KeyR: 'rect', KeyO: 'ellipse', KeyN: 'sticky', KeyH: 'pan', KeyP: 'draw', KeyE: 'eraser', KeyT: 'text', KeyC: 'connector' };
+      if (shortcuts[event.code]) { event.preventDefault(); this.options.session.setState({ tool: shortcuts[event.code] }); }
     }
   };
   private keyUp = (event: KeyboardEvent): void => { if (event.code === 'Space') { this.space = false; this.updateCursor(); } };

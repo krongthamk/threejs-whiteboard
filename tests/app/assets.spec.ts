@@ -78,6 +78,8 @@ test('native clipboard image paste imports pixels, while a dialog input retains 
   await page.getByRole('button', { name: 'Save name', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Native pasted board title', exact: true })).toBeVisible();
+  // Closing a dialog restores its invoking button; board history requires canvas focus.
+  await page.locator('.board-canvas').focus();
   await page.keyboard.press('ControlOrMeta+z'); expect(await contents(page)).toEqual([]);
 });
 
