@@ -97,6 +97,12 @@ no name receives the server's account name. One account cannot overwrite another
 account's existing awareness client ID. Valid viewer cursor presence remains
 available even though viewers cannot write board content.
 
+Rectangle and ellipse labels use the existing schema-2 document update path;
+they add no HTTP routes or storage migration. Editing presence also identifies
+shapes, including an empty shape while its first label is being typed. Label
+drafts stay local until committed, and the committed text follows the same
+membership checks, persistence, and undo rules as other element properties.
+
 Browser connections also send `expectedUserId` for the account that owns their
 local cache. The server compares this noncredential hint with the authenticated
 user before loading or synchronizing the document. If another tab has switched

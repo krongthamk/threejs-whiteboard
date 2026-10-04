@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { BoardDocument, bindToElement, contentBounds, createElement, resolveBinding } from '@whiteboard/model';
+import { BoardDocument, bindToElement, contentBounds, createElement, MAX_TEXT_LENGTH, resolveBinding } from '@whiteboard/model';
 import { encodeClipboard, parseClipboard, preparePastedElements, MAX_CLIPBOARD_BYTES, MAX_CLIPBOARD_ELEMENTS } from './clipboard-model.js';
 
 it('captures external endpoints and remaps internal rotated bindings with translated fallbacks', () => {
@@ -91,4 +91,55 @@ it('rejects a clipboard whose bounded raw points derive an out-of-bounds stroke 
   const element = createElement('stroke', { id: 'stroke' });
   const envelope = { type: 'whiteboard/clipboard', version: 1, sourceBoardId: 'board', elements: [{ ...element, props: { ...element.props, points: [-1e9, 0, .5, 1e9, 0, .5] } }] };
   expect(() => parseClipboard(JSON.stringify(envelope))).toThrow();
+});
+
+it('round-trips labeled and canonical empty shapes across boards as one immutable, ordered paste gesture', () => {
+  const rect = createElement('rect', { id: 'rect-label', index: 'a1', x: -40, y: 20, w: 220, h: 90, rotation: Math.PI / 6,
+    style: { fontFamily: 'IBM Plex Mono', fontSize: 18 },
+    props: { text: '  Rectangle e\u0301 👩‍💻\n\n日本語 \t\n', align: 'right', autoSize: false, verticalAlign: 'bottom' } });
+  const ellipse = createElement('ellipse', { id: 'ellipse-label', index: 'a3', x: 240, y: -60, w: 180, h: 120, rotation: -Math.PI / 4,
+    style: { fontFamily: 'Noto Sans JP', fontSize: 28 },
+    props: { text: '\nEllipse 🇯🇵\nlabel  \n\n', align: 'left', autoSize: false, verticalAlign: 'top' } });
+  const emptyRect = createElement('rect', { id: 'rect-empty', index: 'a0', x: -240, y: 80, w: 80, h: 40 });
+  const emptyEllipse = createElement('ellipse', { id: 'ellipse-empty', index: 'a2', x: 120, y: 180, w: 70, h: 110 });
+  const source = [ellipse, emptyRect, emptyEllipse, rect], before = structuredClone(source);
+  const envelope = parseClipboard(encodeClipboard('source-board', source.map(element => element.id).reverse(), source))!;
+  const ordered = [emptyRect, rect, emptyEllipse, ellipse];
+  expect(envelope.elements).toEqual(ordered);
+  const captured = structuredClone(envelope), board = new BoardDocument();
+  try {
+    board.create('rect', { id: 'destination-existing', index: 'b10' }); board.undoManager.clear();
+    const newIds = ordered.map(() => crypto.randomUUID());
+    expect(new Set(newIds).size).toBe(4); expect(newIds.some(id => source.some(element => element.id === id))).toBe(false);
+    const prepared = preparePastedElements(envelope, { targetBoardId: 'other-board', center: { x: 900, y: 700 }, highestIndex: board.highestIndex(), newIds });
+    expect(board.readAll().map(element => element.id)).toEqual(['destination-existing']);
+    const delta = { x: prepared[0]!.x - ordered[0]!.x, y: prepared[0]!.y - ordered[0]!.y };
+    for (const [i, original] of ordered.entries()) {
+      expect(prepared[i]).toEqual({ ...original, id: newIds[i], index: prepared[i]!.index, x: original.x + delta.x, y: original.y + delta.y });
+      expect(prepared[i]!.index > (i ? prepared[i - 1]!.index : 'b10')).toBe(true);
+    }
+    expect(prepared[0]!.props).toEqual({}); expect(prepared[2]!.props).toEqual({});
+    const bounds = contentBounds(prepared); expect(bounds.x + bounds.w / 2).toBeCloseTo(900); expect(bounds.y + bounds.h / 2).toBeCloseTo(700);
+    let updates = 0; board.doc.on('update', () => updates++);
+    board.transact(() => { for (const element of prepared) board.add(element); });
+    expect(updates).toBe(1); expect(board.undoManager.undoStack).toHaveLength(1);
+    expect(board.readAll()).toEqual([board.read('destination-existing'), ...prepared]);
+    board.undoManager.undo(); expect(board.readAll().map(element => element.id)).toEqual(['destination-existing']);
+    board.undoManager.redo(); expect(board.readAll().slice(1)).toEqual(prepared);
+    expect(source).toEqual(before); expect(envelope).toEqual(captured);
+  } finally { board.destroy(); }
+});
+
+it('rejects hostile shape-label props at clipboard parsing and paste preparation', () => {
+  const valid = { text: 'Label', align: 'center', autoSize: false, verticalAlign: 'middle' };
+  const hostile = [{ text: 'Partial' }, { ...valid, autoSize: true }, { ...valid, verticalAlign: 'sideways' },
+    { ...valid, align: ['center'] }, { ...valid, text: 'broken\ud83d' }, { ...valid, text: 'x'.repeat(MAX_TEXT_LENGTH + 1) }];
+  for (const type of ['rect', 'ellipse'] as const) {
+    const element = createElement(type, { id: type });
+    for (const props of hostile) {
+      const envelope = { type: 'whiteboard/clipboard', version: 1, sourceBoardId: 'source', elements: [{ ...element, props }] };
+      expect(() => parseClipboard(JSON.stringify(envelope))).toThrow('Invalid whiteboard clipboard');
+      expect(() => preparePastedElements(envelope as never, { targetBoardId: 'destination', center: { x: 0, y: 0 }, highestIndex: null, newIds: [crypto.randomUUID()] })).toThrow('Invalid whiteboard clipboard');
+    }
+  }
 });

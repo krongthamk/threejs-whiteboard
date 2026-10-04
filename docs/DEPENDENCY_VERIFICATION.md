@@ -2,6 +2,12 @@
 
 Checked on 2026-09-29.
 
+F1 shape text update — 2026-10-05: no packages, dependency versions, or font
+assets are added or changed. Shape labels reuse the existing Yjs model, Troika
+projection, SVG/PDF export path, and bundled Inter, IBM Plex Mono, and Noto Sans
+JP fonts. Their dependencies and licenses remain covered by the installed
+dependency audit and the font license records below.
+
 Finding 28 update — 2026-10-05: model element creation and duplication now use
 the platform's `crypto.randomUUID()`. The direct `nanoid` 5.1.6 dependency and
 its lockfile entries are removed; caller-supplied and historical element IDs

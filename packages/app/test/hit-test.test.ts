@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bindToElement, createElement, getElementBounds, rotatePoint, type Element } from '../../model/src/index';
+import { bindToElement, createElement, getElementBounds, rotatePoint, textLayout, type Element } from '../../model/src/index';
 import { HitIndex, selectionFrame } from '../src/hit-test';
 
 describe('document hit index', () => {
@@ -66,5 +66,34 @@ describe('document hit index', () => {
     const frame = selectionFrame([a, b])!;
     for (const element of [a, b]) { const bounds = getElementBounds(element); expect(frame.x).toBeLessThanOrEqual(bounds.x); expect(frame.x + frame.w).toBeGreaterThanOrEqual(bounds.x + bounds.w); }
     expect(selectionFrame([])).toBeNull(); expect(frame.rotation).toBe(0);
+  });
+  it.each(['rect', 'ellipse'] as const)('keeps %s precise hits, marquee and selection bounds unchanged by an overflowing label', type => {
+    const empty = createElement(type, { id: type, x: 30, y: -20, w: 100, h: 40, rotation: Math.PI / 4, style: { strokeWidth: 0 } });
+    const labeled = createElement(type, { ...empty,
+      props: { text: 'Overflow\n'.repeat(100), align: 'right', autoSize: false, verticalAlign: 'bottom' } });
+    expect(textLayout(labeled).verticalOffset).toBeLessThan(-1_000);
+    const index = new HitIndex([empty]), center = { x: 80, y: 0 }, bounds = getElementBounds(empty);
+    const points = [
+      { point: center, hit: true },
+      { point: rotatePoint({ x: 125, y: 0 }, center, empty.rotation), hit: true },
+      // An ellipse excludes its box corner; the rectangle includes it.
+      { point: rotatePoint({ x: 32, y: -18 }, center, empty.rotation), hit: type === 'rect' },
+      { point: { x: bounds.x + 1, y: bounds.y + 1 }, hit: false },
+      // Unclipped bottom-aligned text would occupy this position above the shape.
+      { point: rotatePoint({ x: 80, y: -200 }, center, empty.rotation), hit: false },
+    ];
+    const singleFrame = selectionFrame([empty]), neighbor = createElement('rect', { x: 300, y: 80, w: 60, h: 40 });
+    const multipleFrame = selectionFrame([empty, neighbor]);
+    const contained = { x: bounds.x - 1, y: bounds.y - 1, w: bounds.w + 2, h: bounds.h + 2 };
+    const incomplete = { x: bounds.x + 1, y: bounds.y, w: bounds.w - 1, h: bounds.h };
+    for (const shape of [empty, labeled, empty]) {
+      index.apply([shape]);
+      for (const { point, hit } of points) expect(index.hit(point, 0)?.id).toBe(hit ? empty.id : undefined);
+      expect(index.within(contained).map(element => element.id)).toEqual([empty.id]);
+      expect(index.within(incomplete)).toEqual([]);
+      expect(getElementBounds(shape)).toEqual(bounds);
+      expect(selectionFrame([shape])).toEqual(singleFrame);
+      expect(selectionFrame([shape, neighbor])).toEqual(multipleFrame);
+    }
   });
 });

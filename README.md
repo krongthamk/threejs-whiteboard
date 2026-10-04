@@ -73,7 +73,7 @@ Undo history belongs to the current browser session. Two tabs signed in as the s
 
 The clock-storage update preserves saved schema-2 boards without migration. Reload already-open board tabs after deploying it.
 
-Moving a connector preserves its shape bindings; only free endpoints move directly. Duplicating it with its targets binds the copy to the copied targets. If a target is not copied, the copied endpoint uses the target’s current position (or stored fallback), shifts by the copy offset, and becomes unbound.
+Moving a connector preserves its shape bindings; only free endpoints move directly. Duplicating it with its targets binds the copy to the copied targets. If a target is not copied, the copied endpoint uses the target’s current position (or stored fallback), shifts by the copy offset, and becomes unbound. Shape labels travel with copied shapes, including their source text, font, and alignments. Labels do not change the shape's hit target or selection frame.
 
 Text outside the shipped font coverage remains editable and saved, with a warning that layout may be approximate. PDF export explicitly rejects unsupported characters. The board warns once per unsupported character set during each session.
 
