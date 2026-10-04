@@ -188,20 +188,19 @@ export interface TextLayout {
   renderedToSource: number[];
 }
 
-function isCombining(character: string): boolean { return /\p{Mark}|[\uFE00-\uFE0F]/u.test(character); }
+const graphemeSegmenter = new Intl.Segmenter('und', { granularity: 'grapheme' });
 
-/** Grapheme-like boundaries independent of browser Intl/Unicode table versions. */
-function nextBoundary(text: string, at: number): number {
-  let end = at + (text.codePointAt(at)! > 0xffff ? 2 : 1);
-  while (end < text.length) {
-    const point = text.codePointAt(end)!, character = String.fromCodePoint(point);
-    if (isCombining(character) || point >= 0x1f3fb && point <= 0x1f3ff) end += character.length;
-    else if (point === 0x200d && end + 1 < text.length) {
-      end += 1;
-      end += text.codePointAt(end)! > 0xffff ? 2 : 1;
-    } else break;
+/** Grapheme rules use the platform's Unicode tables. Build once per wrapped layout;
+ * interior UTF-16 offsets remain valid when a space plus mark loses its separator.
+ */
+function graphemeBoundaries(text: string): Uint32Array {
+  const boundaries = new Uint32Array(text.length + 1);
+  for (const { index, segment } of graphemeSegmenter.segment(text)) {
+    const end = index + segment.length;
+    boundaries.fill(end, index, end);
   }
-  return end;
+  boundaries[text.length] = text.length;
+  return boundaries;
 }
 
 /** Explicit shared wraps plus source offsets keep SVG, troika, caret and selections aligned. */
@@ -211,6 +210,7 @@ export function textLayout(element: Element): TextLayout {
   const inset = element.type === 'sticky' ? STICKY_TEXT_INSET : 0;
   const maxWidth = element.type === 'text' && element.props.autoSize ? Infinity : Math.max(1, element.w - inset * 2);
   const measure = textMetrics(source, element.style.fontSize, element.style.fontFamily);
+  const boundaries = maxWidth === Infinity ? null : graphemeBoundaries(source);
   const lines: TextLayoutLine[] = [];
   let start = 0;
   while (start <= source.length) {
@@ -225,7 +225,7 @@ export function textLayout(element: Element): TextLayout {
     while (start < end) {
       let cursor = start, fit = start, breakAt = -1;
       while (cursor < end) {
-        const next = Math.min(end, nextBoundary(source, cursor));
+        const next = Math.min(end, boundaries![cursor]!);
         // Spaces are valid boundaries even when the space itself extends past the width.
         if (source[cursor] === ' ' || source[cursor] === '\t') breakAt = cursor;
         if (measure(start, next) > maxWidth && fit > start) break;

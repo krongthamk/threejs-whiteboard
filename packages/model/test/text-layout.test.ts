@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createElement, documentToSvg, measureTextWidth, positionFontRuns, resolveFontRuns, textLayout, textSize, unsupportedFontCodePoints } from '../src/index.js';
@@ -51,6 +51,48 @@ describe('shipped font metrics', () => {
     const source = 'e\u0301👩‍💻XYZ';
     const layout = textLayout(createElement('text', { w: 1, props: { text: source, align: 'left', autoSize: false } }));
     expect(layout.lines.map(line => line.text)).toEqual(['e\u0301', '👩‍💻', 'X', 'Y', 'Z']);
+  });
+
+  it.each([
+    { source: '🇺🇸🇯🇵X', lines: ['🇺🇸', '🇯🇵', 'X'] },
+    { source: '가나X', lines: ['가', '나', 'X'] },
+  ])('wraps complete regional-indicator and Hangul graphemes for $source', ({ source, lines }) => {
+    const layout = textLayout(createElement('text', { w: 1, props: { text: source, align: 'left', autoSize: false } }));
+    expect(layout.lines.map(line => line.text)).toEqual(lines);
+    for (let at = 0; at <= source.length; at++) expect(layout.renderedToSource[layout.sourceToRendered[at]!]).toBe(at);
+  });
+
+  it('keeps existing emoji clusters, CRLF and space-plus-mark source offsets without losing text', () => {
+    for (const { source, w, lines } of [
+      { source: 'e\u0301👩🏽‍💻1\uFE0F\u20E3X', w: 1, lines: ['e\u0301', '👩🏽‍💻', '1\uFE0F\u20E3', 'X'] },
+      { source: 'A\r\nB', w: 1, lines: ['A', '\r', 'B'] },
+      { source: 'A \u0301B', w: 20, lines: ['A', '\u0301B'] },
+      { source: '日本語ABC', w: 1, lines: ['日', '本', '語', 'A', 'B', 'C'] },
+    ]) {
+      const layout = textLayout(createElement('text', { w, props: { text: source, align: 'left', autoSize: false } }));
+      expect(layout.lines.map(line => line.text)).toEqual(lines);
+      expect(layout.sourceToRendered).toHaveLength(source.length + 1);
+      expect(layout.renderedToSource).toHaveLength(layout.text.length + 1);
+      for (let at = 0; at <= source.length; at++) {
+        expect(layout.renderedToSource[layout.sourceToRendered[at]!]).toBe(at);
+        if (at) expect(layout.sourceToRendered[at]).toBeGreaterThanOrEqual(layout.sourceToRendered[at - 1]!);
+        if (at < source.length && !layout.lines.some(line => line.start <= at && line.end > at)) expect(source[at]).toMatch(/[ \t\n]/u);
+      }
+      for (const line of layout.lines) expect(line.text).toBe(source.slice(line.start, line.end));
+    }
+  });
+
+  it('segments finite-width text once per layout and skips segmentation for auto-size', () => {
+    const segment = vi.spyOn(Intl.Segmenter.prototype, 'segment');
+    try {
+      const text = '🇺🇸e\u0301日本語 '.repeat(20);
+      textLayout(createElement('text', { w: 40, props: { text, align: 'left', autoSize: false } }));
+      expect(segment).toHaveBeenCalledTimes(1);
+      textLayout(createElement('sticky', { w: 40, props: { text, align: 'left', autoSize: false } }));
+      expect(segment).toHaveBeenCalledTimes(2);
+      textLayout(createElement('text', { props: { text, align: 'left', autoSize: true } }));
+      expect(segment).toHaveBeenCalledTimes(2);
+    } finally { segment.mockRestore(); }
   });
 
   it.each([{ source: '\t\t', fontSize: 24 }, { source: 'word word word word ', fontSize: 16 }])('keeps the consumed final separator caret distinct for $source', ({ source, fontSize }) => {
