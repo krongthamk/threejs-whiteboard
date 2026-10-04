@@ -1,6 +1,5 @@
 import * as Y from 'yjs';
 import { generateKeyBetween } from 'fractional-indexing';
-import { nanoid } from 'nanoid';
 import { deriveElementGeometry } from './geometry.js';
 import { DEFAULT_STYLE, type Binding, type Element, type ElementInput, type ElementOf, type ElementType, type PropsByType } from './types.js';
 
@@ -71,7 +70,7 @@ export function createElement<T extends ElementType>(type: T, input: ElementInpu
     image: { assetId: 'unassigned', naturalW: 100, naturalH: 100 },
   };
   const element = {
-    id: input.id ?? nanoid(), type, x: input.x ?? 0, y: input.y ?? 0, w: input.w ?? (type === 'sticky' ? 200 : 160), h: input.h ?? (type === 'sticky' ? 160 : 100),
+    id: input.id ?? crypto.randomUUID(), type, x: input.x ?? 0, y: input.y ?? 0, w: input.w ?? (type === 'sticky' ? 200 : 160), h: input.h ?? (type === 'sticky' ? 160 : 100),
     rotation: input.rotation ?? 0, index: input.index ?? generateKeyBetween(null, null),
     style: { ...DEFAULT_STYLE, ...(type === 'sticky' ? { fill: '#fff0a8' } : {}), ...input.style },
     props: structuredClone(input.props ?? defaults[type]),

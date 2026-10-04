@@ -2,6 +2,12 @@
 
 Checked on 2026-09-29.
 
+Finding 28 update — 2026-10-05: model element creation and duplication now use
+the platform's `crypto.randomUUID()`. The direct `nanoid` 5.1.6 dependency and
+its lockfile entries are removed; caller-supplied and historical element IDs
+remain unchanged. The separate `nanoid` 3.3.19 entry remains a PostCSS transitive
+dependency. This change adds no dependency.
+
 Hocuspocus server, provider, and database extension are pinned to **4.7.0**.
 The [official v4.7.0 release](https://github.com/ueberdosis/hocuspocus/releases/tag/v4.7.0)
 explicitly includes [PR #1152](https://github.com/ueberdosis/hocuspocus/pull/1152),

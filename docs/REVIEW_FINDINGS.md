@@ -259,7 +259,7 @@ Work through these after Tier 2. Each is a small, self-contained change.
 - [ ] 25. `packages/server/src/server.ts:76` exempts any `Authorization` header from the Origin check while `:35` falls back to the cookie. Require `startsWith('Bearer ')`.
 - [ ] 26. `packages/server/src/store.ts:76, 84` `createBoard` seeds `meta.title` into the Yjs doc but `rename` updates only SQLite; live collaborators keep the old title (`App.tsx:123` fetches once). Either drop the seed or update both and render the doc-carried title.
 - [ ] 27. `packages/server/src/static.ts:29` sends no CSP, `Referrer-Policy` or `X-Frame-Options`. Add `Content-Security-Policy: default-src 'self'; img-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' ws: wss:` (adjust after checking what Troika and Vite need), `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`. `packages/server/src/operations.ts:15` backup SQLite file is 0644 inside a 0700 directory; write it 0600.
-- [ ] 28. `packages/model/package.json` nanoid 5.1.6 has two high advisories (GHSA-xwg4-73v4-xw9w, GHSA-28wg-ghj8-5hjv). Not exploitable as called, but replace with `crypto.randomUUID()` (already used in `assets.ts` and the server) and drop the dependency.
+- [x] 28. `packages/model/package.json` nanoid 5.1.6 has two high advisories (GHSA-xwg4-73v4-xw9w, GHSA-28wg-ghj8-5hjv). Not exploitable as called, but replace with `crypto.randomUUID()` (already used in `assets.ts` and the server) and drop the dependency.
 - [ ] 29. `packages/server/src/spike.ts`, `spike-writer-kv.ts`, `benchmark.ts` are spike processes inside the production server package. Move them under `spikes/` or `packages/loadtest`.
 
 ### Model

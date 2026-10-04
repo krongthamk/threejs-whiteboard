@@ -1,6 +1,5 @@
 import * as Y from 'yjs';
 import { generateKeyBetween } from 'fractional-indexing';
-import { nanoid } from 'nanoid';
 import { assertValidElement, compareElements, createElement } from './schema.js';
 import { deriveElementGeometry, resolveBinding } from './geometry.js';
 import { CLOCK_KEY, SCHEMA_VERSION, WRITER_PREFIX, REGISTER_FIELDS, causalClockBound, projectedElement, registerKey, validWriterRecord, type StampedValue, type WriterRecord } from './document-validation.js';
@@ -385,7 +384,7 @@ export class BoardDocument {
   }
   duplicate(ids: readonly string[], delta: Point = { x: 24, y: 24 }): string[] {
     const sources = ids.flatMap(id => { const element = this.read(id); return element ? [element] : []; });
-    const idMap = new Map(sources.map(element => [element.id, nanoid()]));
+    const idMap = new Map(sources.map(element => [element.id, crypto.randomUUID()]));
     let index = this.highestIndex();
     const copies = sources.map(source => {
       index = generateKeyBetween(index, null);
