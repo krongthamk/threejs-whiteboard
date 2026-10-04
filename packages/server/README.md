@@ -238,6 +238,20 @@ discard keep their separate authoritative reset behavior.
 
 ## Live permission changes
 
+Store SQL statements are prepared once per SQLite connection and bind request
+values separately. Collaboration connections reuse their authenticated role
+until a local membership revision or SQLite `data_version` changes; commits by
+another connection therefore refresh the role on the next packet. Permission
+resets, synchronization refusals, and disconnects clear the cached role version.
+Session authentication still queries SQLite on every packet, so this cache does
+not extend a revoked session. HTTP mutations continue to recheck their session
+and permissions under the immediate write transaction after reading the body.
+
+Readonly SyncStep2 and update checks reuse one snapshot of each document until
+a transaction invalidates it, including delete-only transactions. They still
+reject dirty readonly replicas before apply; document destruction releases the
+snapshot cache and its observer.
+
 Removing a member or changing a member's role invalidates that user's active board connections. Before
 closing the document connection, the server sends a Hocuspocus stateless JSON
 message: `{ "type": "permission-changed", "boardId": "…", "role": "viewer",

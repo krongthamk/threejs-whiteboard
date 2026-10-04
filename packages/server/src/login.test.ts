@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { Store } from './store';
+import Sqlite from 'better-sqlite3';
 
 const secret = 'login-test-secret-with-at-least-thirty-two-characters';
 const password = 'a-long-login-test-password';
@@ -8,13 +9,20 @@ afterEach(() => { vi.restoreAllMocks(); for (const store of stores.splice(0)) st
 function database() { const store = new Store(':memory:', secret); stores.push(store); return store; }
 
 test.each(['known', 'unknown', 'wrong', 'malformed', 'null'])('%s credentials use asynchronous password work without blocking the event loop', async kind => {
+  let loginStatement: Sqlite.Statement | undefined;
+  if (kind === 'null') {
+    const prepare = Sqlite.prototype.prepare;
+    vi.spyOn(Sqlite.prototype, 'prepare').mockImplementation(function (this: Sqlite.Database, query: string) {
+      const statement = prepare.call(this, query);
+      if (query === 'SELECT * FROM users WHERE username=?') loginStatement = statement;
+      return statement;
+    });
+  }
   const store = database(), user = store.createUser('alice', password);
   if (kind === 'malformed') store.db.prepare('UPDATE users SET password_hash=? WHERE id=?').run('not-a-password-hash', user.id);
   if (kind === 'null') {
     // Model a legacy/corrupt row without weakening the production NOT NULL schema.
-    const sql = 'SELECT * FROM users WHERE username=?', statement = store.db.prepare(sql), prepare = store.db.prepare.bind(store.db);
-    vi.spyOn(statement, 'get').mockReturnValue({ ...user, password_hash: null });
-    vi.spyOn(store.db, 'prepare').mockImplementation(query => query === sql ? statement : prepare(query));
+    vi.spyOn(loginStatement!, 'get').mockReturnValue({ ...user, password_hash: null });
   }
   let progressed = false;
   const tick = new Promise<void>(resolve => setImmediate(() => { progressed = true; resolve(); }));

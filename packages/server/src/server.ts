@@ -14,7 +14,7 @@ import { checkUpdateResources, UpdateResourceError } from './update-limits.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
 interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; trustedProxy?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
-interface AuthContext { token: string; userId: string; name: string; role: 'owner' | 'editor' | 'viewer'; expiresAt: number; invalidated?: boolean }
+interface AuthContext { token: string; userId: string; name: string; role: 'owner' | 'editor' | 'viewer'; roleVersion?: string; expiresAt: number; invalidated?: boolean }
 type Metrics = { updates: number; awareness: number; persistedUpdates: number; persistenceMs: number; compactions: number; windowAt: number; windowUpdates: number; windowAwareness: number };
 
 export function createWhiteboardServer(options: Options) {
@@ -35,6 +35,19 @@ export function createWhiteboardServer(options: Options) {
   const inbound = new Map<Connection<AuthContext>, { bytes: number; messages: number }>();
   const validators = new Map<Y.Doc, BoardUpdateValidator>();
   const validatorCleanup = new WeakSet<Y.Doc>();
+  const snapshots = new WeakMap<Y.Doc, { value?: Y.Snapshot }>();
+  function snapshot(document: Y.Doc): Y.Snapshot {
+    let cached = snapshots.get(document);
+    if (!cached) {
+      cached = {}; snapshots.set(document, cached);
+      const invalidate = () => { cached!.value = undefined; };
+      // Runs synchronously for inserts and delete-only transactions, before
+      // any later packet can inspect the committed document.
+      document.on('afterTransaction', invalidate);
+      document.once('destroy', () => { document.off('afterTransaction', invalidate); snapshots.delete(document); });
+    }
+    return cached.value ??= Y.snapshot(document);
+  }
   function validator(document: Y.Doc) {
     let value = validators.get(document);
     if (!value) {
@@ -98,6 +111,7 @@ export function createWhiteboardServer(options: Options) {
     // Permission failures discard the rejected replica; storage failures retain it.
     if (connection.context.invalidated) return;
     connection.context.invalidated = true;
+    connection.context.roleVersion = undefined;
     connection.readOnly = true;
     connection.sendStateless(JSON.stringify({ type: 'permission-changed', boardId, role, resetRequired: true, reason }));
     connection.close({ code: 4403, reason });
@@ -117,7 +131,7 @@ export function createWhiteboardServer(options: Options) {
   }
   function refuseUpdate(connection: Connection<AuthContext>, boardId: string, reason: 'board-full' | 'update-too-large' | 'inbound-overload' | 'incomplete-update', retryable: boolean, maxBytes?: number) {
     if (connection.context.invalidated) return;
-    connection.context.invalidated = true; connection.readOnly = true;
+    connection.context.invalidated = true; connection.context.roleVersion = undefined; connection.readOnly = true;
     console.warn({ event: 'sync-rejected', boardId, reason, maxBytes });
     connection.sendStateless(JSON.stringify({ type: reason === 'board-full' ? 'board-full' : 'sync-rejected', boardId, reason, retryable, ...(maxBytes === undefined ? {} : { maxBytes }) }));
     connection.close({ code: 4409, reason });
@@ -306,6 +320,7 @@ export function createWhiteboardServer(options: Options) {
       const session = store.authenticate(sessionToken); if (!session) throw new Error('Authentication required');
       const expectedUserId = requestParameters.get('expectedUserId');
       if (expectedUserId !== null && expectedUserId !== session.user.id) throw Object.assign(new Error('The signed-in account changed'), { reason: 'session-identity-changed' });
+      const roleVersion = store.membershipVersion();
       const role = store.role(documentName, session.user.id); if (!role) throw new Error('Board access denied');
       // Replaying an update already applied in memory emits no onChange event.
       // Save the entire retained Doc before permitting reconnect synchronization.
@@ -315,7 +330,7 @@ export function createWhiteboardServer(options: Options) {
         try { persistSnapshot(documentName, document); }
         catch (error) { persistenceFailure(documentName, document, error); throw Object.assign(new Error('Board persistence is unavailable'), { reason: 'persistence-failed' }); }
       }
-      connectionConfig.readOnly = role === 'viewer'; return { userId: session.user.id, name: session.user.username, token: sessionToken, role, expiresAt: session.expiresAt };
+      connectionConfig.readOnly = role === 'viewer'; return { userId: session.user.id, name: session.user.username, token: sessionToken, role, roleVersion, expiresAt: session.expiresAt };
     },
     async connected({ connection, context, documentName }) {
       let expiration: ReturnType<typeof setTimeout> | undefined;
@@ -353,25 +368,29 @@ export function createWhiteboardServer(options: Options) {
         // Recheck the signed deadline if the system wall clock moves backward.
         expiration = setTimeout(schedule, Math.min(remaining, 2_147_483_647)); expiration.unref();
       };
-      connection.onClose(() => { clearTimeout(expiration); clearTimeout(slowTimer); releaseLocks.get(connection)?.(); inbound.delete(connection); }); schedule();
+      connection.onClose(() => { clearTimeout(expiration); clearTimeout(slowTimer); releaseLocks.get(connection)?.(); inbound.delete(connection); context.roleVersion = undefined; }); schedule();
     },
     async beforeHandleMessage({ context, documentName, connection, update }) {
       network.inboundMessages++; network.inboundBytes += update.byteLength;
       const session = store.authenticate(context?.token ?? '');
-      const role = session ? store.role(documentName, session.user.id) : undefined;
       if (context.invalidated) throw new Error('Connection requires an authoritative reset');
       if (!session) {
         resetConnection(connection, documentName, null, context.expiresAt <= Date.now() ? 'session-expired' : 'session-revoked');
         throw new Error('Session ended');
       }
-      if (!role || role !== context.role) { resetConnection(connection, documentName, role ?? null); throw new Error('Session or membership changed'); }
+      const roleVersion = store.membershipVersion();
+      if (roleVersion !== context.roleVersion) {
+        const role = store.role(documentName, session.user.id);
+        if (!role || role !== context.role) { resetConnection(connection, documentName, role ?? null); throw new Error('Session or membership changed'); }
+        context.roleVersion = roleVersion;
+      }
       if (update.byteLength > limits.maxUpdateBytes) { refuseUpdate(connection, documentName, 'update-too-large', false, limits.maxUpdateBytes); throw new Error('Update exceeds the size limit'); }
     },
     async beforeSync({ connection, context, document, documentName, type, payload }) {
       if (context.invalidated) throw new Error('Connection requires an authoritative reset');
       // Hocuspocus's negative SyncStatus is ignored by its provider. Explicitly
       // invalidate dirty readonly replicas, including offline edits in SyncStep2.
-      if (connection.readOnly && (type === 1 || type === 2) && !Y.snapshotContainsUpdate(Y.snapshot(document), payload)) {
+      if (connection.readOnly && (type === 1 || type === 2) && !Y.snapshotContainsUpdate(snapshot(document), payload)) {
         resetConnection(connection, documentName, 'viewer', 'read-only-write-rejected');
         throw new Error('Read-only changes require an authoritative reset');
       }
