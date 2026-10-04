@@ -143,7 +143,10 @@ The schema-2 model accepts text blocks on rectangles and ellipses.
 changing the shape's box; an empty string restores empty props. New labels use
 center/middle alignment, while existing labels retain their alignment. Shared
 layout metadata provides separate ellipse insets and signed vertical offsets.
-Rendering and editing integration is tracked in the
+The live canvas and PNG renderer position labels inside those insets and clip
+overflow to the content rectangle. Labels follow shape rotation and stacking
+order; changing a shape's position or color retains its ready text mesh.
+SVG/PDF export and editing integration are tracked in the
 [feature implementation ledger](docs/IMPLEMENTATION_STATUS.md).
 
 Read [storage design and measured limits](docs/D3_STORAGE_INVESTIGATION.md), [dependency/license verification](docs/DEPENDENCY_VERIFICATION.md), and [server operations](packages/server/README.md) before changing persistence, pinned Yjs internals, or deployment topology. Schema 1 is rejected rather than silently mutated. Compaction preserves Yjs clocks and offline merge history; it does not erase retired-writer or deleted-generation information.

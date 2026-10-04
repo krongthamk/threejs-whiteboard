@@ -4,7 +4,7 @@ export { waitForSignal } from './abort';
 export { IMAGE_ERROR_COLOR } from './images';
 import RBush from 'rbush';
 import { Text, configureTextBuilder, getCaretAtPoint, getSelectionRects } from 'troika-three-text';
-import { arrowheadPoints, compareElements, connectorPoints, getElementBounds, rotatePoint, STICKY_TEXT_INSET, textLayout } from '@whiteboard/model';
+import { arrowheadPoints, compareElements, connectorPoints, getElementBounds, rotatePoint, textBlock, textLayout } from '@whiteboard/model';
 import type { ElementOf, Point } from '@whiteboard/model';
 import { createShapeBatch, cssColor, disposeMesh, rgba, updateShapeInstance } from './shapes';
 import { createStrokeChunk, STROKES_PER_CHUNK } from './strokes';
@@ -147,7 +147,7 @@ export class ThreeRenderer {
       if (!previous && value === null) { changed.delete(id); continue; }
       if (previous && value && previous.index !== value.index) this.depths.delete(id);
       if (value) this.elements.set(id, value); else this.elements.delete(id);
-      if (!value || (value.type !== 'text' && value.type !== 'sticky')) this.disposeText(id);
+      if (!value || !textBlock(value)) this.disposeText(id);
       else {
         const current = this.textHandles.get(id);
         if (current && previous && (this.textLayoutChanged(previous, value) || current.error)) {
@@ -290,13 +290,13 @@ export class ThreeRenderer {
     for (const chunk of this.strokeChunks) for (const id of chunk.ids) this.strokeMembership.set(id, chunk);
     this.highestElement = ordered.at(-1);
     this.textIndex.clear();
-    this.textIndex.load(ordered.filter(element => element.type === 'text' || element.type === 'sticky').map(element => {
+    this.textIndex.load(ordered.filter(element => textBlock(element) !== null).map(element => {
       const box = getElementBounds(element);
       return { id: element.id, minX: box.x, minY: box.y, maxX: box.x + box.w, maxY: box.y + box.h };
     }));
     for (const id of this.textHandles.keys()) {
       const element = this.elements.get(id);
-      if (!element || (element.type !== 'text' && element.type !== 'sticky')) this.disposeText(id);
+      if (!element || !textBlock(element)) this.disposeText(id);
       else this.updateTextTransform(id, element);
     }
     this.connectorElements = new Map(ordered.filter(element => element.type === 'connector').map(element => [element.id, element]));
@@ -549,7 +549,9 @@ export class ThreeRenderer {
     const entries = this.textIndex.search({ minX: bounds.x, minY: bounds.y, maxX: bounds.x + bounds.w, maxY: bounds.y + bounds.h });
     for (const entry of entries) {
       const element = this.elements.get(entry.id)!;
-      if ((element.type !== 'text' && element.type !== 'sticky') || !element.props.text || (!includeTinyText && element.style.fontSize * zoom < 6) || entry.id === this.editingTextId) continue;
+      const block = textBlock(element);
+      if (!block?.text || (!includeTinyText && element.style.fontSize * zoom < 6) || entry.id === this.editingTextId) continue;
+      if ((element.type === 'rect' || element.type === 'ellipse') && (element.w <= block.insetX * 2 || element.h <= block.insetY * 2)) continue;
       visible.add(entry.id);
       const handle = this.textHandles.get(entry.id) ?? this.createText(element);
       if (handle.mesh.parent !== this.layers.text) this.layers.text.add(handle.mesh, handle.placeholder);
@@ -569,37 +571,48 @@ export class ThreeRenderer {
     this.viewportDirty = false;
   }
 
-  private textLayoutChanged(previous: RenderElement, next: RenderElement & { type: 'text' | 'sticky' }): boolean {
-    if (previous.type !== next.type || (previous.type !== 'text' && previous.type !== 'sticky')) return true;
-    return previous.w !== next.w || previous.props.text !== next.props.text || previous.props.align !== next.props.align
-      || previous.props.autoSize !== next.props.autoSize || previous.style.fontSize !== next.style.fontSize
-      || previous.style.fontFamily !== next.style.fontFamily;
+  private textLayoutChanged(previous: RenderElement, next: RenderElement): boolean {
+    const before = textBlock(previous), after = textBlock(next);
+    if (previous.type !== next.type || !before || !after) return true;
+    return previous.w !== next.w || before.text !== after.text || before.align !== after.align
+      || before.autoSize !== after.autoSize || previous.style.fontSize !== next.style.fontSize
+      || previous.style.fontFamily !== next.style.fontFamily || before.verticalAlign !== after.verticalAlign
+      || before.insetX !== after.insetX || before.insetY !== after.insetY
+      || ((next.type === 'rect' || next.type === 'ellipse') && previous.h !== next.h);
   }
 
-  private updateTextTransform(id: string, element: RenderElement & { type: 'text' | 'sticky' }): void {
-    const inset = element.type === 'sticky' ? STICKY_TEXT_INSET : 0;
-    const alignOffset = element.props.align === 'left' ? inset : element.props.align === 'right' ? element.w - inset : element.w / 2;
-    const p = rotatePoint({ x: element.x + alignOffset, y: element.y + inset + element.style.fontSize }, { x: element.x + element.w / 2, y: element.y + element.h / 2 }, element.rotation);
+  private updateTextTransform(id: string, element: RenderElement): void {
+    const block = textBlock(element);
+    if (!block) return;
+    const alignOffset = block.align === 'left' ? block.insetX : block.align === 'right' ? element.w - block.insetX : element.w / 2;
     for (const handle of [this.textHandles.get(id), this.replacementTexts.get(id)]) if (handle) {
+      const baseline = block.insetY + (handle.layout.verticalOffset ?? 0) + element.style.fontSize;
+      const p = rotatePoint({ x: element.x + alignOffset, y: element.y + baseline }, { x: element.x + element.w / 2, y: element.y + element.h / 2 }, element.rotation);
       handle.mesh.position.set(p.x, -p.y, this.textDepths.get(id) ?? .001);
       handle.mesh.rotation.z = -element.rotation;
       handle.mesh.renderOrder = 1000 + handle.mesh.position.z;
       handle.mesh.fillOpacity = element.style.opacity; handle.mesh.color = cssColor(element.style.color);
+      // Troika clips in its mesh-local, y-up coordinates. Keeping this relative
+      // to each handle's baseline also clips the ready display during replacement.
+      handle.mesh.clipRect = element.type === 'rect' || element.type === 'ellipse'
+        ? [block.insetX - alignOffset, baseline - Math.max(block.insetY, element.h - block.insetY), Math.max(block.insetX, element.w - block.insetX) - alignOffset, baseline - block.insetY]
+        : null;
       handle.placeholder.position.set(element.x + element.w / 2, -element.y - element.h / 2, handle.mesh.position.z);
       handle.placeholder.scale.set(Math.max(1, element.w), Math.max(1, element.h), 1);
       handle.placeholder.rotation.z = -element.rotation; handle.placeholder.renderOrder = handle.mesh.renderOrder;
     }
   }
 
-  private createText(element: RenderElement & { type: 'text' | 'sticky' }, previous?: TextHandle): TextHandle {
+  private createText(element: RenderElement, previous?: TextHandle): TextHandle {
+    const block = textBlock(element)!;
     const mesh = new Text();
     const layout = textLayout(element);
     mesh.text = layout.text; mesh.font = element.style.fontFamily.toLowerCase().includes('mono') ? this.options.monoFontUrl ?? this.options.fontUrl : this.options.fontUrl;
     mesh.fontSize = element.style.fontSize; mesh.color = cssColor(element.style.color);
-    mesh.fillOpacity = element.style.opacity; mesh.textAlign = element.props.align;
+    mesh.fillOpacity = element.style.opacity; mesh.textAlign = block.align;
     mesh.maxWidth = Infinity;
     mesh.lineHeight = 1.25; mesh.overflowWrap = 'break-word';
-    mesh.anchorX = element.props.align; mesh.anchorY = 'top-baseline';
+    mesh.anchorX = block.align; mesh.anchorY = 'top-baseline';
     mesh.visible = false; mesh.material.depthWrite = false;
     const placeholder = new THREE.Mesh(this.placeholderGeometry, this.placeholderMaterial);
     const handle: TextHandle = { mesh, ready: false, placeholder, cancel: () => {}, layout };

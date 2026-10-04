@@ -11,6 +11,7 @@ declare module 'troika-three-text' {
     anchorX: string | number; anchorY: string | number; lineHeight: string | number;
     whiteSpace: string; overflowWrap: string; fillOpacity: number;
     sdfGlyphSize: number;
+    clipRect: [number, number, number, number] | null;
     material: Material; textRenderInfo: TextRenderInfo | null;
     sync(callback?: () => void): void;
     dispose(): void;

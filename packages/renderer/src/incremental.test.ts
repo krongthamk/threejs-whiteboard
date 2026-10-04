@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { DEFAULT_STYLE, type Element, type ElementOf } from '@whiteboard/model';
+import { DEFAULT_STYLE, textBlock, textLayout, rotatePoint, type Element, type ElementOf, type ShapeTextProps } from '@whiteboard/model';
 import { ThreeRenderer } from './index';
 import { pngHeader } from '../../../tests/image-fixtures';
 
@@ -423,4 +423,99 @@ it('ready visible text does not wait for a retained offscreen glyph producer', a
   expect(result).toBe('ready'); expect(renderer.stats().pendingTexts).toBe(1);
   offscreen.callbacks.shift()!(); await Promise.resolve();
   expect(renderer.stats().pendingTexts).toBe(0);
+});
+
+function shapeLabel(type: 'rect' | 'ellipse' = 'rect'): (ElementOf<'rect'> | ElementOf<'ellipse'>) & { props: ShapeTextProps } {
+  return { ...stroke(0), id: 'shape-label', type, index: 'middle', x: 30, y: 40, w: 200, h: 140,
+    props: { text: 'Shape label', align: 'center', autoSize: false, verticalAlign: 'middle' } };
+}
+async function readyShape(element = shapeLabel()): Promise<MockText> {
+  renderer.setElements([element]); renderer.render();
+  expect(renderer.stats().visibleTexts).toBe(1);
+  const mesh = latestText(); mesh.callbacks.shift()!(); await renderer.whenReady(); return mesh;
+}
+describe('shape label projection', () => {
+  it.each(['rect', 'ellipse'] as const)('uses the %s inset box, signed baseline and local clipping', async type => {
+    const element = shapeLabel(type), mesh = await readyShape(element), block = textBlock(element)!, layout = textLayout(element);
+    const baseline = block.insetY + (layout.verticalOffset ?? 0) + element.style.fontSize;
+    expect(mesh.position.x).toBe(element.x + element.w / 2); expect(mesh.position.y).toBe(-element.y - baseline);
+    expect(renderer.getTextObject(element.id)?.clipRect).toEqual([block.insetX - element.w / 2, baseline - (element.h - block.insetY), element.w / 2 - block.insetX, baseline - block.insetY]);
+  });
+  it('retains label handles for drag, rotation, color and opacity edits', async () => {
+    const element = shapeLabel(), mesh = await readyShape(element);
+    const next = { ...element, x: 80, y: 90, rotation: .5, style: { ...element.style, color: '#ff0000', opacity: .4 } };
+    renderer.applyDiff([next]); renderer.render();
+    const block = textBlock(next)!, p = rotatePoint({ x: next.x + next.w / 2, y: next.y + block.insetY + textLayout(next).verticalOffset! + next.style.fontSize }, { x: next.x + next.w / 2, y: next.y + next.h / 2 }, next.rotation);
+    expect(renderer.getTextObject(element.id)).toBe(mesh); expect(mesh.dispose).not.toHaveBeenCalled();
+    expect(mesh.position.x).toBeCloseTo(p.x); expect(mesh.position.y).toBeCloseTo(-p.y);
+    expect(mesh.rotation.z).toBe(-.5); expect(renderer.stats().pendingTexts).toBe(0);
+  });
+  it.each(['height', 'vertical alignment', 'width', 'shape type'] as const)('keeps ready text until %s relayout succeeds', async field => {
+    const element = shapeLabel(), old = await readyShape(element);
+    const next = field === 'height' ? { ...element, h: 220 } : field === 'width' ? { ...element, w: 90 } : field === 'shape type' ? { ...element, type: 'ellipse' as const } : { ...element, props: { ...element.props, verticalAlign: 'bottom' as const } };
+    renderer.applyDiff([next]); renderer.render(); const replacement = latestText();
+    expect(replacement).not.toBe(old); expect(renderer.getTextObject(element.id)).toBe(old); expect(old.visible).toBe(true);
+    expect(old.dispose).not.toHaveBeenCalled(); replacement.callbacks.shift()!(); await renderer.whenReady();
+    expect(renderer.getTextObject(element.id)).toBe(replacement); expect(old.dispose).toHaveBeenCalledOnce();
+    const block = textBlock(next)!, baseline = block.insetY + textLayout(next).verticalOffset! + next.style.fontSize;
+    expect(replacement.position.y).toBe(-next.y - baseline);
+  });
+  it('retains signed overflowing offsets but creates no visible label for an empty inset box', async () => {
+    const element = { ...shapeLabel(), h: 40, props: { ...shapeLabel().props, text: 'one\ntwo\nthree' } };
+    const mesh = await readyShape(element), offset = textLayout(element).verticalOffset!;
+    expect(offset).toBeLessThan(0); expect(renderer.getTextObject(element.id)?.clipRect).toHaveLength(4);
+    renderer.applyDiff([{ ...element, h: 24 }]); renderer.render();
+    expect(renderer.stats().visibleTexts).toBe(0); expect(mesh.parent).toBe(null);
+    renderer.setElements([{ ...element, w: 24 }]); renderer.render();
+    expect(renderer.stats().textInstances).toBe(0); expect(renderer.stats().pendingTexts).toBe(0);
+  });
+  it('clearing a label cancels both handles and late glyph completion cannot resurrect it', async () => {
+    const element = shapeLabel(), old = await readyShape(element);
+    renderer.applyDiff([{ ...element, props: { ...element.props, text: 'Changed label' } }]); renderer.render();
+    const replacement = latestText(), finish = replacement.callbacks.shift()!;
+    renderer.applyDiff([{ ...element, props: {} }]); renderer.render(); finish(); await renderer.whenReady();
+    expect(old.dispose).toHaveBeenCalledOnce(); expect(replacement.dispose).toHaveBeenCalledOnce();
+    expect(renderer.getTextObject(element.id)).toBeUndefined(); expect(renderer.stats().pendingTexts).toBe(0);
+  });
+});
+
+it('equal-index shape label depths stay above their own fills and below the next fill', async () => {
+  const labels = ['a', 'z'].map(id => ({ ...shapeLabel(), id, index: 'same', style: { ...DEFAULT_STYLE, opacity: .5 } }));
+  renderer.setElements(labels); renderer.render();
+  for (const mesh of textState.instances as MockText[]) mesh.callbacks.shift()!(); await renderer.whenReady();
+  let id = 'b';
+  for (let i = 0; i < 16; i++) {
+    id += 'a'; renderer.applyDiff([{ ...shapeLabel('ellipse'), id, index: 'same', style: { ...DEFAULT_STYLE, opacity: .5 } }]); renderer.render(); latestText().callbacks.shift()!(); await renderer.whenReady();
+    const fills = renderer.layers.shapes.children.filter(mesh => mesh instanceof THREE.InstancedMesh).sort((a, b) => a.renderOrder - b.renderOrder);
+    const glyphs = renderer.layers.text.children.filter(mesh => mesh.visible).sort((a, b) => a.position.z - b.position.z);
+    expect(glyphs).toHaveLength(fills.length);
+    for (let j = 0; j < fills.length; j++) {
+      expect(glyphs[j]!.position.z).toBeGreaterThan(fills[j]!.renderOrder - 1000);
+      if (j + 1 < fills.length) expect(glyphs[j]!.position.z).toBeLessThan(fills[j + 1]!.renderOrder - 1000);
+    }
+  }
+});
+
+it('shape labels retain visible and editing pins within the offscreen text cache limit', async () => {
+  renderer.dispose(); renderer = new ThreeRenderer({ canvas: { clientWidth: 1000, clientHeight: 800 } as HTMLCanvasElement, fontUrl: '/font.woff', offscreenTextCacheSize: 1 });
+  const labels = Array.from({ length: 4 }, (_, n) => ({ ...shapeLabel(), id: `shape-${n}`, x: n * 2000 }));
+  renderer.setElements(labels); renderer.render(); const pinned = latestText(); pinned.callbacks.shift()!(); await renderer.whenReady();
+  renderer.setEditingText('shape-0');
+  for (let n = 1; n < 4; n++) {
+    renderer.setCamera({ x: n * 2000 + 100, y: 100, zoom: 1 }); renderer.render(); latestText().callbacks.shift()!(); await renderer.whenReady();
+    expect(renderer.stats().textInstances).toBeLessThanOrEqual(3); expect(renderer.getTextObject('shape-0')).toBe(pinned);
+  }
+  expect(renderer.getTextObject('shape-1')).toBeUndefined(); expect(pinned.dispose).not.toHaveBeenCalled();
+  renderer.setEditingText(null); renderer.render(); expect(renderer.stats().textInstances).toBe(2);
+  renderer.setCamera({ x: 100, y: 100, zoom: 1 }); renderer.render(); await renderer.whenReady();
+  expect(renderer.getTextObject('shape-0')).toBe(pinned); expect(pinned.visible).toBe(true);
+});
+it('shape readiness waits for exact visible or editing tasks while excluding offscreen work', async () => {
+  const labels = [shapeLabel(), { ...shapeLabel('ellipse'), id: 'far-shape', x: 2000 }];
+  renderer.setElements(labels); renderer.render(); const near = latestText();
+  renderer.setCamera({ x: 2100, y: 100, zoom: 1 }); renderer.render(); const far = latestText(); far.callbacks.shift()!();
+  await renderer.whenReady(); expect(renderer.stats().pendingTexts).toBe(1);
+  renderer.setEditingText('shape-label'); let settled = false;
+  const pending = renderer.whenReady().then(() => { settled = true; }); await Promise.resolve(); expect(settled).toBe(false);
+  near.callbacks.shift()!(); await pending; expect(renderer.stats().pendingTexts).toBe(0);
 });
