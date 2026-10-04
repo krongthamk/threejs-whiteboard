@@ -1,6 +1,6 @@
 # Three.js collaborative whiteboard
 
-A private, self-hosted whiteboard with shapes, pressure-aware drawing, native text editing, bound connectors, images, collaborative cursors, per-user undo, and PNG/SVG/PDF export. The document is a Yjs model; Three.js is its disposable visual projection.
+A private, self-hosted whiteboard with shapes, pressure-aware drawing, native text editing, bound connectors, images, collaborative cursors, per-session undo, and PNG/SVG/PDF export. The document is a Yjs model; Three.js is its disposable visual projection.
 
 Implementation and measured acceptance evidence are tracked against [the build plan](docs/BUILD_PLAN.md) in [the execution log](docs/EXECUTION_LOG.md). The selected initial benchmark/deployment machine is this Mac (Apple M1 Pro, 32 GiB); local results do not establish performance on other hardware.
 
@@ -60,6 +60,8 @@ This initial deployment listens on loopback. For a remote host, configure an HTT
 ## Editing and export
 
 Use the tool rail or `V` select, `R` rectangle, `O` ellipse, `N` note, `T` text, `C` connector, `P` pen, `E` eraser, and `H` pan. Hold Space to pan, use the wheel/trackpad, or zoom around the pointer. Double-click a text object or sticky note to edit. Escape cancels the active gesture. Native text selection, clipboard and IME stay inside the text editor; each completed edit is one undo step.
+
+Undo history belongs to the current browser session. Two tabs signed in as the same account have separate histories, and reloading starts a new history. Concurrent edits to the same text object resolve to one complete draft, so another draft may be replaced. Simultaneous pastes from different sessions can interleave their elements in the stacking order.
 
 Drop or paste PNG/JPEG/WebP images, or use Add images. Original bytes stay in the private asset store; the document carries asset IDs. Images are limited to 20 MiB, 16,384 pixels per side, 100 million pixels, and the active GPU's maximum texture dimension. The server, importer, and renderer check encoded dimensions before decoding; a mismatched image instance displays a placeholder. Copy/paste preserves element geometry, bindings and ordering between boards; referenced images are copied through authenticated source/destination checks. Mutating requests recheck the current session and permissions after the request body arrives, in the same transaction as the write.
 
