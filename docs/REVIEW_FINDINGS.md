@@ -271,7 +271,7 @@ Work through these after Tier 2. Each is a small, self-contained change.
 - [x] 34. `packages/model/src/text-layout.ts:212-216, 222-243`: a separator consumed at a wrap makes `renderedToSource[sourceToRendered[line.end]]` return `source.length` when it is the paragraph's last character, collapsing two caret positions. Fix the mapping for consumed trailing separators; add the failing inputs `"\t\t"` at width 40 and `"word word word word "` at width 40 as unit tests. `:46` measures unsupported scripts at one em per code point; surface a warning through the same path as the PDF coverage error.
 - [x] 35. `packages/model/src/document.ts:250-256` moving a connector without its bound target silently converts the binding to a point; `:284-288` duplicating a bound connector without its target leaves the copy bound to the original. Keep the binding on move; shift or unbind on duplicate. Document whichever is chosen.
 - [x] 36. No cap on `props.text` (`schema.ts:46`, `text-editor.ts:63, 128`); the editor re-lays out the whole draft per keystroke. Cap at 50,000 characters in the schema and editor; debounce `position()` for drafts over 5,000 characters.
-- [ ] 37. Undo of a cross-board paste (`assets.ts:160-176`) orphans the server-side copied assets and no asset garbage collection exists. Add an `operations gc-assets` command that removes assets not referenced by any board snapshot, and document it.
+- [x] 37. Undo of a cross-board paste (`assets.ts:160-176`) orphans the server-side copied assets and no asset garbage collection exists. Add an `operations gc-assets` command that removes assets not referenced by any board snapshot, and document it.
 
 ### App and renderer
 

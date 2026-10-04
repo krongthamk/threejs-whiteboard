@@ -1,10 +1,140 @@
 import Sqlite from 'better-sqlite3';
 import { createHash } from 'node:crypto';
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { basename, dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
 import type { Store } from './store.js';
 import * as Y from 'yjs';
-import { CLOCK_PREFIX, clockRootValue, WRITER_PREFIX, plainRecord, causalClockBound, validWriterRecord } from '../../model/src/document-validation.js';
+import { CLOCK_PREFIX, clockRootValue, WRITER_PREFIX, plainRecord, causalClockBound, validWriterRecord, SCHEMA_VERSION } from '../../model/src/document-validation.js';
+import { acquireMaintenanceLease, canonicalDatabasePath } from './maintenance.js';
+
+export interface AssetGCResult { removedAssets: number; removedBlobs: number; leftoverBlobs: string[] }
+const uuidLeaf = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function safeStorageKey(key: unknown): asserts key is string {
+  if (typeof key !== 'string' || !/^[a-zA-Z0-9-]+$/.test(key) || key === 'session-secret') throw new Error('Unsafe asset storage key');
+}
+function safeAssetRoot(store: Store, directory: string): string {
+  const stat = lstatSync(resolve(directory));
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('Asset directory must be a real directory');
+  const root = realpathSync(directory), database = canonicalDatabasePath(store.filename);
+  if (root === parse(root).root) throw new Error('Asset directory must not be a filesystem root');
+  const namedDatabase = store.filename === ':memory:' ? database : join(realpathSync(dirname(resolve(store.filename))), basename(store.filename));
+  for (const path of [database, namedDatabase, `${database}.maintenance.sqlite`]) {
+    const within = relative(root, path);
+    if (!within || !within.startsWith('..' + sep) && within !== '..' && !isAbsolute(within)) throw new Error('Asset directory contains database or maintenance files');
+  }
+  return root;
+}
+function regularBlob(root: string, key: string, required = false): boolean {
+  safeStorageKey(key);
+  try {
+    const stat = lstatSync(join(root, key));
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`Unsafe asset blob: ${key}`);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    if (required) throw new Error(`Referenced asset blob is missing: ${key}`);
+    return false;
+  }
+}
+/** Preserve every surviving raw image reference, including losing generations and readable quarantine. */
+function rawAssetReferences(update: Uint8Array, boardId: string): Set<string> {
+  const doc = new Y.Doc(), references = new Set<string>();
+  const entry = (key: string, child: unknown): void => {
+    if (key === 'assetId') {
+      if (typeof child !== 'string' || !child) throw new Error(`Unrecognizable asset reference in board ${boardId}`);
+      references.add(child);
+    }
+    visit(child);
+  };
+  const visit = (value: unknown): void => {
+    if (value instanceof Y.Map) {
+      for (let item = value._start; item; item = item.right) if (!item.deleted) throw new Error(`Unsupported mixed map in board ${boardId}`);
+      for (const [key, child] of value.entries()) entry(key, child);
+      return;
+    }
+    if (value instanceof Y.Array) {
+      for (const item of value._map.values()) if (!item.deleted) throw new Error(`Unsupported mixed array in board ${boardId}`);
+      for (const child of value.toArray()) visit(child);
+      return;
+    }
+    // Text embeds and XML attributes disappear in toJSON(). Do not turn
+    // unsupported historical data into proof that an asset is unreferenced.
+    if (value instanceof Y.AbstractType || value instanceof Uint8Array) throw new Error(`Unsupported raw data in board ${boardId}`);
+    if (Array.isArray(value)) { for (const item of value) visit(item); return; }
+    // lib0's decoder can move an old __proto__ subtree off the own entries.
+    // Reject it instead of mistaking the hidden references for orphaned data.
+    if (value && typeof value === 'object') {
+      if (!plainRecord(value)) throw new Error(`Unsupported raw object prototype in board ${boardId}`);
+      for (const [key, child] of Object.entries(value)) entry(key, child);
+    }
+  };
+  try {
+    Y.applyUpdate(doc, update);
+    if (doc.store.pendingStructs || doc.store.pendingDs) throw new Error(`Incomplete document for board ${boardId}`);
+    if (!doc.share.has('meta') || doc.getMap('meta').get('schemaVersion') !== SCHEMA_VERSION) throw new Error(`Unsupported document schema for board ${boardId}`);
+    for (const name of doc.share.keys()) {
+      if (name === 'meta' || name.startsWith(CLOCK_PREFIX)) {
+        const root = doc.getMap(name);
+        for (let item = root._start; item; item = item.right) if (!item.deleted) throw new Error(`Unsupported document root ${name}`);
+        if (name !== 'meta' && clockRootValue(doc, name.slice(CLOCK_PREFIX.length)) === undefined) throw new Error(`Malformed clock root ${name}`);
+        visit(root);
+      } else if (name.startsWith(WRITER_PREFIX) && name.length > WRITER_PREFIX.length) {
+        const root = doc.getArray(name);
+        for (const item of root._map.values()) if (!item.deleted) throw new Error(`Unsupported document root ${name}`);
+        visit(root);
+      } else throw new Error(`Unsupported document root ${name}`);
+    }
+    return references;
+  } finally { doc.destroy(); }
+}
+
+/** Offline collection: commit row removal before deleting any unreferenced immutable blob. */
+export function gcAssets(store: Store, assetDirectory: string): AssetGCResult {
+  const root = safeAssetRoot(store, assetDirectory), lease = acquireMaintenanceLease(store.filename, 'exclusive');
+  try {
+    const candidates = new Set<string>();
+    const removedAssets = store.db.transaction(() => {
+      const references = new Set<string>();
+      const boards = store.db.prepare('SELECT b.id,d.board_id AS documentId FROM boards b LEFT JOIN documents d ON d.board_id=b.id').all() as { id: string; documentId: string | null }[];
+      for (const board of boards) {
+        if (!board.documentId) throw new Error(`Missing document for board ${board.id}`);
+        const update = store.loadDocument(board.id);
+        if (!update) throw new Error(`Missing document for board ${board.id}`);
+        for (const id of rawAssetReferences(update, board.id)) references.add(id);
+      }
+      const rows = store.db.prepare('SELECT id,board_id AS boardId,storage_key AS storageKey FROM assets').all() as { id: string; boardId: string; storageKey: string }[];
+      const boardIds = new Set(boards.map(board => board.id)), retainedKeys = new Set<string>();
+      for (const row of rows) {
+        if (!boardIds.has(row.boardId)) throw new Error('Asset belongs to an unknown board');
+        safeStorageKey(row.storageKey);
+        if (references.has(row.id)) retainedKeys.add(row.storageKey);
+      }
+      for (const row of rows) {
+        regularBlob(root, row.storageKey, retainedKeys.has(row.storageKey));
+        if (!retainedKeys.has(row.storageKey)) candidates.add(row.storageKey);
+      }
+      // Recover UUID blobs left by interrupted uploads or postcommit deletion
+      // failures; never sweep unrelated leaf files such as session-secret.
+      for (const name of readdirSync(root)) if (uuidLeaf.test(name) && !retainedKeys.has(name)) {
+        regularBlob(root, name); candidates.add(name);
+      }
+      const remove = store.db.prepare('DELETE FROM assets WHERE id=?');
+      let count = 0;
+      for (const row of rows) if (!references.has(row.id)) count += remove.run(row.id).changes;
+      return count;
+    }).immediate();
+    const result: AssetGCResult = { removedAssets, removedBlobs: 0, leftoverBlobs: [] };
+    const stillReferenced = store.db.prepare('SELECT 1 FROM assets WHERE storage_key=? LIMIT 1');
+    for (const key of candidates) {
+      try {
+        if (stillReferenced.get(key)) continue;
+        // Validate again immediately before unlink, after the SQL commit.
+        if (regularBlob(root, key)) { unlinkSync(join(root, key)); result.removedBlobs++; }
+      } catch { result.leftoverBlobs.push(key); }
+    }
+    return result;
+  } finally { lease.release(); }
+}
 
 /** Repair a poisoned element offline without constructing a projection or resetting Yjs clocks. */
 export function pruneElement(store: Store, boardId: string, elementId: string): { removedRecords: number } {
@@ -51,9 +181,10 @@ const hash = (path: string) => createHash('sha256').update(readFileSync(path)).d
 /** The SQLite backup API captures a coherent live snapshot. Asset blobs are immutable. */
 export async function createBackup(store: Store, assetDirectory: string, sessionSecret: string, destination: string): Promise<Manifest> {
   if (existsSync(destination)) throw new Error('Backup destination must not already exist');
+  const lease = acquireMaintenanceLease(store.filename, 'shared');
   const staging = `${destination}.partial-${process.pid}`;
-  mkdirSync(join(staging, 'assets'), { recursive: true, mode: 0o700 });
   try {
+    mkdirSync(join(staging, 'assets'), { recursive: true, mode: 0o700 });
     const database = join(staging, 'whiteboard.sqlite'); await store.backup(database); chmodSync(database, 0o600);
     const snapshot = new Sqlite(database, { readonly: true });
     let keys: { storage_key: string }[], boards: number, assets: number;
@@ -70,6 +201,7 @@ export async function createBackup(store: Store, assetDirectory: string, session
     writeFileSync(join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2), { mode: 0o600 });
     mkdirSync(dirname(destination), { recursive: true }); renameSync(staging, destination); return manifest;
   } catch (error) { rmSync(staging, { recursive: true, force: true }); throw error; }
+  finally { lease.release(); }
 }
 
 /** Restore is deliberately offline and refuses an existing data directory. */

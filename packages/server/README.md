@@ -165,9 +165,14 @@ before draining an owner; drain alone does not transfer its ownership.
 pnpm --filter @whiteboard/server operations backup /absolute/new-backup-directory
 pnpm --filter @whiteboard/server operations restore /absolute/backup /absolute/new-data-directory
 pnpm --filter @whiteboard/server operations prune-element <boardId> <elementId>
+pnpm --filter @whiteboard/server operations gc-assets
 ```
 
-Backup uses SQLite's online backup API, then copies precisely the immutable
+Backup holds a shared asset-maintenance lease across SQLite's online backup API
+and all immutable asset copies. Running servers hold the same shared lease;
+GC requires an exclusive lease. The separate SQLite lease database uses the
+canonical database path, so directory and file symlink aliases cannot bypass
+exclusion; process exit releases its lock automatically. Backup then copies precisely the immutable
 asset files referenced by that database snapshot. It records SHA256 for every
 file and stores both SQLite and the session secret with mode 0600. Treat the backup as private user
 data and credentials. Restore verifies hashes and SQLite integrity, refuses an
@@ -180,6 +185,27 @@ raw base and field records, writes a higher-clock deletion marker, and saves the
 repaired snapshot while preserving unrelated records and Yjs history. This can
 repair a malformed element without loading it into the editor. Reconnecting stale
 replicas cannot restore the deleted base from their old snapshots.
+
+Run `gc-assets` only after stopping every server that uses this database and
+closing or reloading clients. A disconnected client's undo history or unsynced
+edits may reference an image that persisted documents no longer contain; GC can
+invalidate those client-only references. Collection preserves every surviving
+raw image reference in every board, including losing generations and readable
+quarantined records, and retains blobs shared by surviving asset rows. It never
+rewrites document snapshots. Missing, corrupt, incomplete or unknown-schema
+documents, unknown roots, and unsupported nested Yjs types stop collection
+without changing asset rows or files. Future avatar or other asset roots need
+explicit GC support before collection can handle them.
+
+Orphan-row removal commits in an immediate SQLite transaction before any blob
+is unlinked, under the exclusive maintenance lease. A crash cannot remove a
+blob while its retained row still refers to it. Failed postcommit unlinks are
+reported as `leftoverBlobs` and give the CLI a nonzero exit status. Retry after
+correcting the filesystem error: unreferenced UUID leaves from interrupted
+uploads or prior runs are collected. Unrelated files remain untouched; failed
+legacy non-UUID blob keys are reported for manual cleanup. Asset roots must be
+real directories outside the database/maintenance paths, and blob paths must
+be regular leaf files without symlinks or traversal.
 
 `pnpm --filter @whiteboard/loadtest history` generates 100,000 schema2 updates,
 compacts at the production thresholds, times reload plus full projection, and

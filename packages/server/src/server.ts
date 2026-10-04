@@ -11,6 +11,7 @@ import { staticHandler } from './static.js';
 import { BoardUpdateValidator, IncompleteBoardUpdateError } from '../../model/src/document-validation.js';
 import { assertSafeImageDimensions, readImageHeader } from '../../model/src/image-header.js';
 import { checkUpdateResources, UpdateResourceError } from './update-limits.js';
+import { acquireMaintenanceLease } from './maintenance.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
 interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; trustedProxy?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
@@ -23,7 +24,10 @@ export function createWhiteboardServer(options: Options) {
     maxInboundBytes: options.maxInboundBytes ?? 8 * 1024 * 1024, maxClockGrowth: options.maxClockGrowth ?? 1_000_000 };
   for (const [name, value] of Object.entries(limits)) if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive safe integer`);
   const serveStatic = options.staticDirectory ? staticHandler(options.staticDirectory) : undefined;
-  const store = new Store(options.databasePath, options.sessionSecret, limits.maxBoardBytes);
+  const maintenance = acquireMaintenanceLease(options.databasePath, 'shared');
+  let ownedStore: Store | undefined;
+  try {
+  const store = ownedStore = new Store(options.databasePath, options.sessionSecret, limits.maxBoardBytes);
   mkdirSync(options.assetDirectory, { recursive: true });
   const websocketPath = options.websocketPath ?? '/collaboration';
   const originPorts = options.staticDirectory ? [options.port || 3001] : [4173, 5173, 5174, 3001];
@@ -453,7 +457,12 @@ export function createWhiteboardServer(options: Options) {
   return { server, store, metrics, network, websocketPath,
     get port() { const address = server.httpServer.address(); return address && typeof address === 'object' ? address.port : options.port ?? 3001; },
     async listen() {
-      await server.listen();
+      try { await server.listen(); }
+      catch (error) {
+        try { await server.destroy(); }
+        finally { try { if (store.db.open) store.close(); } finally { maintenance.release(); } }
+        throw error;
+      }
       if (options.staticDirectory && options.port === 0 && options.allowedOrigins === undefined) {
         const address = server.httpServer.address();
         if (address && typeof address === 'object') {
@@ -461,7 +470,18 @@ export function createWhiteboardServer(options: Options) {
         }
       }
     },
-    async close() { if (!closed) closed = (async () => { draining = true; await server.destroy(); for (const value of validators.values()) value.dispose(); validators.clear(); store.close(); })(); return closed; },
+    async close() { if (!closed) closed = (async () => {
+      draining = true;
+      try { await server.destroy(); }
+      finally {
+        try { for (const value of validators.values()) value.dispose(); validators.clear(); if (store.db.open) store.close(); }
+        finally { maintenance.release(); }
+      }
+    })(); return closed; },
     beginDrain() { draining = true; },
   };
+  } catch (error) {
+    try { if (ownedStore?.db.open) ownedStore.close(); } finally { maintenance.release(); }
+    throw error;
+  }
 }
