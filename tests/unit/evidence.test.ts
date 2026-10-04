@@ -50,7 +50,7 @@ describe('evidence output isolation', () => {
 
   it('runs the actual model report writer from repository and package cwd without modifying historical evidence', () => {
     const historical = repositoryPath('packages/model/reports/schema2-lifecycle-retention.json');
-    const digest = () => createHash('sha256').update(readFileSync(historical)).digest('hex');
+    const digest = () => existsSync(historical) ? createHash('sha256').update(readFileSync(historical)).digest('hex') : undefined;
     const before = digest(), output = runEvidencePath('model', 'schema2-lifecycle-retention.json');
     for (const [cwd, file] of [[repositoryPath(''), 'packages/model/test/writer-storage.test.ts'], [repositoryPath('packages/model/'), 'test/writer-storage.test.ts']]) {
       rmSync(output, { force: true });
@@ -58,6 +58,7 @@ describe('evidence output isolation', () => {
         cwd, env: { ...process.env, RECORD_EVIDENCE: '0' }, stdio: 'pipe', timeout: 30_000,
       });
       expect(digest(), `historical report from ${cwd}`).toBe(before);
+      expect(existsSync(historical), `historical report existence from ${cwd}`).toBe(before !== undefined);
       expect(existsSync(output), `current output from ${cwd}`).toBe(true);
       expect(JSON.parse(readFileSync(output, 'utf8')).samples).toHaveLength(4);
     }
