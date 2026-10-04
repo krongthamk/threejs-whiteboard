@@ -113,7 +113,7 @@ export class EditorRuntime {
     this.renderer.resize(Math.max(1, bounds.width), Math.max(1, bounds.height));
     const render = () => {
       if (this.stopped) return;
-      try { this.renderer.render(); }
+      try { this.renderer.render(false); }
       catch (error) { options.onError(error instanceof Error ? error.message : 'The canvas could not render. Reload the board.'); return; }
       this.frame = requestAnimationFrame(render);
     };

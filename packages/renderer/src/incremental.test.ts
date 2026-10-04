@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { DEFAULT_STYLE, type Element, type ElementOf } from '@whiteboard/model';
 import { ThreeRenderer } from './index';
+import { pngHeader } from '../../../tests/image-fixtures';
 
 const textState = vi.hoisted(() => ({ failNext: false, instances: [] as unknown[] }));
 
@@ -10,7 +11,7 @@ vi.mock('three', async importOriginal => {
   class WebGLRenderer {
     capabilities = { maxTextureSize: 4096 };
     info = { render: { calls: 0, triangles: 0 }, memory: { geometries: 0, textures: 0 } };
-    setPixelRatio() {} getPixelRatio() { return 1; } setClearColor() {} setSize() {} render() {} dispose() {}
+    setPixelRatio() {} getPixelRatio() { return 1; } setClearColor() {} setSize() {} render = vi.fn(); dispose() {}
   }
   return { ...actual, WebGLRenderer };
 });
@@ -308,4 +309,66 @@ it('repeated eraser preview removals preserve the already updated dependent conn
   renderer.applyDiff([], ['stroke-0']); renderer.render();
   expect(renderer.stats().connectorRebuilds - before.connectorRebuilds).toBe(0);
   expect(renderer.layers.connectors.children).toEqual(meshes);
+});
+
+
+describe('render invalidation', () => {
+  function draws() { return vi.mocked(renderer.webgl.render).mock.calls.length; }
+  function oneDraw(change: () => void) {
+    const before = draws(); change(); renderer.render(false);
+    expect(draws()).toBe(before + 1);
+    renderer.render(false); renderer.render(false); expect(draws()).toBe(before + 1);
+  }
+  it('skips idle frames and draws every synchronous document and overlay trigger', () => {
+    renderer.render(false); const before = draws();
+    for (let i = 0; i < 60; i++) renderer.render(false);
+    expect(draws()).toBe(before);
+    renderer.render(); expect(draws()).toBe(before + 1); // Explicit draw preserves direct scene/WebGL consumers.
+    renderer.render(false); expect(draws()).toBe(before + 1);
+    renderer.applyDiff([]); renderer.render(false); expect(draws()).toBe(before + 1);
+    oneDraw(() => { renderer.applyDiff([stroke(0)]); renderer.applyDiff([stroke(1)]); });
+    oneDraw(() => renderer.setElements([stroke(0)]));
+    oneDraw(() => renderer.applyDiff([stroke(1)]));
+    oneDraw(() => renderer.applyDiff([], ['stroke-0']));
+    oneDraw(() => renderer.setCamera({ x: 10, y: 20, zoom: 2 }));
+    oneDraw(() => renderer.resize(800, 600));
+    oneDraw(() => renderer.setSelection({ marquee: { x: 0, y: 0, w: 30, h: 40 } }));
+    oneDraw(() => renderer.setLiveStroke(stroke(2)));
+    oneDraw(() => renderer.setLiveStroke(null));
+    oneDraw(() => renderer.setEditingText('note'));
+    oneDraw(() => renderer.setEditingText(null));
+    oneDraw(() => renderer.setPresence([]));
+    oneDraw(() => renderer.setElements([]));
+  });
+  it('document and presence glyph completion each wake an otherwise idle renderer', async () => {
+    renderer.setElements([note()]); renderer.render(false); const text = latestText();
+    oneDraw(() => text.callbacks.shift()!()); await renderer.whenReady();
+    renderer.applyDiff([{ ...note(), w: 150 }]); renderer.render(false); const replacement = latestText();
+    oneDraw(() => replacement.callbacks.shift()!()); await renderer.whenReady();
+    const peer = { clientId: 'peer', name: 'Alice', color: '#4378ed', cursor: { x: 10, y: 10 }, selection: ['note'], editingTextId: 'note' };
+    oneDraw(() => renderer.setPresence([peer]));
+    for (const label of (textState.instances as MockText[]).slice(-2)) oneDraw(() => label.callbacks.shift()!());
+    oneDraw(() => renderer.setPresence([{ ...peer, cursor: { x: 20, y: 20 } }]));
+    oneDraw(() => renderer.setPresence([]));
+  });
+  it('asynchronous image texture binding and failure each wake an otherwise idle renderer', async () => {
+    renderer.dispose();
+    const fetchImage = vi.fn(async () => new Response(new Blob([pngHeader(10, 10) as Uint8Array<ArrayBuffer>], { type: 'image/png' })));
+    vi.stubGlobal('fetch', fetchImage);
+    let finishDecode!: (bitmap: ImageBitmap) => void;
+    vi.stubGlobal('createImageBitmap', vi.fn(() => new Promise<ImageBitmap>(resolve => { finishDecode = resolve; })));
+    renderer = new ThreeRenderer({ canvas: { clientWidth: 1000, clientHeight: 800 } as HTMLCanvasElement, fontUrl: '/font.woff', resolveAsset: id => `/asset/${id}` });
+    const image: ElementOf<'image'> = { ...stroke(0), id: 'image', type: 'image', props: { assetId: 'asset', naturalW: 10, naturalH: 10 } };
+    renderer.setElements([image]); renderer.render(false);
+    await vi.waitFor(() => expect(finishDecode).toBeDefined());
+    renderer.render(false); const before = draws(); renderer.render(false); expect(draws()).toBe(before);
+    finishDecode({ width: 10, height: 10, close: vi.fn() } as unknown as ImageBitmap);
+    await renderer.whenReady(); renderer.render(false); expect(draws()).toBe(before + 1);
+    renderer.render(false); expect(draws()).toBe(before + 1);
+    fetchImage.mockRejectedValueOnce(new Error('missing image'));
+    renderer.setElements([{ ...image, props: { ...image.props, assetId: 'failed' } }]); renderer.render(false);
+    const failedBefore = draws(); await expect(renderer.whenReady()).rejects.toThrow('missing image');
+    renderer.render(false); expect(draws()).toBe(failedBefore + 1);
+    renderer.render(false); expect(draws()).toBe(failedBefore + 1);
+  });
 });

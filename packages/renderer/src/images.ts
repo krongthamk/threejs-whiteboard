@@ -28,7 +28,7 @@ export class ImageProjection {
   private viewport: Bounds = { x: 0, y: 0, w: 0, h: 0 };
   private zoom = 1;
   private pixelRatio = 1;
-  constructor(private group: THREE.Group, private options: RendererOptions, private maxTextureSize: number) {}
+  constructor(private group: THREE.Group, private options: RendererOptions, private maxTextureSize: number, private invalidate: () => void = () => {}) {}
 
   set(elements: readonly ImageElement[], depths: ReadonlyMap<string, number>): void {
     this.elements = new Map(elements.map(element => [element.id, element])); this.depths = depths;
@@ -159,15 +159,19 @@ export class ImageProjection {
   }
   private bindAsset(asset: Asset): void {
     const resource = this.exporting ? asset.full : asset.display, error = this.exporting ? asset.fullError : asset.error;
+    let changed = false;
     for (const id of this.visibleIds) {
       const handle = this.handles.get(id); if (!handle || handle.element.props.assetId !== asset.id) continue;
       const mismatch = asset.header && !this.validDimensions(handle.element, asset.header)
         ? new Error(`Image ${asset.id} dimensions do not match this element`) : undefined;
+      if (handle.error?.message !== (mismatch ?? error)?.message) changed = true;
       handle.error = mismatch ?? error;
       const material = handle.mesh.material, texture = handle.error ? null : resource?.texture ?? null;
-      if (material.map !== texture) { material.map = texture; material.needsUpdate = true; }
-      material.color.copy(cssColor(texture ? '#ffffff' : handle.error ? '#fee2e2' : '#dce3ed'));
+      if (material.map !== texture) { material.map = texture; material.needsUpdate = true; changed = true; }
+      const color = cssColor(texture ? '#ffffff' : handle.error ? '#fee2e2' : '#dce3ed');
+      if (!material.color.equals(color)) { material.color.copy(color); changed = true; }
     }
+    if (changed) this.invalidate();
   }
   setExporting(exporting: boolean): void {
     this.exporting = exporting;

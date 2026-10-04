@@ -19,7 +19,7 @@ export class PresenceProjection {
   private zoom = 1;
   private plane = new THREE.PlaneGeometry(1, 1);
   private cursorGeometry = new THREE.BufferGeometry();
-  constructor(private group: THREE.Group, private font: string, private timeoutMs: number) {
+  constructor(private group: THREE.Group, private font: string, private timeoutMs: number, private invalidate: () => void = () => {}) {
     this.cursorGeometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 4, -17, 0, 8, -11, 0, 0, 0, 0, 8, -11, 0, 16, -10, 0], 3));
   }
   set(presences: readonly RemotePresence[], elements: ReadonlyMap<string, Element>, zoom: number): void {
@@ -77,8 +77,8 @@ export class PresenceProjection {
       const bounds = label.text.textRenderInfo?.blockBounds;
       const width = Math.max(1, bounds ? bounds[2]! - bounds[0]! : value.length * 7) + 10;
       label.background.scale.set(width, 22, 1); label.background.position.set(width / 2, -11, 0);
-      label.ready = true; label.text.visible = label.background.visible = true;
-    }, () => { if (!label.disposed && generation === label.generation) label.error = true; });
+      label.ready = true; label.text.visible = label.background.visible = true; this.invalidate();
+    }, () => { if (!label.disposed && generation === label.generation) { label.error = true; this.invalidate(); } });
   }
   private update(peer: Peer): void {
     const state = peer.state;

@@ -28,7 +28,8 @@ export interface Renderer {
   getImageError(id: string): Error | undefined;
   getMaxImageDimension(): number;
   resize(width: number, height: number): void;
-  render(): void;
+  /** Explicit draw by default; false skips a frame with no projection changes. */
+  render(force?: boolean): void;
   whenReady(): Promise<void>;
   exportPng(options: PngOptions): Promise<Blob>;
   stats(): RendererStats;

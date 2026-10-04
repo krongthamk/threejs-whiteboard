@@ -1,5 +1,7 @@
 # Whiteboard renderer
 
+`render()` explicitly draws the current scene, including direct WebGL/layer changes. Animation loops should call `render(false)`: unchanged frames skip GPU work, while document/viewport/selection/live-stroke/presence updates and completed text/image loads request the next draw.
+
 `createRenderer(options)` creates a disposable three.js projection of model elements. The model remains authoritative. `setElements` replaces the entire projection; `applyDiff(upserts, removedIds)` batches document changes until the next `render`/`whenReady` call.
 
 ```ts

@@ -58,6 +58,8 @@ export class ThreeRenderer implements Renderer {
   private width = 1;
   private height = 1;
   private viewportDirty = true;
+  private needsRender = true;
+  private invalidate = (): void => { if (!this.disposed) this.needsRender = true; };
   private chunkRebuilds = 0;
   private textErrorCount = 0;
   private disposed = false;
@@ -88,9 +90,9 @@ export class ThreeRenderer implements Renderer {
     this.camera.position.set(0, 0, 500);
     Object.values(this.layers).forEach(layer => this.scene.add(layer));
     this.layers.strokes.add(this.liveStroke.mesh);
-    this.presence = new PresenceProjection(this.layers.presence, options.fontUrl, options.fontLoadTimeoutMs ?? 15000);
+    this.presence = new PresenceProjection(this.layers.presence, options.fontUrl, options.fontLoadTimeoutMs ?? 15000, this.invalidate);
     const imageGroup = new THREE.Group(); imageGroup.name = 'images'; this.layers.shapes.add(imageGroup);
-    this.images = new ImageProjection(imageGroup, options, this.webgl.capabilities.maxTextureSize);
+    this.images = new ImageProjection(imageGroup, options, this.webgl.capabilities.maxTextureSize, this.invalidate);
     if (options.grid) this.createGrid();
     this.resize(options.canvas.clientWidth || 1200, options.canvas.clientHeight || 800);
   }
@@ -124,6 +126,7 @@ export class ThreeRenderer implements Renderer {
   applyDiff(upserts: readonly RenderElement[], removals: readonly string[] = []): void {
     for (const element of upserts) this.queued.set(element.id, element);
     for (const id of removals) this.queued.set(id, null);
+    if (this.queued.size) this.invalidate();
   }
 
   private flush(): void {
@@ -502,14 +505,14 @@ export class ThreeRenderer implements Renderer {
       this.grid.material.uniforms.zoom!.value = this.state.zoom;
       this.grid.material.uniforms.spacing!.value = 24 * Math.pow(2, Math.max(0, Math.ceil(Math.log2(.5 / this.state.zoom))));
     }
-    this.viewportDirty = true;
+    this.viewportDirty = true; this.invalidate();
   }
 
   getCamera(): CameraState { return { ...this.state }; }
-  setSelection(selection: SelectionState): void { this.selectionOverlay.set(selection, this.state.zoom); }
-  setLiveStroke(element: ElementOf<'stroke'> | null): void { this.liveStroke.set(element); }
+  setSelection(selection: SelectionState): void { this.selectionOverlay.set(selection, this.state.zoom); this.invalidate(); }
+  setLiveStroke(element: ElementOf<'stroke'> | null): void { this.liveStroke.set(element); this.invalidate(); }
   /** Awareness may arrive hundreds of times per second; project only the latest frame. */
-  setPresence(presences: readonly RemotePresence[]): void { this.queuedPresence = presences; }
+  setPresence(presences: readonly RemotePresence[]): void { this.queuedPresence = presences; this.invalidate(); }
   getImageError(id: string): Error | undefined { return this.images.getError(id); }
   getMaxImageDimension(): number { return this.webgl.capabilities.maxTextureSize; }
   resize(width: number, height: number): void {
@@ -594,15 +597,16 @@ export class ThreeRenderer implements Renderer {
           }
           mesh.visible = this.visibleTextIds.has(element.id); placeholder.visible = false;
           if (mesh.visible) this.layers.text.add(mesh);
+          this.invalidate();
         }
         resolve();
       }, error => {
         if (this.replacementTexts.get(element.id) === handle) {
           this.replacementTexts.delete(element.id); this.releaseText(handle);
           const current = this.textHandles.get(element.id);
-          if (current) { this.clearTextError(current); current.error = error; this.textErrorCount++; }
+          if (current) { this.clearTextError(current); current.error = error; this.textErrorCount++; this.invalidate(); }
         } else if (this.textHandles.get(element.id) === handle) {
-          handle.error = error; this.textErrorCount++;
+          handle.error = error; this.textErrorCount++; this.invalidate();
         }
         reject(error);
       });
@@ -612,7 +616,7 @@ export class ThreeRenderer implements Renderer {
     return handle;
   }
 
-  setEditingText(id: string | null): void { this.editingTextId = id; this.viewportDirty = true; }
+  setEditingText(id: string | null): void { this.editingTextId = id; this.viewportDirty = true; this.invalidate(); }
   getTextObject(id: string): Text | undefined { return this.textHandles.get(id)?.mesh; }
   getTextError(id: string): Error | undefined { return this.textHandles.get(id)?.error; }
   getTextCaret(id: string, point: Point): TextCaret | null {
@@ -640,11 +644,14 @@ export class ThreeRenderer implements Renderer {
     });
   }
 
-  render(): void {
-    if (this.disposed) return;
+  /** Explicit calls draw by default; RAF callers pass false to skip idle GPU work. */
+  render(force = true): void {
+    if (this.disposed || (!force && !this.needsRender && !this.queued.size && !this.queuedPresence && !this.viewportDirty)) return;
     this.flush();
     if (this.queuedPresence) { this.presence.set(this.queuedPresence, this.elements, this.state.zoom); this.queuedPresence = null; }
-    if (this.viewportDirty) this.updateVisibleTexts(); this.webgl.render(this.scene, this.camera);
+    if (this.viewportDirty) this.updateVisibleTexts();
+    this.needsRender = false;
+    this.webgl.render(this.scene, this.camera);
   }
 
   async whenReady(): Promise<void> {
