@@ -1,4 +1,4 @@
-import { BoardDocument, fontCoverageWarning, SCHEMA_VERSION, unsupportedFontCodePoints, type Element, type ElementStyle } from '@whiteboard/model';
+import { BoardDocument, fontCoverageWarning, SCHEMA_VERSION, textBlock, unsupportedFontCodePoints, type Element, type ElementStyle } from '@whiteboard/model';
 import { createRenderer, type ThreeRenderer } from '@whiteboard/renderer';
 import { EditorController } from './controller';
 import { createSession, type SessionStore } from './session';
@@ -158,8 +158,10 @@ export class EditorRuntime {
   private warnFontCoverage(elements: readonly Element[], onError: RuntimeOptions['onError']): void {
     const missing = new Set<number>();
     for (const element of elements) {
-      if (element.type !== 'text' && element.type !== 'sticky') continue;
-      const points = unsupportedFontCodePoints(element.props.text, element.style.fontFamily);
+      const block = textBlock(element);
+      if (!block) continue;
+      // Coverage follows the stored text, including clipped or zero-area labels.
+      const points = unsupportedFontCodePoints(block.text, element.style.fontFamily);
       const key = points.join(',');
       if (!points.length || this.warnedFontCoverage.has(key)) continue;
       this.warnedFontCoverage.add(key); for (const point of points) missing.add(point);

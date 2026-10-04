@@ -138,3 +138,17 @@ it('observes a silent DPR change in the existing RAF and leaves unchanged frames
   for (let i = 12; i < 20; i++) nextFrame(i);
   expect(renderer.setPixelRatio).toHaveBeenCalledOnce(); expect(renderer.resize).toHaveBeenCalledOnce(); expect(add).toHaveBeenCalledTimes(2);
 });
+
+it('warns for stored initial and changed shape text even when its content box is hidden', () => {
+  const board = new BoardDocument();
+  board.create('rect', { id: 'hidden-label', w: 24, h: 24 }); board.setShapeText('hidden-label', '\u{F0000}');
+  const onError = vi.fn();
+  runtime = new EditorRuntime({ canvas, board, onError, onChange: vi.fn(), onEditText: vi.fn() });
+  expect(onError).toHaveBeenCalledOnce(); expect(onError.mock.calls[0]![0]).toContain('U+F0000');
+  expect(board.read('hidden-label')!.props).toMatchObject({ text: '\u{F0000}' });
+  onError.mockClear(); board.move(['hidden-label'], { x: 10, y: 10 }); expect(onError).not.toHaveBeenCalled();
+  board.create('ellipse', { id: 'changed-label' }); board.setShapeText('changed-label', '\u{F0001}');
+  expect(onError).toHaveBeenCalledOnce(); expect(onError.mock.calls[0]![0]).toContain('U+F0001');
+  onError.mockClear(); board.setShapeText('changed-label', ''); board.setShapeText('changed-label', '\u{F0000}');
+  expect(onError).not.toHaveBeenCalled(); expect(board.read('changed-label')!.props).toMatchObject({ text: '\u{F0000}' });
+});

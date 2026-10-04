@@ -1,5 +1,5 @@
 import { normalizeImageOrientation, normalizeImagePixels } from './image-orientation';
-import { readImageHeader, MAX_IMAGE_BYTES, contentBounds, documentToSvg, resolveBinding, resolveFontRuns, type BoardDocument, type Box, type Element } from '@whiteboard/model';
+import { readImageHeader, MAX_IMAGE_BYTES, contentBounds, documentToSvg, textBlock, resolveBinding, resolveFontRuns, type BoardDocument, type Box, type Element } from '@whiteboard/model';
 import { createRenderer, waitForSignal, IMAGE_ERROR_COLOR, type ThreeRenderer } from '@whiteboard/renderer';
 
 export interface ExportOptions { format: 'png' | 'svg' | 'pdf'; selection?: readonly string[]; scale: number; transparent: boolean; title: string; padding?: number; signal?: AbortSignal; onAssetWarnings?: (assetIds: readonly string[]) => void }
@@ -35,6 +35,15 @@ async function fontUrl(stem: string, format: 'woff' | 'ttf', signal?: AbortSigna
   if (cached) return cached;
   const blob = await readBlob(`/fonts/${key}`, signal), data = await blobDataUrl(new Blob([blob], { type: `font/${format}` }), signal);
   signal?.throwIfAborted(); fontData.set(key, data); return data;
+}
+
+/** Never treat an XML parser error document as a successful export projection. */
+function parseExportSvg(svg: string): globalThis.Element {
+  const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml'), root = parsed.documentElement;
+  if (parsed.getElementsByTagNameNS('*', 'parsererror').length || root.localName !== 'svg' || root.namespaceURI !== 'http://www.w3.org/2000/svg') {
+    throw new Error('The export could not be represented as valid XML. Remove invalid control characters and try again.');
+  }
+  return root;
 }
 
 function collectExportFonts(root: globalThis.Element, strict: boolean): Set<ExportFont> {
@@ -130,11 +139,13 @@ export class BoardExporter {
   }
 
   private async svg({ elements, bounds }: ExportSnapshot, options: ExportOptions, warn: (id: string) => void): Promise<string> {
-    const textElements = elements.filter(element => element.type === 'text' || element.type === 'sticky');
+    const textElements = elements.filter(element => textBlock(element) !== null);
+    // Check stored text before XML parsing can conceal an invalid or hidden label.
+    if (options.format === 'pdf') for (const element of textElements) resolveFontRuns(textBlock(element)!.text, element.style.fontFamily, { strict: true });
     // Derive coverage from the model's canonical line/run layout without outlining
     // the board's strokes twice. Whitespace and following lines retain font state.
     const textSvg = documentToSvg(textElements, { bounds, padding: 0, background: null });
-    const textRoot = new DOMParser().parseFromString(textSvg, 'image/svg+xml').documentElement;
+    const textRoot = parseExportSvg(textSvg);
     const usedFonts = collectExportFonts(textRoot, false);
     const fonts = await Promise.all(faces.filter(face => usedFonts.has(face.family)).map(async face => ({ family: face.family, dataUrl: await fontUrl(face.stem, 'woff', options.signal) })));
     const assets = new Map<string, { data: string; width: number; height: number } | null>();
@@ -171,7 +182,7 @@ export class BoardExporter {
     });
     options.signal?.throwIfAborted();
     const svg = documentToSvg(projected, { bounds, padding: 0, background: options.transparent ? null : '#ffffff', title: options.title, fonts, assetUrl: id => assets.get(id)?.data });
-    const root = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
+    const root = parseExportSvg(svg);
     return new XMLSerializer().serializeToString(root);
   }
 
@@ -181,7 +192,7 @@ export class BoardExporter {
     // PDF's standard page dimension limit is 14,400 points; preserve aspect ratio.
     const fit = Math.min(1, 14400 / Math.max(width, height));
     const pdf = new jsPDF({ unit: 'pt', format: [width * fit, height * fit], orientation: width > height ? 'landscape' : 'portrait', compress: true });
-    const root = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
+    const root = parseExportSvg(svg);
     // Retain the model's explicit spans: svg2pdf does not apply font GPOS features.
     const usedFonts = collectExportFonts(root, true);
     await Promise.all(faces.filter(face => usedFonts.has(face.family)).map(async face => {

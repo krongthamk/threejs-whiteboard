@@ -79,9 +79,12 @@ Drop or paste PNG/JPEG/WebP images, or use Add images. Image bytes stay in the p
 
 Views are bounded to one million document units from the origin on each axis. The canvas adapts when display pixel density changes, including between monitors, with a pixel ratio capped at two.
 
-Export the board or selection as PNG at 1×–4×, a self-contained SVG, or a single-page vector PDF. Background transparency is optional. PNG export reuses tiles up to 4,096 pixels per side, limited further by the GPU, subject to the browser's final canvas limit (32,767 pixels per side / 100 million pixels). A lost graphics context reports an error and a new export can retry. Export reads the document snapshot, excluding selection handles, remote presence, and unfinished gestures. Only used fonts and referenced image bytes are included in SVG/PDF. All committed text remains in exports, including glyphs too small to display on screen. Latin and Japanese are the validated shipped font coverage; other scripts need suitable local fonts and equivalent tests. During native text editing, browser font fallback and punctuation spacing can differ from the committed canvas; text, selection and IME remain native. Committed sizing and export use the same measured font runs.
+Export the board or selection as PNG at 1×–4×, a self-contained SVG, or a single-page vector PDF. Background transparency is optional. PNG export reuses tiles up to 4,096 pixels per side, limited further by the GPU, subject to the browser's final canvas limit (32,767 pixels per side / 100 million pixels). A lost graphics context reports an error and a new export can retry. Export reads the document snapshot, excluding selection handles, remote presence, and unfinished gestures. Only used fonts and referenced image bytes are included in SVG/PDF. Exports retain glyphs too small to display on screen; shape labels remain clipped to their inset boxes. Latin and Japanese are the validated shipped font coverage; other scripts need suitable local fonts and equivalent tests. During native text editing, browser font fallback and punctuation spacing can differ from the committed canvas; text, selection and IME remain native. Committed sizing and export use the same measured font runs.
 
 Closing the export dialog cancels preparation and prevents a late download. Unavailable or corrupt images use placeholders in PNG, SVG and PDF; the completed download keeps the dialog open with a list of affected asset IDs. Valid instances of a shared image remain included.
+
+SVG and PDF report an error when text, IDs, or titles contain characters XML cannot
+represent; a failed export leaves the board and undo history unchanged.
 
 PDF export converts 16-bit PNGs with alpha to 8-bit display pixels to preserve
 their colors and transparency. Their stored files and standalone SVG bytes stay
@@ -143,10 +146,12 @@ The schema-2 model accepts text blocks on rectangles and ellipses.
 changing the shape's box; an empty string restores empty props. New labels use
 center/middle alignment, while existing labels retain their alignment. Shared
 layout metadata provides separate ellipse insets and signed vertical offsets.
-The live canvas and PNG renderer position labels inside those insets and clip
-overflow to the content rectangle. Labels follow shape rotation and stacking
-order; changing a shape's position or color retains its ready text mesh.
-SVG/PDF export and editing integration are tracked in the
+The live canvas and PNG/SVG/PDF exports position labels inside those insets and
+clip overflow to the content rectangle. Labels follow shape rotation and
+stacking order; the renderer retains its ready text mesh during position or
+color changes. Font coverage includes stored shape text even when clipped or
+hidden: unsupported glyphs produce a warning and prevent PDF export.
+Native shape editing integration is tracked in the
 [feature implementation ledger](docs/IMPLEMENTATION_STATUS.md).
 
 Read [storage design and measured limits](docs/D3_STORAGE_INVESTIGATION.md), [dependency/license verification](docs/DEPENDENCY_VERIFICATION.md), and [server operations](packages/server/README.md) before changing persistence, pinned Yjs internals, or deployment topology. Schema 1 is rejected rather than silently mutated. Compaction preserves Yjs clocks and offline merge history; it does not erase retired-writer or deleted-generation information.
