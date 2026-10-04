@@ -59,21 +59,21 @@ test('an already revoked session can return to sign-in without reloading the pag
   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
 });
 
-test('a revoked board session keeps sign-out reachable beside its recovery banner', async ({ page }) => {
+test('a revoked board session returns automatically to sign-in at the same board URL', async ({ page }) => {
   await signIn(page, 'alice');
   await boardList(page);
   await page.getByRole('button', { name: 'New board', exact: true }).click();
   await page.getByLabel('Board name', { exact: true }).fill('Revoked board session');
   await page.getByRole('button', { name: 'Create board', exact: true }).click();
   await connected(page);
+  const path = new URL(page.url()).pathname;
   expect(await page.evaluate(async () => (await fetch('/api/session/logout', { method: 'POST' })).status)).toBe(204);
-  await page.evaluate(() => {
-    window.whiteboardConnection!.provider.disconnect();
-    window.whiteboardConnection!.provider.connect();
-  });
-  await expect(page.getByRole('alert')).toContainText(/Sign in/i);
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe(path);
+  await page.getByLabel('Username', { exact: true }).fill('alice');
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await connected(page); expect(new URL(page.url()).pathname).toBe(path);
 });
 
 test('private boards converge, isolate undo, keep 30s offline edits and restore after reload', async ({ browser }, testInfo) => {

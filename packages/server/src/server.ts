@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { isIP } from 'node:net';
 import { Store, BoardFullError, type Session } from './store.js';
 import { staticHandler } from './static.js';
 import { BoardUpdateValidator, IncompleteBoardUpdateError } from '../../model/src/document-validation.js';
@@ -12,7 +13,7 @@ import { assertSafeImageDimensions, readImageHeader } from '../../model/src/imag
 import { checkUpdateResources, UpdateResourceError } from './update-limits.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
-interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
+interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; trustedProxy?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
 interface AuthContext { token: string; userId: string; role: 'owner' | 'editor' | 'viewer'; expiresAt: number; invalidated?: boolean }
 type Metrics = { updates: number; awareness: number; persistedUpdates: number; persistenceMs: number; compactions: number; windowAt: number; windowUpdates: number; windowAwareness: number };
 
@@ -48,6 +49,15 @@ export function createWhiteboardServer(options: Options) {
   const network = { changes: 0, awarenessMessages: 0, inboundMessages: 0, inboundBytes: 0 };
   const loginAttempts = new Map<string, { since: number; count: number }>();
   const failedLogins = new Map<string, { since: number; count: number }>();
+  const pendingAccountLogins = new Map<string, number>();
+  let pendingLogins = 0;
+  function loginAddress(request: IncomingMessage): string {
+    const peer = request.socket.remoteAddress ?? 'local', forwarded = request.headers['x-forwarded-for'];
+    const last = options.trustedProxy && typeof forwarded === 'string' ? forwarded.split(',').at(-1)?.trim() : undefined;
+    const address = last && isIP(last) ? last : peer;
+    // Equivalent IPv6 spellings must share one throttle bucket.
+    return isIP(address) === 6 ? new URL(`http://[${address}]/`).hostname : address;
+  }
   let draining = false, closed: Promise<void> | undefined;
   function metric(boardId: string): Metrics {
     let value = metrics.get(boardId);
@@ -140,15 +150,30 @@ export function createWhiteboardServer(options: Options) {
         const now = Date.now();
         for (const [key, entry] of loginAttempts) if (now - entry.since >= 60000) loginAttempts.delete(key);
         for (const [key, entry] of failedLogins) if (now - entry.since >= 60000) failedLogins.delete(key);
-        const address = request.socket.remoteAddress ?? 'local'; let attempts = loginAttempts.get(address);
+        const address = loginAddress(request); let attempts = loginAttempts.get(address);
         if (!attempts) { attempts = { since: now, count: 0 }; loginAttempts.set(address, attempts); }
-        if (++attempts.count > 120) throw new HttpError(429, 'Too many sign-in attempts; try again in a minute');
+        if (++attempts.count > 30) throw new HttpError(429, 'Too many sign-in attempts; try again in a minute');
         const data = await jsonBody(request);
         if (typeof data.username !== 'string' || data.username.length > 80 || typeof data.password !== 'string' || data.password.length > 1024) throw new HttpError(400, 'Username and password are required');
         const accountKey = `${address}\0${data.username}`, failures = failedLogins.get(accountKey);
-        if (failures && failures.count >= 5) throw new HttpError(429, 'Too many sign-in attempts for this account; try again in a minute');
-        const session = store.login(data.username, data.password);
-        if (!session) { failedLogins.set(accountKey, { since: failures?.since ?? now, count: (failures?.count ?? 0) + 1 }); throw new HttpError(401, 'Username or password is incorrect'); }
+        const accountPending = pendingAccountLogins.get(accountKey) ?? 0;
+        if ((failures?.count ?? 0) + accountPending >= 5) throw new HttpError(429, 'Too many sign-in attempts for this account; try again in a minute');
+        if (pendingLogins >= 4) throw new HttpError(429, 'Sign-in is busy; try again shortly');
+        let session: Session | null;
+        pendingLogins++;
+        pendingAccountLogins.set(accountKey, accountPending + 1);
+        try { session = await store.login(data.username, data.password); }
+        finally {
+          pendingLogins--;
+          const remaining = pendingAccountLogins.get(accountKey)! - 1;
+          if (remaining) pendingAccountLogins.set(accountKey, remaining); else pendingAccountLogins.delete(accountKey);
+        }
+        if (!session) {
+          const latest = failedLogins.get(accountKey), finishedAt = Date.now();
+          const active = latest && finishedAt - latest.since < 60000 ? latest : undefined;
+          failedLogins.set(accountKey, { since: active?.since ?? finishedAt, count: (active?.count ?? 0) + 1 });
+          throw new HttpError(401, 'Username or password is incorrect');
+        }
         failedLogins.delete(accountKey);
         response.setHeader('Set-Cookie', cookie(session.token)); return json(response, 200, publicSession(session));
       }
@@ -329,6 +354,10 @@ export function createWhiteboardServer(options: Options) {
       const session = store.authenticate(context?.token ?? '');
       const role = session ? store.role(documentName, session.user.id) : undefined;
       if (context.invalidated) throw new Error('Connection requires an authoritative reset');
+      if (!session) {
+        resetConnection(connection, documentName, null, context.expiresAt <= Date.now() ? 'session-expired' : 'session-revoked');
+        throw new Error('Session ended');
+      }
       if (!role || role !== context.role) { resetConnection(connection, documentName, role ?? null); throw new Error('Session or membership changed'); }
       if (update.byteLength > limits.maxUpdateBytes) { refuseUpdate(connection, documentName, 'update-too-large', false, limits.maxUpdateBytes); throw new Error('Update exceeds the size limit'); }
     },

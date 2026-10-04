@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { BoardConnection } from './collaboration';
-import { api } from './api';
+import { api, ApiError } from './api';
 
 const transport = vi.hoisted(() => ({
   options: {} as Record<string, any>,
@@ -116,6 +116,44 @@ test('near-expiry cookie session verification does not require a JSON bearer tok
   const session = vi.spyOn(api, 'session').mockResolvedValue({ user: { id: 'owner-id', username: 'owner' }, expiresAt: Date.now() + 120000 });
   expect(await transport.options.token()).toBe('');
   expect(session).toHaveBeenCalledOnce(); expect(callbacks.onError).not.toHaveBeenCalled();
+});
+
+test.each(['session-expired', 'session-revoked'])('%s preserves pending edits, the cache epoch and rejected-sync markers', async reason => {
+  const { connection, callbacks } = await open(), epoch = cache.get(cacheKey);
+  connection.board.doc.getMap('retained').set('pending', 'local work');
+  transport.options.onStateless({ payload: JSON.stringify({ type: 'sync-rejected', boardId: 'board-id', reason: 'update-too-large', retryable: false }) });
+  const marker = cache.get(blockKey), tabMarker = tabCache.get(blockKey);
+  transport.options.onStateless({ payload: JSON.stringify({ type: 'permission-changed', boardId: 'board-id', reason, resetRequired: true }) });
+  expect(cache.get(cacheKey)).toBe(epoch);
+  expect(cache.get(blockKey)).toBe(marker); expect(tabCache.get(blockKey)).toBe(tabMarker);
+  expect(callbacks.onPermissionChange).toHaveBeenCalledWith(reason);
+  expect(connection.board.doc.getMap('retained').get('pending')).toBe('local work');
+  await connection.destroy(); expect(transport.clearData).not.toHaveBeenCalled();
+  transport.connect.mockClear();
+  const reopened = await open();
+  expect(transport.connect).not.toHaveBeenCalled();
+  expect(reopened.callbacks.onSyncBlocked).toHaveBeenCalledWith(expect.objectContaining({ reason: 'update-too-large', retryable: false }));
+});
+
+test('near-expiry HTTP401 stops transport and preserves the replica for sign-in', async () => {
+  vi.useFakeTimers(); const { connection, callbacks } = await open(), epoch = cache.get(cacheKey);
+  connection.board.doc.getMap('retained').set('pending', 'local work');
+  vi.advanceTimersByTime(90000);
+  vi.spyOn(api, 'session').mockRejectedValue(new ApiError('Sign in to continue', 401));
+  await expect(transport.options.token()).rejects.toThrow('session expired');
+  expect(callbacks.onPermissionChange).toHaveBeenCalledWith('session-expired');
+  expect(cache.get(cacheKey)).toBe(epoch);
+  await connection.destroy(); expect(transport.clearData).not.toHaveBeenCalled();
+});
+
+test('authentication failure with a fresh cached session detects HTTP401 without discarding work', async () => {
+  const { connection, callbacks } = await open(), epoch = cache.get(cacheKey);
+  connection.board.doc.getMap('retained').set('pending', 'local work');
+  vi.spyOn(api, 'session').mockRejectedValue(new ApiError('Sign in to continue', 401));
+  transport.options.onAuthenticationFailed({ reason: 'Authentication required' });
+  await vi.waitFor(() => expect(callbacks.onPermissionChange).toHaveBeenCalledWith('session-revoked'));
+  expect(cache.get(cacheKey)).toBe(epoch);
+  await connection.destroy(); expect(transport.clearData).not.toHaveBeenCalled();
 });
 
 test('a changed cookie account fails authentication instead of silently using the new cookie', async () => {

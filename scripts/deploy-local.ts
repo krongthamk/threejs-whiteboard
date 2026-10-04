@@ -85,7 +85,7 @@ const options = serverConfig(), store = new Store(options.databasePath, options.
 let ownerId: string;
 try {
   const user = store.userByName(credentials.username) ?? store.createUser(credentials.username, credentials.password);
-  const session = store.login(credentials.username, credentials.password);
+  const session = await store.login(credentials.username, credentials.password);
   if (!session) throw new Error('The saved credentials do not match the existing owner account; no account password was changed.');
   ownerId = user.id; store.logout(session.sessionId);
 } finally { store.close(); }

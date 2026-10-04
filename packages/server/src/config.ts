@@ -30,6 +30,7 @@ export function serverConfig() {
     port, host: process.env.HOST ?? '127.0.0.1',
     websocketPath: process.env.WHITEBOARD_WEBSOCKET_PATH ?? '/collaboration',
     secureCookies: process.env.WHITEBOARD_SECURE_COOKIES === '1',
+    trustedProxy: process.env.WHITEBOARD_TRUSTED_PROXY === '1',
     maxUpdateBytes: limit('WHITEBOARD_MAX_UPDATE_BYTES', 4 * 1024 * 1024),
     maxBoardBytes: limit('WHITEBOARD_MAX_BOARD_BYTES', 64 * 1024 * 1024),
     maxBufferedBytes: limit('WHITEBOARD_MAX_BUFFERED_BYTES', 1024 * 1024),

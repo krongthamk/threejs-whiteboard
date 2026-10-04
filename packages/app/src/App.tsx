@@ -12,7 +12,7 @@ import type { Tool } from './session';
 import { Modal } from './modal';
 import { AccountAccess, type BoardAccess } from './account';
 import { BoardConnection, type ConnectionStatus, type RemotePresence, type SyncBlockedState } from './collaboration';
-import { api } from './api';
+import { api, ApiError } from './api';
 import { ExportDialog } from './export-dialog';
 import { Minimap } from './minimap';
 import { BoardErrorBoundary } from './error-boundary';
@@ -95,12 +95,17 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
             setSyncBlocked(null); setConfirmDiscard(false);
             setError(reason === 'invalid-document-update'
               ? 'The server rejected invalid board changes. Unaccepted local changes were discarded while the board refreshes.'
+              : reason === 'session-expired' || reason === 'session-revoked'
+                ? 'Your session ended. Sign in again. Your local work is kept on this device.'
               : reason === 'local-changes-discarded' || reason === 'cache-reset'
                 ? 'Local changes were discarded. Reopening the saved board.'
                 : 'Your board permissions changed. Unaccepted local changes were discarded while the board refreshes.');
             void api.board(access.board.id).then(board => {
               if (!cancelled) { access.onBoardChange(board); setConnectionRevision(value => value + 1); }
-            }).catch(cause => { if (!cancelled) { setStatus('unauthorized'); setError(cause instanceof Error ? cause.message : 'The board could not reopen.'); } });
+            }).catch(cause => { if (!cancelled) {
+              if (cause instanceof ApiError && cause.status === 401) access.onSessionExpired();
+              else { setStatus('unauthorized'); setError(cause instanceof Error ? cause.message : 'The board could not reopen.'); }
+            } });
           },
         });
         if (cancelled) { if (connection) { await connection.destroy(); connection.board.destroy(); } return; }

@@ -2,7 +2,7 @@ import * as Y from 'yjs';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
 import { IndexeddbPersistence, fetchUpdates } from 'y-indexeddb';
 import { BoardDocument, type Point, type Box } from '@whiteboard/model';
-import { api, type BoardInfo, type Session } from './api';
+import { api, ApiError, type BoardInfo, type Session } from './api';
 
 export type ConnectionStatus = 'connecting' | 'live' | 'offline' | 'reconnecting' | 'unauthorized' | 'limited';
 export interface SyncBlockedState {
@@ -122,7 +122,10 @@ export class BoardConnection {
           }
           this.session = next; return '';
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Your session could not be confirmed. Sign in again to reconnect.';
+          const expired = error instanceof ApiError && error.status === 401;
+          if (expired) this.resetPermissions(false, 'session-expired');
+          const message = expired ? 'Your session expired. Sign in again. Your local work is kept on this device.'
+            : error instanceof Error ? error.message : 'Your session could not be confirmed. Sign in again to reconnect.';
           callbacks.onError(message);
           // Returning an empty token after a failed identity check would still
           // authenticate with a different account's ambient browser cookie.
@@ -147,6 +150,9 @@ export class BoardConnection {
           callbacks.onError('The signed-in account changed. Reload the board to open it with the current account. Your local work is kept on this device.');
           return;
         }
+        if (reason !== 'persistence-failed') void api.session().catch(error => {
+          if (error instanceof ApiError && error.status === 401) this.resetPermissions(false, 'session-revoked');
+        });
         if (this.retrying) { this.pauseSync(this.blocked!); return; }
         if (reason === 'persistence-failed') {
           // Hocuspocus denies authentication without closing the socket. Retry
@@ -180,7 +186,10 @@ export class BoardConnection {
             // Rotating a permission-reset cache here would lose accepted edits.
             callbacks.onStatus('reconnecting');
             callbacks.onError('The server could not save your changes. They are saved on this device and will retry when it reconnects.');
-          } else this.resetPermissions(true, 'reason' in message && typeof message.reason === 'string' ? message.reason : 'permissions-changed');
+          } else {
+            const reason = 'reason' in message && typeof message.reason === 'string' ? message.reason : 'permissions-changed';
+            this.resetPermissions(reason !== 'session-expired' && reason !== 'session-revoked', reason);
+          }
         }
       },
       onClose: ({ event }) => {
@@ -240,14 +249,18 @@ export class BoardConnection {
 
   private resetPermissions(rotateCache: boolean, reason = 'permissions-changed'): void {
     if (this.destroyed || this.permissionReset) return;
-    this.permissionReset = true; this.authorizationFailed = true; this.discardPersistence = true;
+    const retain = reason === 'session-expired' || reason === 'session-revoked';
+    this.permissionReset = true; this.authorizationFailed = true; this.discardPersistence = !retain;
     this.callbacks.onReadOnly(true);
     clearTimeout(this.persistenceRetry); this.retrying = false;
     this.socket.disconnect();
-    localStorage.removeItem(this.blockedKey);
-    try { sessionStorage.removeItem(this.blockedKey); } catch { /* A new epoch makes stale tab markers inert. */ }
-    if (rotateCache) localStorage.setItem(this.cacheEpochKey, crypto.randomUUID());
-    // Reopening uses a new cache namespace even if another tab delays old DB deletion.
+    if (!retain) {
+      localStorage.removeItem(this.blockedKey);
+      try { sessionStorage.removeItem(this.blockedKey); } catch { /* A new epoch makes stale tab markers inert. */ }
+      if (rotateCache) localStorage.setItem(this.cacheEpochKey, crypto.randomUUID());
+    }
+    // Authentication resets reopen the retained replica. Permission rejection
+    // still starts a clean namespace, even if old DB deletion is delayed.
     this.callbacks.onPermissionChange(reason);
   }
 

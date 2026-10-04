@@ -11,7 +11,7 @@ if (!data) throw new Error('BENCHMARK_DATA_DIR is required');
 mkdirSync(data, { recursive: true });
 const app = createWhiteboardServer({ databasePath: join(data, 'whiteboard.sqlite'), assetDirectory: join(data, 'assets'), sessionSecret: randomBytes(48).toString('base64url'), port: Number(process.env.SPIKE_PORT ?? 12347) });
 const password = randomBytes(32).toString('base64url'), user = app.store.createUser('load-owner', password);
-const board = app.store.createBoard(user.id, 'Production S3 workload'), session = app.store.login(user.username, password)!;
+const board = app.store.createBoard(user.id, 'Production S3 workload'), session = (await app.store.login(user.username, password))!;
 const canonical = (value: any): any => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
 function projectionHash(update: Uint8Array) {
   const doc = new Y.Doc(); Y.applyUpdate(doc, update); const model = new BoardDocument(doc, { undo: false });

@@ -201,7 +201,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 
 **Fix:** Parse the bounded body first, then re-run `authenticate` and `boardAccess` immediately before the store call, inside one SQLite transaction with the mutation. Keep the early checks as an admission filter. Test: demote between headers and body, assert 403 and no change.
 
-### [ ] 16. Sign-in blocks the event loop with synchronous scrypt; throttle is unusable behind a proxy (medium, measured)
+### [x] 16. Sign-in blocks the event loop with synchronous scrypt; throttle is unusable behind a proxy (medium, measured)
 
 **Where:** `packages/server/src/store.ts:43` (`scryptSync`, about 41 ms per call); `packages/server/src/server.ts:81-89` (120 attempts per minute per address, 5 failures per address plus username).
 
@@ -211,7 +211,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 3. Add an opt-in `WHITEBOARD_TRUSTED_PROXY` setting; when set, key the throttle on the last `X-Forwarded-For` hop. Document it in `packages/server/README.md`.
 4. Keep the existing rate-limit tests passing.
 
-### [ ] 17. Session expiry leaves the user on a dead board and drops queued edits (medium)
+### [x] 17. Session expiry leaves the user on a dead board and drops queued edits (medium)
 
 **Where:** `packages/app/src/collaboration.ts:69-76` (token callback), `:133-141, 166-167` (cache discarded on reset); `packages/app/src/App.tsx:83-91`; `packages/server/src/server.ts:94, 172`.
 

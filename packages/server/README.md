@@ -198,13 +198,28 @@ Asset copies recheck both source read and target edit access; membership changes
 recheck ownership. Demotion or session revocation during an upload or JSON body
 prevents the mutation from committing.
 
-Sign-in throttling allows up to120 attempts per source address per minute, with
-at most5 failed password attempts per account+address per minute. A successful
-sign-in clears that account's failure counter. This accommodates40 distinct
-accounts behind a shared office address without removing the aggregate ceiling.
-These limits use the actual peer address; untrusted forwarded-IP headers are
-not used. A deployment behind a shared reverse proxy should account for that
-proxy's address when sizing the aggregate limit.
+Sign-in allows up to 30 attempts per source address per minute, with at most 5
+failed password attempts per account+address per minute. A successful sign-in
+clears that account's failure counter. Password verification and the dummy
+verification for missing or corrupt credentials use asynchronous scrypt, with
+at most 4 in-flight derivations across the server; excess requests receive 429.
+Password resets during verification prevent a session from being issued for
+the old password.
+
+By default, throttling uses the actual peer address and ignores forwarded-IP
+headers. Set `WHITEBOARD_TRUSTED_PROXY=1` only when the server is reachable
+through a controlled proxy that appends the actual client address to
+`X-Forwarded-For`. The server uses the last validated IP hop, normalizes IPv6
+spellings, and falls back to the peer for an invalid hop. Restrict direct access
+to the server when enabling this setting, so clients cannot supply that hop.
+Accounts sharing one address share the 30-attempt ceiling.
+
+Session expiry or revocation disconnects the browser and returns it to sign-in
+at the same board URL. Pending edits and the account's IndexedDB cache remain
+on that device for same-account re-login. Existing sync-rejection markers also
+remain, so quota or oversized-update refusals still need their explicit recovery
+action after sign-in. Membership changes, invalid updates and explicit local
+discard keep their separate authoritative reset behavior.
 
 ## Live permission changes
 
@@ -212,11 +227,11 @@ Removing a member or changing a member's role invalidates that user's active boa
 closing the document connection, the server sends a Hocuspocus stateless JSON
 message: `{ "type": "permission-changed", "boardId": "…", "role": "viewer",
 "resetRequired": true, "reason": "permissions-changed" }`. The role can be
-`editor`, `viewer`, or `null` when access/session validation fails. The Hocuspocus
-close reason is `permissions-changed`.
+`editor`, `viewer`, or `null` when board membership is removed. The Hocuspocus
+close reason for this membership reset is `permissions-changed`.
 
-Clients must immediately disable editing, disconnect, discard that board's
-local Y.Doc and IndexedDB cache, and reopen from authoritative storage with a new
+For membership or write rejection, clients must immediately disable editing,
+disconnect, discard that board's local Y.Doc and IndexedDB cache, and reopen from authoritative storage with a new
 replica. Re-authenticating the old replica preserves rejected local edits, which
 could otherwise replay after a later role upgrade. A dirty readonly SyncStep2
 or document update receives the same reset message with reason
@@ -230,7 +245,11 @@ valid. Each connection also has one unref'ed expiry timer derived from its
 authenticated signed `expiresAt`; it is cleared on disconnect. Passive sockets
 therefore stop receiving updates at expiry without waiting for another inbound
 packet. These events use `role: null` with reason `session-revoked` or
-`session-expired` and the same authoritative-reset protocol.
+`session-expired` in the same message envelope. For these authentication reasons,
+clients disconnect and return to sign-in while retaining their local Y.Doc,
+IndexedDB cache, cache epoch, and sync-rejection markers. They may reconnect
+after authenticating again as the same account; no permission-rejected work is
+automatically unblocked.
 
 Provisioning account controls update the shared SQLite session rows. Existing
 sockets observe an operator revocation on their next inbound packet or their

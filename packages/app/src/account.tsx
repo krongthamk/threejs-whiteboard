@@ -3,7 +3,7 @@ import { ArrowRight, LogOut, Plus, SquarePen, X } from 'lucide-react';
 import { api, ApiError, type BoardInfo, type Session } from './api';
 import { Modal } from './modal';
 
-export interface BoardAccess { session: Session; board: BoardInfo; onBack(): void; onSignOut(): void; onBoardChange(board: BoardInfo): void }
+export interface BoardAccess { session: Session; board: BoardInfo; onBack(): void; onSignOut(): void; onSessionExpired(): void; onBoardChange(board: BoardInfo): void }
 const routeBoard = () => /^\/board\/([^/]+)\/?$/.exec(location.pathname)?.[1];
 
 export function AccountAccess({ children }: { children(access: BoardAccess): ReactNode }) {
@@ -65,6 +65,11 @@ export function AccountAccess({ children }: { children(access: BoardAccess): Rea
     navigation.current++; setBoard(null); setBoards([]); setSession(null); setError(''); history.pushState({}, '', '/');
   };
   const back = () => { navigation.current++; setBoard(null); history.pushState({}, '', '/'); void loadBoards().catch(cause => setError(String(cause.message))); };
+  const sessionExpired = () => {
+    navigation.current++; setBoard(null); setBoards([]); setSession(null); setCreating(false);
+    setError('Your session ended. Sign in again. Your local work is kept on this device.');
+    // Retain the board URL so same-account sign-in opens its existing cache.
+  };
   const create = async (title: string) => {
     const ticket = ++navigation.current;
     setBusy(true); setError('');
@@ -75,7 +80,7 @@ export function AccountAccess({ children }: { children(access: BoardAccess): Rea
   const banner = error && <div className="error-banner" role="alert"><span>{error}</span><button className="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><X size={16} /></button></div>;
 
   if (loading) return <div className="account-page"><div className="account-loading" role="status">Opening your workspace…</div></div>;
-  if (session && board) return <>{children({ session, board, onBack: back, onSignOut: () => void signOut(), onBoardChange: value => { if (decodeURIComponent(routeBoard() ?? '') === value.id) setBoard(value); } })}{banner}</>;
+  if (session && board) return <>{children({ session, board, onBack: back, onSignOut: () => void signOut(), onSessionExpired: sessionExpired, onBoardChange: value => { if (decodeURIComponent(routeBoard() ?? '') === value.id) setBoard(value); } })}{banner}</>;
   if (!session) return <div className="account-page"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><SignIn onSubmit={login} busy={busy} />{banner}</div>;
   return <div className="account-page boards-page">
     <header className="account-topbar"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><div className="account-user"><span>{session.user.name ?? session.user.username}</span><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}><LogOut size={18} /></button></div></header>

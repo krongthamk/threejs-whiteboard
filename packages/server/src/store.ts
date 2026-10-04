@@ -1,5 +1,6 @@
 import Sqlite from 'better-sqlite3';
-import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID, scrypt, scryptSync, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import * as Y from 'yjs';
@@ -11,6 +12,7 @@ export interface Board { id: string; title: string; role: Role; updatedAt: numbe
 export interface Session { user: User; token: string; expiresAt: number; sessionId: string }
 export interface Asset { id: string; boardId: string; mimeType: string; size: number; storageKey: string }
 export class BoardFullError extends Error { constructor(readonly maxBytes: number) { super('Board storage limit exceeded'); } }
+const derivePassword = promisify(scrypt);
 
 export class Store {
   readonly db: Sqlite.Database;
@@ -49,17 +51,25 @@ export class Store {
     return user;
   }
   revokeSessions(userId: string): void { this.db.prepare('DELETE FROM sessions WHERE user_id=?').run(userId); }
-  login(username: string, password: string): Session | null {
-    const row = this.db.prepare('SELECT * FROM users WHERE username=?').get(username) as { id: string; username: string; password_hash: string } | undefined;
-    // A dummy derivation keeps unknown usernames on the same expensive path.
-    const [salt, expected] = row?.password_hash.split(':') ?? ['00000000000000000000000000000000', '00'.repeat(64)];
-    const actual = scryptSync(password, salt!, 64);
-    if (!row || !timingSafeEqual(actual, Buffer.from(expected!, 'hex'))) return null;
-    const sessionId = randomUUID(), expiresAt = Date.now() + 12 * 60 * 60 * 1000;
-    this.db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(Date.now());
-    this.db.prepare('INSERT INTO sessions VALUES (?,?,?)').run(sessionId, row.id, expiresAt);
-    const user = { id: row.id, username: row.username };
-    return { user, expiresAt, sessionId, token: this.sign({ sessionId, userId: row.id, expiresAt }) };
+  async login(username: string, password: string): Promise<Session | null> {
+    const row = this.db.prepare('SELECT * FROM users WHERE username=?').get(username) as { id: string; username: string; password_hash: unknown } | undefined;
+    // Missing and corrupt credentials perform the same asynchronous derivation
+    // and fixed-length comparison as a wrong password for an existing account.
+    const validHash = typeof row?.password_hash === 'string' && /^[0-9a-f]{32}:[0-9a-f]{128}$/i.test(row.password_hash);
+    const [salt, expected] = validHash ? (row!.password_hash as string).split(':') : ['0'.repeat(32), '00'.repeat(64)];
+    const actual = await derivePassword(password, salt!, 64) as Buffer;
+    const matches = timingSafeEqual(actual, Buffer.from(expected!, 'hex'));
+    if (!row || !validHash || !matches) return null;
+    return this.db.transaction(() => {
+      // Password resets can run while the thread pool verifies the old hash.
+      const current = this.db.prepare('SELECT password_hash FROM users WHERE id=?').get(row.id) as { password_hash: unknown } | undefined;
+      if (current?.password_hash !== row.password_hash) return null;
+      const sessionId = randomUUID(), expiresAt = Date.now() + 12 * 60 * 60 * 1000;
+      this.db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(Date.now());
+      this.db.prepare('INSERT INTO sessions VALUES (?,?,?)').run(sessionId, row.id, expiresAt);
+      const user = { id: row.id, username: row.username };
+      return { user, expiresAt, sessionId, token: this.sign({ sessionId, userId: row.id, expiresAt }) };
+    }).immediate();
   }
   private sign(payload: object): string {
     const text = Buffer.from(JSON.stringify(payload)).toString('base64url');

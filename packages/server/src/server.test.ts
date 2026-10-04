@@ -24,7 +24,7 @@ async function setup(overrides: Partial<Parameters<typeof createWhiteboardServer
   const path = directory(), options = { databasePath: join(path, 'board.sqlite'), assetDirectory: join(path, 'assets'), sessionSecret: secret, port: 0, ...overrides };
   const app = createWhiteboardServer(options); await app.listen(); cleanups.push(() => app.close());
   const owner = app.store.createUser('owner', password), editor = app.store.createUser('editor', password), viewer = app.store.createUser('viewer', password), stranger = app.store.createUser('stranger', password);
-  const tokens = Object.fromEntries([owner, editor, viewer, stranger].map(user => [user.username, app.store.login(user.username, password)!.token]));
+  const tokens = Object.fromEntries(await Promise.all([owner, editor, viewer, stranger].map(async user => [user.username, (await app.store.login(user.username, password))!.token])));
   const board = app.store.createBoard(owner.id, 'Private board'); app.store.setMember(board.id, editor.id, 'editor'); app.store.setMember(board.id, viewer.id, 'viewer');
   const url = `http://127.0.0.1:${app.port}`;
   function request(path: string, token = tokens.owner!, init: RequestInit = {}) {
@@ -155,7 +155,7 @@ test('real WebSocket edits persist, viewers cannot write, and revoked sessions c
   const session = app.store.authenticate(tokens.owner!)!; app.store.logout(session.sessionId);
   owner.doc.getMap('test').set('afterRevoke', true);
   await until(() => !!revokedRejection);
-  expect(revokedRejection).toMatchObject({ type: 'permission-changed', role: null, resetRequired: true });
+  expect(revokedRejection).toMatchObject({ type: 'permission-changed', role: null, resetRequired: true, reason: 'session-revoked' });
   const persisted = new Y.Doc(); Y.applyUpdate(persisted, app.store.loadDocument(board.id)!);
   expect(persisted.getMap('test').toJSON()).toEqual({ position: 123 }); persisted.destroy();
   owner.provider.destroy(); owner.socket.destroy(); viewer.provider.destroy(); viewer.socket.destroy();
@@ -530,7 +530,7 @@ test('snapshot and update-log compaction preserve the original clocks and offlin
 test('HTTP logout immediately removes passive subscriptions for its exact token and invalidates queued writes', async () => {
   const { app, board, tokens, request } = await setup();
   const owner = await client(app.port, board.id, tokens.owner!), passive = await client(app.port, board.id, tokens.editor!);
-  const otherToken = app.store.login('editor', password)!.token, otherSession = await client(app.port, board.id, otherToken);
+  const otherToken = (await app.store.login('editor', password))!.token, otherSession = await client(app.port, board.id, otherToken);
   owner.doc.getMap('session-test').set('before', 1);
   await until(() => passive.doc.getMap('session-test').get('before') === 1 && otherSession.doc.getMap('session-test').get('before') === 1);
   let reset: any;
@@ -556,7 +556,7 @@ test('a passive authenticated socket is closed at the exact signed session expir
   const { app, board, tokens } = await setup();
   const owner = await client(app.port, board.id, tokens.owner!);
   owner.doc.getMap('expiry-test').set('before', 1);
-  const session = app.store.login('editor', password)!, expiresAt = Date.now() + 500;
+  const session = (await app.store.login('editor', password))!, expiresAt = Date.now() + 500;
   app.store.db.prepare('UPDATE sessions SET expires_at=? WHERE id=?').run(expiresAt, session.sessionId);
   const payload = Buffer.from(JSON.stringify({ sessionId: session.sessionId, userId: session.user.id, expiresAt })).toString('base64url');
   const token = `${payload}.${createHmac('sha256', secret).update(payload).digest('base64url')}`;
@@ -732,17 +732,82 @@ test('SQLite WAL recovers committed edits after an abrupt server-process exit', 
   expect(recovered.doc.getMap('recovery').toJSON()).toEqual(author.doc.getMap('recovery').toJSON());
 });
 
-test('sign-in permits forty distinct accounts behind one address while bounding failed attempts', async () => {
+test('sign-in bounds thirty attempts per address while retaining per-account failure limits', async () => {
   const { app, url } = await setup();
   const login = (username: string, suppliedPassword = password) => fetch(`${url}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password: suppliedPassword }) });
-  for (let index = 0; index < 40; index++) { const username = `nat-user-${index}`; app.store.createUser(username, password); expect((await login(username)).status).toBe(200); }
+  for (let index = 0; index < 20; index++) { const username = `nat-user-${index}`; app.store.createUser(username, password); expect((await login(username)).status).toBe(200); }
   for (let index = 0; index < 5; index++) expect((await login('nat-user-0', 'wrong-password')).status).toBe(401);
   expect((await login('nat-user-0', 'wrong-password')).status).toBe(429);
   expect((await login('nat-user-1')).status).toBe(200);
   // Failed-account throttling does not consume expensive password work, and
   // the aggregate limit still bounds traffic across arbitrary account names.
-  for (let index = 47; index < 120; index++) expect((await fetch(`${url}/api/session`, { method: 'POST', body: '{}' })).status).toBe(400);
+  for (let index = 27; index < 30; index++) expect((await fetch(`${url}/api/session`, { method: 'POST', body: '{}' })).status).toBe(400);
   expect((await login('nat-user-2')).status).toBe(429);
+});
+
+test.each([false, true])('forwarded addresses affect throttling only with trustedProxy=%s', async trustedProxy => {
+  const { url } = await setup({ trustedProxy });
+  for (let index = 0; index < 31; index++) {
+    const response = await fetch(`${url}/api/session`, { method: 'POST', headers: { 'X-Forwarded-For': `198.51.100.90, 192.0.2.${index + 1}` }, body: '{}' });
+    expect(response.status).toBe(index === 30 && !trustedProxy ? 429 : 400);
+  }
+});
+
+test('trusted proxy throttling uses the validated last hop and normalizes equivalent IPv6 addresses', async () => {
+  const { url } = await setup({ trustedProxy: true });
+  const login = (forwarded: string) => fetch(`${url}/api/session`, { method: 'POST', headers: { 'X-Forwarded-For': forwarded }, body: '{}' });
+  for (let index = 0; index < 30; index++) expect((await login(`192.0.2.${index + 1}, 198.51.100.70`)).status).toBe(400);
+  expect((await login('192.0.2.250, 198.51.100.70')).status).toBe(429);
+  for (let index = 0; index < 30; index++) expect((await login(index % 2 ? '2001:db8::1' : '2001:0DB8:0:0:0:0:0:1')).status).toBe(400);
+  expect((await login('2001:db8::1')).status).toBe(429);
+  // Invalid last hops fall back to the actual peer; a spoofed first hop is ignored.
+  for (let index = 0; index < 30; index++) expect((await login(`192.0.2.${index + 1}, invalid`)).status).toBe(400);
+  expect((await login('192.0.2.250, invalid')).status).toBe(429);
+});
+
+test('four pending login derivations leave health responsive and refuse a fifth without password work', async () => {
+  const { app, url } = await setup();
+  const releases: ((session: null) => void)[] = [];
+  const spy = vi.spyOn(app.store, 'login').mockImplementation(() => new Promise(resolve => { releases.push(resolve); }));
+  cleanups.push(() => spy.mockRestore());
+  const login = () => fetch(`${url}/api/session`, { method: 'POST', body: JSON.stringify({ username: 'owner', password }) });
+  const pending = Array.from({ length: 4 }, login);
+  try {
+    await until(() => releases.length === 4);
+    const fifth = await fetch(`${url}/api/session`, { method: 'POST', body: JSON.stringify({ username: 'owner', password }), signal: AbortSignal.timeout(2000) });
+    expect(fifth.status).toBe(429); expect(spy).toHaveBeenCalledTimes(4);
+    expect((await fetch(`${url}/health`)).status).toBe(200);
+  } finally { for (const release of releases) release(null); await Promise.all(pending); spy.mockRestore(); }
+  expect((await login()).status).toBe(200);
+});
+
+test('failed login derivations release their global slots', async () => {
+  const { app, url } = await setup();
+  const spy = vi.spyOn(app.store, 'login').mockRejectedValue(new Error('Derivation unavailable'));
+  cleanups.push(() => spy.mockRestore());
+  const login = () => fetch(`${url}/api/session`, { method: 'POST', body: JSON.stringify({ username: 'owner', password }) });
+  for (let index = 0; index < 4; index++) expect((await login()).status).toBe(500);
+  spy.mockRestore(); expect((await login()).status).toBe(200);
+});
+
+test('pending logins reserve the remaining per-account failure budget', async () => {
+  const { app, url } = await setup();
+  const spy = vi.spyOn(app.store, 'login').mockResolvedValue(null);
+  cleanups.push(() => spy.mockRestore());
+  const login = () => fetch(`${url}/api/session`, { method: 'POST', body: JSON.stringify({ username: 'owner', password: 'wrong-password' }) });
+  for (let index = 0; index < 4; index++) expect((await login()).status).toBe(401);
+  const releases: ((session: null) => void)[] = [], statuses: number[] = [];
+  spy.mockImplementation(() => new Promise(resolve => { releases.push(resolve); }));
+  const pending = Array.from({ length: 4 }, () => login().then(response => { statuses.push(response.status); }));
+  try {
+    await until(() => releases.length + statuses.length === 4);
+    expect(releases).toHaveLength(1); expect(spy).toHaveBeenCalledTimes(5);
+  } finally { for (const release of releases) release(null); await Promise.all(pending); }
+  expect(statuses.sort()).toEqual([401, 429, 429, 429]);
+  expect((await login()).status).toBe(429);
+  spy.mockRestore();
+  const next = await fetch(`${url}/api/session`, { method: 'POST', body: JSON.stringify({ username: 'editor', password }) });
+  expect(next.status).toBe(200);
 });
 
 test('only owners remove board members, owner membership is protected, and removal closes passive subscriptions', async () => {
