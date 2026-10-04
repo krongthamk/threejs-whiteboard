@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import RBush from 'rbush';
-import { getElementBounds, type ElementOf } from '@whiteboard/model';
+import { getElementBounds, readImageHeader, assertSafeImageDimensions, MAX_IMAGE_BYTES, type ImageHeader, type ElementOf } from '@whiteboard/model';
 import { cssColor } from './shapes';
 import type { Bounds, RendererOptions } from './types';
 
@@ -9,7 +9,7 @@ interface Entry { id: string; minX: number; minY: number; maxX: number; maxY: nu
 interface TextureResource { texture: THREE.Texture; bitmap: ImageBitmap; size: number }
 interface Asset {
   id: string; controller: AbortController; source?: Promise<Blob>; display?: TextureResource; full?: TextureResource;
-  displayTask?: Promise<void>; fullTask?: Promise<void>; desiredSize: number; error?: Error; fullError?: Error;
+  displayTask?: Promise<void>; fullTask?: Promise<void>; desiredSize: number; header?: ImageHeader; error?: Error; fullError?: Error;
 }
 interface Handle { element: ImageElement; mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>; error?: Error }
 
@@ -86,18 +86,37 @@ export class ImageProjection {
       if (asset.controller.signal.aborted) throw new Error(`Image ${asset.id} load was cancelled`);
       const response = await fetch(url, { signal: asset.controller.signal });
       if (!response.ok) throw new Error(`Image ${asset.id} request failed (${response.status})`);
-      return response.blob();
+      const blob = await response.blob();
+      if (blob.size > MAX_IMAGE_BYTES) throw new Error(`Image ${asset.id} exceeds the 20 MiB limit`);
+      const header = readImageHeader(new Uint8Array(await blob.arrayBuffer()));
+      assertSafeImageDimensions(header.width, header.height);
+      asset.header = header;
+      return blob;
     })();
     return asset.source;
   }
+  private validDimensions(element: ImageElement, header: ImageHeader): boolean {
+    return element.props.naturalW === header.width && element.props.naturalH === header.height;
+  }
+  private hasValidInstance(asset: Asset): boolean {
+    return !!asset.header && [...this.visibleIds].some(id => {
+      const element = this.handles.get(id)?.element;
+      return !!element && element.props.assetId === asset.id && this.validDimensions(element, asset.header!);
+    });
+  }
   private ensureTexture(asset: Asset, element: ImageElement, full: boolean): void {
+    if (asset.header && !this.hasValidInstance(asset)) { this.bindAsset(asset); return; }
     if (full ? asset.full || asset.fullTask || asset.fullError : asset.error || asset.displayTask || (asset.display && asset.display.size >= asset.desiredSize)) return;
-    const size = full ? Math.max(element.props.naturalW, element.props.naturalH) : asset.desiredSize;
     const work = (async () => {
-      const blob = await this.source(asset);
-      const ratio = size / Math.max(element.props.naturalW, element.props.naturalH);
+      const blob = await this.source(asset), header = asset.header!;
+      this.bindAsset(asset);
+      // Metadata belongs to an immutable asset; declarations belong to each instance.
+      // One forged instance cannot borrow a valid texture or poison another instance.
+      if (!this.hasValidInstance(asset)) return null;
+      const size = full ? Math.max(header.width, header.height) : asset.desiredSize;
+      const ratio = size / Math.max(header.width, header.height);
       const bitmap = await createImageBitmap(blob, { imageOrientation: 'flipY', premultiplyAlpha: 'none',
-        ...(!full ? { resizeWidth: Math.max(1, Math.round(element.props.naturalW * ratio)), resizeHeight: Math.max(1, Math.round(element.props.naturalH * ratio)), resizeQuality: 'high' as const } : {}) });
+        ...(!full ? { resizeWidth: Math.max(1, Math.round(header.width * ratio)), resizeHeight: Math.max(1, Math.round(header.height * ratio)), resizeQuality: 'high' as const } : {}) });
       if (asset.controller.signal.aborted || this.disposed || this.assets.get(asset.id) !== asset) { bitmap.close(); throw new Error(`Image ${asset.id} load was cancelled`); }
       if (bitmap.width > this.maxTextureSize || bitmap.height > this.maxTextureSize) { bitmap.close(); throw new Error(`Image ${asset.id} exceeds the GPU's ${this.maxTextureSize}px texture limit for full-resolution export`); }
       const texture = new THREE.Texture(bitmap); texture.colorSpace = THREE.NoColorSpace; texture.flipY = false; texture.needsUpdate = true;
@@ -105,6 +124,7 @@ export class ImageProjection {
       return { bitmap, texture, size };
     })();
     const tracked = this.bounded(work, asset).then(resource => {
+      if (!resource) { this.bindAsset(asset); return; }
       if (this.disposed || this.assets.get(asset.id) !== asset) { this.disposeTexture(resource); return; }
       if (full && !this.exporting) { this.disposeTexture(resource); return; }
       if (full) { if (asset.full) this.disposeTexture(asset.full); asset.full = resource; }
@@ -123,7 +143,7 @@ export class ImageProjection {
     if (full) asset.fullTask = tracked; else asset.displayTask = tracked;
     this.pending.add(tracked);
   }
-  private bounded(work: Promise<TextureResource>, asset: Asset): Promise<TextureResource> {
+  private bounded(work: Promise<TextureResource | null>, asset: Asset): Promise<TextureResource | null> {
     return new Promise((resolve, reject) => {
       let settled = false;
       const finish = (callback: () => void) => { if (settled) return; settled = true; clearTimeout(timer); asset.controller.signal.removeEventListener('abort', aborted); callback(); };
@@ -134,17 +154,19 @@ export class ImageProjection {
       }, this.options.imageLoadTimeoutMs ?? 15000);
       asset.controller.signal.addEventListener('abort', aborted, { once: true });
       if (asset.controller.signal.aborted) aborted();
-      work.then(resource => { if (settled) this.disposeTexture(resource); else finish(() => resolve(resource)); }, error => finish(() => reject(error)));
+      work.then(resource => { if (settled) { if (resource) this.disposeTexture(resource); } else finish(() => resolve(resource)); }, error => finish(() => reject(error)));
     });
   }
   private bindAsset(asset: Asset): void {
     const resource = this.exporting ? asset.full : asset.display, error = this.exporting ? asset.fullError : asset.error;
     for (const id of this.visibleIds) {
       const handle = this.handles.get(id); if (!handle || handle.element.props.assetId !== asset.id) continue;
-      handle.error = error;
-      const material = handle.mesh.material;
-      if (material.map !== (resource?.texture ?? null)) { material.map = resource?.texture ?? null; material.needsUpdate = true; }
-      material.color.copy(cssColor(resource ? '#ffffff' : error ? '#fee2e2' : '#dce3ed'));
+      const mismatch = asset.header && !this.validDimensions(handle.element, asset.header)
+        ? new Error(`Image ${asset.id} dimensions do not match this element`) : undefined;
+      handle.error = mismatch ?? error;
+      const material = handle.mesh.material, texture = handle.error ? null : resource?.texture ?? null;
+      if (material.map !== texture) { material.map = texture; material.needsUpdate = true; }
+      material.color.copy(cssColor(texture ? '#ffffff' : handle.error ? '#fee2e2' : '#dce3ed'));
     }
   }
   setExporting(exporting: boolean): void {

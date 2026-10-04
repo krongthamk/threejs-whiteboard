@@ -2,7 +2,7 @@ export interface User { id: string; username: string; name?: string; color?: str
 export interface Session { user: User; expiresAt: number }
 export type BoardRole = 'owner' | 'editor' | 'viewer';
 export interface BoardInfo { id: string; title: string; role: BoardRole; updatedAt: number }
-export interface AssetInfo { assetId: string; mimeType?: string; url?: string }
+export interface AssetInfo { assetId: string; width: number; height: number; mimeType?: string; url?: string }
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) { super(message); this.name = 'ApiError'; }

@@ -671,7 +671,7 @@ test('online backup restores accounts, board state and asset bytes into a fresh 
   const clientDoc = await client(app.port, board.id, tokens.owner!);
   clientDoc.doc.getMap('test').set('backup', 'recover me');
   await until(() => app.store.stats(board.id).updateCount > 0);
-  const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
+  const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64');
   const uploaded = await (await request(`/api/boards/${board.id}/assets`, tokens.owner, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: bytes })).json() as { assetId: string };
   const path = directory(), backup = join(path, 'backup'), restoredDirectory = join(path, 'restored');
   const manifest = await createBackup(app.store, options.assetDirectory, secret, backup); expect(manifest.assets).toBe(1);
@@ -763,4 +763,85 @@ test('only owners remove board members, owner membership is protected, and remov
   expect(app.server.hocuspocus.documents.get(board.id)!.getConnections().some(connection => connection.context.userId === editor.id)).toBe(false);
   const preflight = await request(route, tokens.owner, { method: 'OPTIONS', headers: { Origin: 'http://localhost:4173', 'Access-Control-Request-Method': 'DELETE' } });
   expect(preflight.status).toBe(204); expect(preflight.headers.get('Access-Control-Allow-Methods')).toContain('DELETE');
+});
+
+test('image uploads reject decompression-bomb headers before storing bytes and return validated dimensions', async () => {
+  const { app, board, tokens, request } = await setup();
+  const { pngHeader } = await import('../../../tests/image-fixtures');
+  const assetsBefore = app.store.db.prepare('SELECT count(*) AS count FROM assets').get();
+  for (const [width, height] of [[30000, 30000], [10001, 10000], [16385, 1]]) {
+    const response = await request(`/api/boards/${board.id}/assets`, tokens.editor, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: Buffer.from(pngHeader(width!, height!)) });
+    expect(response.status).toBe(413);
+  }
+  expect(app.store.db.prepare('SELECT count(*) AS count FROM assets').get()).toEqual(assetsBefore);
+  const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64');
+  const good = await request(`/api/boards/${board.id}/assets`, tokens.editor, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: bytes });
+  expect(good.status).toBe(201); expect(await good.json()).toMatchObject({ width: 1, height: 1, mimeType: 'image/png' });
+});
+
+async function pausedMutation(app: Awaited<ReturnType<typeof setup>>['app'], token: string, path: string, method: string, bytes: Buffer, contentType = 'application/json') {
+  let admitted = false;
+  const authenticate = app.store.authenticate.bind(app.store);
+  const spy = vi.spyOn(app.store, 'authenticate').mockImplementation(supplied => { const result = authenticate(supplied); if (supplied === token && result) admitted = true; return result; });
+  let send!: ReturnType<typeof httpRequest>;
+  const response = new Promise<{ status: number; body: string }>((resolve, reject) => {
+    send = httpRequest({ host: '127.0.0.1', port: app.port, path, method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': contentType, 'Content-Length': bytes.length } }, incoming => {
+      let body = ''; incoming.setEncoding('utf8'); incoming.on('data', chunk => { body += chunk; }); incoming.on('end', () => resolve({ status: incoming.statusCode!, body }));
+    }); send.on('error', reject);
+  });
+  cleanups.push(() => { send.destroy(); spy.mockRestore(); });
+  const split = Math.max(1, Math.floor(bytes.length / 2)); send.write(bytes.subarray(0, split));
+  await until(() => admitted);
+  return { finish: async () => { send.end(bytes.subarray(split)); return response; } };
+}
+
+test('an authorized HTTP mutation rechecks its session and membership under the write transaction', async () => {
+  const { app, board, tokens, request } = await setup();
+  const authenticate = app.store.authenticate.bind(app.store), access = app.store.board.bind(app.store), rename = app.store.rename.bind(app.store);
+  const checks: string[] = [];
+  const authSpy = vi.spyOn(app.store, 'authenticate').mockImplementation(token => { if (app.store.db.inTransaction) checks.push('session'); return authenticate(token); });
+  const accessSpy = vi.spyOn(app.store, 'board').mockImplementation((id, user) => { if (app.store.db.inTransaction) checks.push('membership'); return access(id, user); });
+  const renameSpy = vi.spyOn(app.store, 'rename').mockImplementation((id, name) => { expect(app.store.db.inTransaction).toBe(true); expect(checks).toEqual(['session', 'membership']); rename(id, name); });
+  cleanups.push(() => { authSpy.mockRestore(); accessSpy.mockRestore(); renameSpy.mockRestore(); });
+  const response = await request(`/api/boards/${board.id}`, tokens.editor, { method: 'PATCH', body: JSON.stringify({ title: 'Atomic rename' }) });
+  expect(response.status).toBe(200); expect(renameSpy).toHaveBeenCalledOnce();
+});
+
+test.each(['rename', 'upload'])('an admitted editor %s request is denied if demoted before its body completes', async operation => {
+  const { app, board, editor, tokens } = await setup();
+  const bytes = operation === 'rename' ? Buffer.from(JSON.stringify({ title: 'Unauthorized late rename' }))
+    : Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64');
+  const pending = await pausedMutation(app, tokens.editor!, `/api/boards/${board.id}${operation === 'upload' ? '/assets' : ''}`, operation === 'rename' ? 'PATCH' : 'POST', bytes, operation === 'upload' ? 'image/png' : 'application/json');
+  app.store.setMember(board.id, editor.id, 'viewer');
+  expect((await pending.finish()).status).toBe(403);
+  expect(app.store.board(board.id, editor.id)!.title).toBe('Private board');
+  expect(app.store.db.prepare('SELECT count(*) AS count FROM assets').get()).toEqual({ count: 0 });
+});
+
+test('an admitted membership grant is denied if the owner loses ownership while sending its body', async () => {
+  const { app, board, owner, stranger, tokens } = await setup();
+  const pending = await pausedMutation(app, tokens.owner!, `/api/boards/${board.id}/members`, 'POST', Buffer.from(JSON.stringify({ username: 'stranger', role: 'viewer' })));
+  app.store.setMember(board.id, owner.id, 'editor');
+  expect((await pending.finish()).status).toBe(403); expect(app.store.role(board.id, stranger.id)).toBeUndefined();
+});
+
+test('an admitted board creation is denied if its session is revoked while sending its body', async () => {
+  const { app, owner, tokens } = await setup(), before = app.store.boards(owner.id);
+  const pending = await pausedMutation(app, tokens.owner!, '/api/boards', 'POST', Buffer.from(JSON.stringify({ title: 'Unauthorized late creation' })));
+  app.store.revokeSessions(owner.id);
+  expect((await pending.finish()).status).toBe(401); expect(app.store.boards(owner.id)).toEqual(before);
+});
+
+test.each(['target-demotion', 'source-removal', 'session-revocation'])('asset copy rechecks both permissions and the session after the body arrives: %s', async change => {
+  const { app, options, board, stranger, tokens } = await setup();
+  const target = app.store.createBoard(stranger.id, 'Copy target'); app.store.setMember(board.id, stranger.id, 'viewer');
+  const storageKey = 'copy-source', bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64');
+  writeFileSync(join(options.assetDirectory, storageKey), bytes);
+  app.store.addAsset({ id: 'copy-source', boardId: board.id, storageKey, size: bytes.length, mimeType: 'image/png' });
+  const pending = await pausedMutation(app, tokens.stranger!, `/api/boards/${target.id}/assets/copy`, 'POST', Buffer.from(JSON.stringify({ sourceBoardId: board.id, assetId: 'copy-source' })));
+  if (change === 'target-demotion') app.store.setMember(target.id, stranger.id, 'viewer');
+  else if (change === 'source-removal') app.store.removeMember(board.id, stranger.id);
+  else app.store.revokeSessions(stranger.id);
+  expect((await pending.finish()).status).toBe(change === 'target-demotion' ? 403 : change === 'source-removal' ? 404 : 401);
+  expect(app.store.db.prepare('SELECT count(*) AS count FROM assets WHERE board_id=?').get(target.id)).toEqual({ count: 0 });
 });

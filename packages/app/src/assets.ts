@@ -1,5 +1,5 @@
 import { generateKeyBetween } from 'fractional-indexing';
-import { BoardDocument, createElement, type Element as BoardElement, type Point } from '@whiteboard/model';
+import { BoardDocument, createElement, assertSafeImageDimensions, readImageHeader, type Element as BoardElement, type Point } from '@whiteboard/model';
 import { api } from './api';
 import type { SessionStore } from './session';
 import { encodeClipboard, parseClipboard, preparePastedElements, type ClipboardEnvelope } from './clipboard-model';
@@ -58,17 +58,17 @@ export class BoardAssets {
     const limit = this.options.maxImageDimension();
     if (!Number.isFinite(limit) || limit < 1) throw new Error('The renderer image limit is unavailable. Try again after the canvas is ready.');
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) throw new Error(`${name} has invalid image dimensions.`);
+    assertSafeImageDimensions(width, height);
     if (width > limit || height > limit) throw new Error(`${name} is ${width} × ${height} pixels. This device supports images up to ${limit} pixels per side.`);
   }
   private async decode(file: File): Promise<DecodedFile> {
-    const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-    const png = [137, 80, 78, 71, 13, 10, 26, 10].every((value, index) => header[index] === value);
-    const jpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
-    const webp = String.fromCharCode(...header.slice(0, 4)) === 'RIFF' && String.fromCharCode(...header.slice(8, 12)) === 'WEBP';
-    const mime = png ? 'image/png' : jpeg ? 'image/jpeg' : webp ? 'image/webp' : null;
-    if (!mime) throw new Error(`${file.name || 'This file'} is not a PNG, JPEG, or WebP image.`);
-    // Only normalize the media type. The uploaded bytes remain exactly the original file bytes.
-    const blob = file.slice(0, file.size, mime);
+    let header;
+    try { header = readImageHeader(new Uint8Array(await file.arrayBuffer())); }
+    catch { throw new Error(`${file.name || 'This file'} is not a PNG, JPEG, or WebP image with a valid header.`); }
+    this.dimensions(header.width, header.height, file.name || 'Image');
+    assertSafeImageDimensions(header.width, header.height);
+    // Normalize only the media type; keep the original immutable source bytes.
+    const blob = file.slice(0, file.size, header.mimeType);
     let width: number, height: number;
     try {
       if (typeof createImageBitmap === 'function') {
@@ -80,7 +80,8 @@ export class BoardAssets {
         finally { image.src = ''; URL.revokeObjectURL(url); }
       }
     } catch { throw new Error(`${file.name || 'This image'} could not be decoded.`); }
-    this.dimensions(width, height, file.name || 'Image'); return { file, blob, width, height };
+    if (width !== header.width || height !== header.height) throw new Error(`${file.name || 'This image'} has inconsistent encoded dimensions.`);
+    return { file, blob, width: header.width, height: header.height };
   }
 
   /** Errors are surfaced through onError; failed or closed imports add no document elements. */
@@ -101,7 +102,10 @@ export class BoardAssets {
         if (!this.writable()) return;
         const asset = await api.uploadAsset(this.options.boardId, image.blob);
         if (!asset.assetId) throw new Error('The server did not return an image asset ID.');
-        uploaded.push({ image, assetId: asset.assetId });
+        this.dimensions(asset.width, asset.height, image.file.name);
+        assertSafeImageDimensions(asset.width, asset.height);
+        if (asset.width !== image.width || asset.height !== image.height) throw new Error('The server returned inconsistent image dimensions.');
+        uploaded.push({ image: { ...image, width: asset.width, height: asset.height }, assetId: asset.assetId });
       }
       if (!this.writable()) return;
       const { camera } = this.options.session.getState(), bounds = this.options.canvas.getBoundingClientRect();
@@ -163,11 +167,23 @@ export class BoardAssets {
         this.dimensions(element.props.naturalW, element.props.naturalH); assets.add(element.props.assetId);
       }
       const imageAssetIds = new Map<string, string>();
-      if (envelope.sourceBoardId !== this.options.boardId) for (const assetId of assets) {
+      for (const assetId of assets) {
         if (!this.writable()) return;
-        const copied = await api.copyAsset(this.options.boardId, envelope.sourceBoardId, assetId);
-        if (!copied.assetId) throw new Error('The server did not return a copied image asset ID.');
-        imageAssetIds.set(assetId, copied.assetId);
+        let width: number, height: number;
+        if (envelope.sourceBoardId !== this.options.boardId) {
+          const copied = await api.copyAsset(this.options.boardId, envelope.sourceBoardId, assetId);
+          if (!copied.assetId) throw new Error('The server did not return a copied image asset ID.');
+          ({ width, height } = copied); imageAssetIds.set(assetId, copied.assetId);
+        } else {
+          const response = await fetch(api.assetUrl(this.options.boardId, assetId), { credentials: 'same-origin' });
+          if (!response.ok) throw new Error('The clipboard image could not be read.');
+          const blob = await response.blob();
+          if (blob.size > MAX_IMAGE_BYTES) throw new Error('The clipboard image exceeds the 20 MiB upload limit.');
+          ({ width, height } = readImageHeader(new Uint8Array(await blob.arrayBuffer())));
+        }
+        this.dimensions(width, height);
+        for (const element of envelope.elements) if (element.type === 'image' && element.props.assetId === assetId
+          && (element.props.naturalW !== width || element.props.naturalH !== height)) throw new Error('The clipboard image dimensions do not match its source.');
       }
       if (!this.writable()) return;
       const prepared = preparePastedElements(envelope, { targetBoardId: this.options.boardId, center,

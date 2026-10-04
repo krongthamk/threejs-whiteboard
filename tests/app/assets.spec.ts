@@ -173,3 +173,31 @@ test('cut requires successful clipboard writing and restores the whole selection
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
   await page.keyboard.press('ControlOrMeta+z'); expect(await contents(page)).toEqual(original);
 });
+
+test('a crafted decompression-bomb header is rejected before native decoding and upload', async ({ page }) => {
+  await newBoard(page, 'Predecode header guard');
+  const { pngHeader } = await import('../image-fixtures');
+  const result = await page.evaluate(async bytes => {
+    const original = window.createImageBitmap; let decodes = 0;
+    window.createImageBitmap = ((...args: Parameters<typeof createImageBitmap>) => { decodes++; return original(...args); }) as typeof createImageBitmap;
+    try { await window.whiteboard.assets.importFiles([new File([new Uint8Array(bytes)], 'bomb.png', { type: 'image/png' })]); return { decodes, elements: window.whiteboard.board.readAll().length }; }
+    finally { window.createImageBitmap = original; }
+  }, [...pngHeader(30000, 30000)]);
+  expect(result).toEqual({ decodes: 0, elements: 0 });
+  await expect(page.getByRole('alert')).toContainText('16384 pixels per side');
+});
+
+test('a forged image instance cannot reuse the valid instance cached asset texture', async ({ page }) => {
+  await newBoard(page, 'Per-instance image dimensions');
+  const source = await image(page, 10, 10); await drop(page, [source]);
+  await expect.poll(async () => (await contents(page)).length).toBe(1);
+  await page.evaluate(() => window.whiteboard.renderer.whenReady());
+  const validId = (await contents(page))[0]!.id;
+  await page.evaluate(id => {
+    const value = window.whiteboard.board.read(id)!;
+    if (value.type !== 'image') throw new Error('Expected uploaded image');
+    window.whiteboard.board.add({ ...value, id: 'forged', x: value.x + 20, props: { ...value.props, naturalW: 1, naturalH: 1 } });
+  }, validId);
+  await expect.poll(() => page.evaluate(() => window.whiteboard.renderer.getImageError('forged')?.message)).toContain('dimensions do not match');
+  expect(await page.evaluate(id => window.whiteboard.renderer.getImageError(id)?.message ?? null, validId)).toBeNull();
+});

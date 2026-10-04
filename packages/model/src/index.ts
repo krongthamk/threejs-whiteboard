@@ -5,3 +5,4 @@ export * from './document.js';
 export * from './document-validation.js';
 export * from './svg.js';
 export * from './text-layout.js';
+export * from './image-header.js';

@@ -144,7 +144,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 4. Add a remove control to the Share dialog in `packages/app/src/App.tsx` (`BoardSettings`), and a client method in `api.ts`.
 5. Document the route in `packages/server/README.md`. Tests in `server.test.ts` for removal, owner protection and live reset.
 
-### [ ] 10. A PNG decompression bomb crashes every viewer's tab (medium)
+### [x] 10. A PNG decompression bomb crashes every viewer's tab (medium)
 
 **Where:** `packages/app/src/assets.ts:74-76` (`createImageBitmap(blob)` to learn size, then `:83` check), `:163` (`importClipboard` trusts envelope `naturalW/H`); `packages/server/src/server.ts:129-136` (20 MiB plus magic bytes only); `packages/renderer/src/images.ts:99` (viewers fully decode).
 
@@ -193,7 +193,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 
 **Fix:** Call `this.assertSchemaVersion()` in both wrappers before `assertWriterIdentity()`. Unit test: after a foreign `meta.schemaVersion` arrives, `undo()` throws and emits no update.
 
-### [ ] 15. HTTP mutations use permissions captured before the body arrives (medium)
+### [x] 15. HTTP mutations use permissions captured before the body arrives (medium)
 
 **Where:** `packages/server/src/server.ts:93, 111, 113, 127-136`.
 

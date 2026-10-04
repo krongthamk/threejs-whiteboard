@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Store, BoardFullError, type Session } from './store.js';
 import { staticHandler } from './static.js';
 import { BoardUpdateValidator, IncompleteBoardUpdateError } from '../../model/src/document-validation.js';
+import { assertSafeImageDimensions, readImageHeader } from '../../model/src/image-header.js';
 import { checkUpdateResources, UpdateResourceError } from './update-limits.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
@@ -63,6 +64,11 @@ export function createWhiteboardServer(options: Options) {
     const board = store.board(boardId, userId); if (!board) throw new HttpError(404, 'Board not found');
     if (write && board.role === 'viewer') throw new HttpError(403, 'This board is read-only'); return board;
   }
+  // Bodies arrive asynchronously. Recheck the current session and membership
+  // under an immediate SQLite write lock, with no await before the mutation.
+  function commitMutation<T>(request: IncomingMessage, mutate: (session: Session) => T): T {
+    return store.db.transaction(() => mutate(authenticate(request))).immediate();
+  }
   const publicSession = ({ user, expiresAt }: Session) => ({ user, expiresAt });
   const cookie = (token: string, maxAge = 43200) => `board_session=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${options.secureCookies ? '; Secure' : ''}`;
   function json(response: ServerResponse, status: number, data?: unknown) { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(data === undefined ? undefined : JSON.stringify(data)); }
@@ -73,7 +79,7 @@ export function createWhiteboardServer(options: Options) {
   }
   async function jsonBody(request: IncomingMessage): Promise<Record<string, unknown>> { try { const data = JSON.parse((await body(request)).toString()); if (!data || Array.isArray(data) || typeof data !== 'object') throw new Error(); return data; } catch (error) { if (error instanceof HttpError) throw error; throw new HttpError(400, 'Invalid JSON request'); } }
   const title = (value: unknown) => { if (typeof value !== 'string' || !value.trim() || value.trim().length > 200) throw new HttpError(400, 'Title must contain 1–200 characters'); return value.trim(); };
-  const assetResponse = (boardId: string, assetId: string, mimeType: string) => ({ assetId, mimeType, url: `/api/boards/${boardId}/assets/${assetId}` });
+  const assetResponse = (boardId: string, assetId: string, mimeType: string, dimensions: { width: number; height: number }) => ({ assetId, mimeType, ...dimensions, url: `/api/boards/${boardId}/assets/${assetId}` });
   function resetConnection(connection: Connection<AuthContext>, boardId: string, role: AuthContext['role'] | null, reason = 'permissions-changed') {
     // Permission failures discard the rejected replica; storage failures retain it.
     if (connection.context.invalidated) return;
@@ -158,7 +164,10 @@ export function createWhiteboardServer(options: Options) {
         response.setHeader('Set-Cookie', cookie('', 0)); return json(response, 204);
       }
       if (path === '/api/boards' && method === 'GET') return json(response, 200, { boards: store.boards(session.user.id) });
-      if (path === '/api/boards' && method === 'POST') return json(response, 201, { board: store.createBoard(session.user.id, title((await jsonBody(request)).title)) });
+      if (path === '/api/boards' && method === 'POST') {
+        const name = title((await jsonBody(request)).title);
+        return json(response, 201, { board: commitMutation(request, current => store.createBoard(current.user.id, name)) });
+      }
       if (path === '/api/metrics' && method === 'GET') return json(response, 200, { boards: store.boards(session.user.id).map(board => {
         const stats = metric(board.id), seconds = Math.max(1, (Date.now() - stats.windowAt) / 1000);
         return { boardId: board.id, connections: server.hocuspocus.documents.get(board.id)?.getConnectionsCount() ?? 0, ...stats, updateRate: stats.windowUpdates / seconds, awarenessRate: stats.windowAwareness / seconds, storage: store.stats(board.id) };
@@ -166,15 +175,26 @@ export function createWhiteboardServer(options: Options) {
       const route = path.match(/^\/api\/boards\/([a-zA-Z0-9-]+)(?:\/(.*))?$/); if (!route) throw new HttpError(404, 'Not found');
       const boardId = route[1]!, suffix = route[2] ?? '', board = boardAccess(boardId, session.user.id, method !== 'GET');
       if (!suffix && method === 'GET') return json(response, 200, { board });
-      if (!suffix && method === 'PATCH') { store.rename(boardId, title((await jsonBody(request)).title)); return json(response, 200, { board: store.board(boardId, session.user.id) }); }
+      if (!suffix && method === 'PATCH') {
+        const name = title((await jsonBody(request)).title);
+        const renamed = commitMutation(request, current => {
+          boardAccess(boardId, current.user.id, true); store.rename(boardId, name);
+          return store.board(boardId, current.user.id);
+        });
+        return json(response, 200, { board: renamed });
+      }
       if (suffix === 'members' && method === 'POST') {
         if (board.role !== 'owner') throw new HttpError(403, 'Only the owner can change board membership');
         const data = await jsonBody(request);
         if (typeof data.username !== 'string' || !['editor', 'viewer'].includes(String(data.role))) throw new HttpError(400, 'Specify a username and editor or viewer role');
-        const user = store.userByName(data.username); if (!user) throw new HttpError(404, 'User not found');
-        if (store.role(boardId, user.id) === 'owner') throw new HttpError(400, 'Owner membership cannot be downgraded');
-        const previousRole = store.role(boardId, user.id), role = data.role as 'editor' | 'viewer';
-        store.setMember(boardId, user.id, role);
+        const username = data.username, role = data.role as 'editor' | 'viewer';
+        const { user, previousRole } = commitMutation(request, current => {
+          if (boardAccess(boardId, current.user.id, true).role !== 'owner') throw new HttpError(403, 'Only the owner can change board membership');
+          const user = store.userByName(username); if (!user) throw new HttpError(404, 'User not found');
+          const previousRole = store.role(boardId, user.id);
+          if (previousRole === 'owner') throw new HttpError(400, 'Owner membership cannot be downgraded');
+          store.setMember(boardId, user.id, role); return { user, previousRole };
+        });
         if (previousRole !== role) for (const connection of server.hocuspocus.documents.get(boardId)?.getConnections() ?? []) {
           if (connection.context.userId === user.id) resetConnection(connection, boardId, role);
         }
@@ -185,9 +205,12 @@ export function createWhiteboardServer(options: Options) {
         if (board.role !== 'owner') throw new HttpError(403, 'Only the owner can change board membership');
         let username: string;
         try { username = decodeURIComponent(memberMatch[1]!); } catch { throw new HttpError(400, 'Invalid username'); }
-        const user = store.userByName(username); if (!user) throw new HttpError(404, 'User not found');
-        if (store.role(boardId, user.id) === 'owner') throw new HttpError(400, 'Owner membership cannot be removed');
-        store.removeMember(boardId, user.id);
+        const user = commitMutation(request, current => {
+          if (boardAccess(boardId, current.user.id, true).role !== 'owner') throw new HttpError(403, 'Only the owner can change board membership');
+          const user = store.userByName(username); if (!user) throw new HttpError(404, 'User not found');
+          if (store.role(boardId, user.id) === 'owner') throw new HttpError(400, 'Owner membership cannot be removed');
+          store.removeMember(boardId, user.id); return user;
+        });
         for (const connection of server.hocuspocus.documents.get(boardId)?.getConnections() ?? []) {
           if (connection.context.userId === user.id) resetConnection(connection, boardId, null, 'permissions-changed');
         }
@@ -200,16 +223,30 @@ export function createWhiteboardServer(options: Options) {
         const jpeg = mimeType === 'image/jpeg' && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
         const webp = mimeType === 'image/webp' && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP';
         if (!png && !jpeg && !webp) throw new HttpError(415, 'Upload a PNG, JPEG, or WebP image');
+        let dimensions: { width: number; height: number };
+        try { dimensions = readImageHeader(bytes); } catch { throw new HttpError(415, 'Invalid PNG, JPEG, or WebP image header'); }
+        try { assertSafeImageDimensions(dimensions.width, dimensions.height); } catch (error) { throw new HttpError(413, (error as Error).message); }
         const assetId = randomUUID(), storageKey = randomUUID();
-        writeFileSync(join(options.assetDirectory, storageKey), bytes, { flag: 'wx', mode: 0o600 });
-        store.addAsset({ id: assetId, boardId, mimeType, size: bytes.byteLength, storageKey }); return json(response, 201, assetResponse(boardId, assetId, mimeType));
+        commitMutation(request, current => {
+          boardAccess(boardId, current.user.id, true);
+          writeFileSync(join(options.assetDirectory, storageKey), bytes, { flag: 'wx', mode: 0o600 });
+          store.addAsset({ id: assetId, boardId, mimeType, size: bytes.byteLength, storageKey });
+        });
+        return json(response, 201, assetResponse(boardId, assetId, mimeType, { width: dimensions.width, height: dimensions.height }));
       }
       if (suffix === 'assets/copy' && method === 'POST') {
         const data = await jsonBody(request);
         if (typeof data.sourceBoardId !== 'string' || typeof data.assetId !== 'string') throw new HttpError(400, 'Source board and asset are required');
-        boardAccess(data.sourceBoardId, session.user.id);
-        const asset = store.asset(data.sourceBoardId, data.assetId); if (!asset) throw new HttpError(404, 'Asset not found');
-        const id = randomUUID(); store.addAsset({ ...asset, id, boardId }); return json(response, 201, assetResponse(boardId, id, asset.mimeType));
+        const sourceBoardId = data.sourceBoardId, assetId = data.assetId;
+        const result = commitMutation(request, current => {
+          boardAccess(boardId, current.user.id, true); boardAccess(sourceBoardId, current.user.id);
+          const asset = store.asset(sourceBoardId, assetId); if (!asset) throw new HttpError(404, 'Asset not found');
+          const dimensions = readImageHeader(readFileSync(join(options.assetDirectory, asset.storageKey)));
+          assertSafeImageDimensions(dimensions.width, dimensions.height);
+          const id = randomUUID(); store.addAsset({ ...asset, id, boardId });
+          return assetResponse(boardId, id, asset.mimeType, { width: dimensions.width, height: dimensions.height });
+        });
+        return json(response, 201, result);
       }
       const assetMatch = suffix.match(/^assets\/([a-zA-Z0-9-]+)$/);
       if (assetMatch && method === 'GET') {

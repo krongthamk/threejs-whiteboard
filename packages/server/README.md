@@ -63,7 +63,13 @@ Board responses use `{ board: { id, title, role, updatedAt } }`, where `role` is
 | `GET /api/metrics` | Per-board connections, updates/awareness rates, persistence totals/latency, compactions, and storage; membership only |
 | `GET /health`, `GET /ready` | Liveness and readiness; readiness becomes 503 during drain or a document persistence failure |
 
-Upload and copy return 201 `{assetId,mimeType,url}`. An asset copy creates a new
+Upload and copy return 201 `{assetId,mimeType,width,height,url}`. PNG IHDR,
+JPEG SOF and WebP container dimensions are checked before decoding: each side
+must be at most 16,384 pixels and the image at most 100,000,000 pixels. JPEG/WebP
+EXIF orientation is included in the returned display dimensions. Invalid or
+incomplete headers are refused; these checks do not certify the compressed image
+payload. Clients verify headers before native decoding, and renderers check each
+image instance's declared dimensions against its immutable asset header. An asset copy creates a new
 board-scoped reference to the same immutable stored bytes. SVG uploads are not
 accepted. Cookie-authenticated mutations require an allowed Origin; explicit
 Bearer requests support CLI clients without ambient cookies. Browser WebSocket
@@ -184,6 +190,13 @@ requests return headers only. Decoded traversal, dotfiles, and symlinks escaping
 the configured root are rejected. API, health, readiness and WebSocket routes
 retain their own handlers. SIGTERM/SIGINT perform the readiness/drain sequence
 above; there is no dependency on Vite preview for this deployment mode.
+
+HTTP mutations keep early authentication and board-access checks as an admission
+filter. After the bounded request body arrives, the server rechecks the current
+session and permissions in the same immediate SQLite transaction as the write.
+Asset copies recheck both source read and target edit access; membership changes
+recheck ownership. Demotion or session revocation during an upload or JSON body
+prevents the mutation from committing.
 
 Sign-in throttling allows up to120 attempts per source address per minute, with
 at most5 failed password attempts per account+address per minute. A successful
