@@ -763,6 +763,16 @@ test('trusted proxy throttling uses the validated last hop and normalizes equiva
   // Invalid last hops fall back to the actual peer; a spoofed first hop is ignored.
   for (let index = 0; index < 30; index++) expect((await login(`192.0.2.${index + 1}, invalid`)).status).toBe(400);
   expect((await login('192.0.2.250, invalid')).status).toBe(429);
+  expect((await login('192.0.2.250, fe80::1%en0')).status).toBe(429);
+});
+
+test('an actual scoped IPv6 peer remains a usable throttle bucket', async () => {
+  const { app, url } = await setup();
+  const scopedPeer = (socket: import('node:net').Socket) => Object.defineProperty(socket, 'remoteAddress', { configurable: true, value: 'fe80::1%en0' });
+  app.server.httpServer.on('connection', scopedPeer);
+  cleanups.push(() => { app.server.httpServer.off('connection', scopedPeer); });
+  for (let index = 0; index < 30; index++) expect((await fetch(`${url}/api/session`, { method: 'POST', body: '{}' })).status).toBe(400);
+  expect((await fetch(`${url}/api/session`, { method: 'POST', body: '{}' })).status).toBe(429);
 });
 
 test('four pending login derivations leave health responsive and refuse a fifth without password work', async () => {

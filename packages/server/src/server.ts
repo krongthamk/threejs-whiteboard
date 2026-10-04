@@ -54,9 +54,13 @@ export function createWhiteboardServer(options: Options) {
   function loginAddress(request: IncomingMessage): string {
     const peer = request.socket.remoteAddress ?? 'local', forwarded = request.headers['x-forwarded-for'];
     const last = options.trustedProxy && typeof forwarded === 'string' ? forwarded.split(',').at(-1)?.trim() : undefined;
-    const address = last && isIP(last) ? last : peer;
+    const address = last && isIP(last) && !last.includes('%') ? last : peer;
     // Equivalent IPv6 spellings must share one throttle bucket.
-    return isIP(address) === 6 ? new URL(`http://[${address}]/`).hostname : address;
+    if (isIP(address) !== 6) return address;
+    // Forwarded zone identifiers are untrusted. Actual socket peers may carry
+    // one: normalize only their IP portion and retain the interface scope.
+    const scope = address.indexOf('%'), ip = scope < 0 ? address : address.slice(0, scope);
+    return new URL(`http://[${ip}]/`).hostname + (scope < 0 ? '' : address.slice(scope));
   }
   let draining = false, closed: Promise<void> | undefined;
   function metric(boardId: string): Metrics {
