@@ -44,6 +44,70 @@ async function client(port: number, board: string, token: string, doc = new Y.Do
   return { doc, provider, socket };
 }
 
+test('viewer HEAD requests use read authorization and return metadata without mutation', async () => {
+  const { app, board, tokens, request } = await setup();
+  const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64');
+  const asset = await (await request(`/api/boards/${board.id}/assets`, tokens.owner, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: bytes })).json() as { url: string };
+  const before = app.store.stats(board.id), title = app.store.board(board.id, app.store.authenticate(tokens.viewer!)!.user.id)!.title;
+  for (const path of [`/api/boards/${board.id}`, asset.url, '/api/boards', '/api/session', '/api/metrics']) {
+    const response = await request(path, tokens.viewer, { method: 'HEAD' });
+    expect(response.status).toBe(200); expect(await response.text()).toBe('');
+    if (path === asset.url) { expect(response.headers.get('content-type')).toBe('image/png'); expect(response.headers.get('content-length')).toBe(String(bytes.length)); }
+  }
+  expect((await request(`/api/boards/${board.id}`, tokens.stranger, { method: 'HEAD' })).status).toBe(404);
+  expect((await request(`/api/boards/${board.id}`, 'invalid', { method: 'HEAD' })).status).toBe(401);
+  expect(app.store.stats(board.id)).toEqual(before); expect(app.store.boards(app.store.authenticate(tokens.owner!)!.user.id)).toHaveLength(1);
+  expect(app.store.board(board.id, app.store.authenticate(tokens.viewer!)!.user.id)!.title).toBe(title);
+});
+
+test('a non-Bearer Authorization header cannot exempt a cookie mutation from Origin checks', async () => {
+  const { app, url, board, tokens } = await setup();
+  const cookie = `board_session=${encodeURIComponent(tokens.owner!)}`;
+  for (const authorization of ['Basic ignored', 'bearer ignored', 'NotBearer ignored']) {
+    const response = await fetch(`${url}/api/boards/${board.id}`, { method: 'PATCH', headers: { Cookie: cookie, Authorization: authorization, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Origin bypass' }) });
+    expect(response.status).toBe(403);
+  }
+  expect(app.store.board(board.id, app.store.authenticate(tokens.owner!)!.user.id)!.title).toBe('Private board');
+  const allowed = await fetch(`${url}/api/boards/${board.id}`, { method: 'PATCH', headers: { Cookie: cookie, Authorization: 'Basic ignored', Origin: 'http://localhost:4173', 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Approved cookie mutation' }) });
+  expect(allowed.status).toBe(200);
+  const bearer = await fetch(`${url}/api/boards/${board.id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${tokens.owner}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Explicit token mutation' }) });
+  expect(bearer.status).toBe(200);
+});
+
+test.each(['userId', 'name'])('viewer awareness cannot spoof the authenticated owner %s', async field => {
+  const { app, board, owner, viewer, tokens } = await setup();
+  const observer = await client(app.port, board.id, tokens.owner!), peer = await client(app.port, board.id, tokens.viewer!);
+  const processed = app.network.awarenessMessages;
+  peer.provider.awareness!.setLocalState({ userId: field === 'userId' ? owner.id : viewer.id, name: field === 'name' ? owner.username : viewer.username, cursor: { x: 10, y: 20 }, editingTextId: 'owner-note' });
+  await until(() => app.network.awarenessMessages > processed);
+  const presence = app.server.hocuspocus.documents.get(board.id)!.awareness.getStates();
+  expect(presence.has(peer.doc.clientID)).toBe(false);
+  expect(observer.provider.awareness!.getStates().has(peer.doc.clientID)).toBe(false);
+  peer.provider.awareness!.setLocalState({ userId: viewer.id, name: viewer.username, cursor: { x: 40, y: 50 }, selection: [] });
+  await until(() => observer.provider.awareness!.getStates().get(peer.doc.clientID)?.cursor?.x === 40);
+  expect(observer.provider.awareness!.getStates().get(peer.doc.clientID)).toMatchObject({ userId: viewer.id, name: viewer.username });
+});
+
+test('awareness names are derived from the authenticated account when omitted', async () => {
+  const { app, board, viewer, tokens } = await setup();
+  const observer = await client(app.port, board.id, tokens.owner!), peer = await client(app.port, board.id, tokens.viewer!);
+  peer.provider.awareness!.setLocalState({ userId: viewer.id, cursor: { x: 65, y: 80 }, selection: [] });
+  await until(() => observer.provider.awareness!.getStates().get(peer.doc.clientID)?.cursor?.x === 65);
+  expect(observer.provider.awareness!.getStates().get(peer.doc.clientID)).toMatchObject({ userId: viewer.id, name: viewer.username });
+});
+
+test('a viewer cannot replace an owner awareness client ID with its own identity', async () => {
+  const { app, board, owner, viewer, tokens } = await setup();
+  const author = await client(app.port, board.id, tokens.owner!), attacker = await client(app.port, board.id, tokens.viewer!);
+  author.provider.awareness!.setLocalState({ userId: owner.id, name: owner.username, cursor: { x: 100, y: 200 } });
+  await until(() => attacker.provider.awareness!.getStates().get(author.doc.clientID)?.cursor?.x === 100);
+  const processed = app.network.awarenessMessages;
+  attacker.provider.awareness!.clientID = author.doc.clientID;
+  attacker.provider.awareness!.setLocalState({ userId: viewer.id, name: viewer.username, cursor: { x: -100, y: -200 } });
+  await until(() => app.network.awarenessMessages > processed);
+  expect(app.server.hocuspocus.documents.get(board.id)!.awareness.getStates().get(author.doc.clientID)).toMatchObject({ userId: owner.id, name: owner.username, cursor: { x: 100, y: 200 } });
+});
+
 test('signed sessions, board membership, title updates, CSRF and logout use one ACL', async () => {
   const { request, board, tokens, url } = await setup();
   expect((await fetch(`${url}/api/boards`)).status).toBe(401);
@@ -403,7 +467,7 @@ test('a compressed forged GC span is rejected before integration and healthy fol
 });
 
 test('a socket that never drains drops awareness and is terminated after its grace period', async () => {
-  const { app, board, tokens } = await setup({ maxBufferedBytes: 1024, slowSocketGraceMs: 50 });
+  const { app, board, owner: account, tokens } = await setup({ maxBufferedBytes: 1024, slowSocketGraceMs: 50 });
   const owner = await client(app.port, board.id, tokens.owner!), slow = await client(app.port, board.id, tokens.editor!);
   const connection = app.server.hocuspocus.documents.get(board.id)!.getConnections().find(value => value.context.userId === app.store.authenticate(tokens.editor!)!.user.id)!;
   const socket = connection.webSocket as WebSocket;
@@ -412,7 +476,7 @@ test('a socket that never drains drops awareness and is terminated after its gra
   const sent = vi.spyOn(socket, 'send'), terminated = vi.spyOn(socket, 'terminate');
   cleanups.push(() => { sent.mockRestore(); terminated.mockRestore(); if (original) Object.defineProperty(socket, 'bufferedAmount', original); else delete (socket as any).bufferedAmount; });
   slow.socket.on('close', () => slow.socket.disconnect());
-  owner.provider.awareness!.setLocalState({ userId: 'owner', name: 'Owner' });
+  owner.provider.awareness!.setLocalState({ userId: account.id, name: account.username });
   await until(() => terminated.mock.calls.length === 1, 1000);
   expect(sent).not.toHaveBeenCalled();
   expect(app.server.hocuspocus.documents.get(board.id)!.getConnections().some(value => value === connection)).toBe(false);

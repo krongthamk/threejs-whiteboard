@@ -14,7 +14,7 @@ import { checkUpdateResources, UpdateResourceError } from './update-limits.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
 interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; trustedProxy?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
-interface AuthContext { token: string; userId: string; role: 'owner' | 'editor' | 'viewer'; expiresAt: number; invalidated?: boolean }
+interface AuthContext { token: string; userId: string; name: string; role: 'owner' | 'editor' | 'viewer'; expiresAt: number; invalidated?: boolean }
 type Metrics = { updates: number; awareness: number; persistedUpdates: number; persistenceMs: number; compactions: number; windowAt: number; windowUpdates: number; windowAwareness: number };
 
 export function createWhiteboardServer(options: Options) {
@@ -138,10 +138,11 @@ export function createWhiteboardServer(options: Options) {
   async function api(request: IncomingMessage, response: ServerResponse) {
     try {
       const path = new URL(request.url ?? '/', 'http://localhost').pathname, method = request.method ?? 'GET';
+      const readRequest = method === 'GET' || method === 'HEAD';
       const origin = request.headers.origin;
       if (origin && !origins.has(origin)) throw new HttpError(403, 'Origin is not allowed');
       if (origin) { response.setHeader('Access-Control-Allow-Origin', origin); response.setHeader('Access-Control-Allow-Credentials', 'true'); response.setHeader('Vary', 'Origin'); }
-      if (method === 'OPTIONS') { response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS'); response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization'); return json(response, 204); }
+      if (method === 'OPTIONS') { response.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,PATCH,DELETE,OPTIONS'); response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization'); return json(response, 204); }
       if (path === '/health') return json(response, 200, { status: 'ok' });
       if (path === '/ready') { const ready = !draining && persistenceFailed.size === 0; return json(response, ready ? 200 : 503, { ready }); }
       if (serveStatic && path !== websocketPath && serveStatic(request, response, path)) return;
@@ -149,7 +150,7 @@ export function createWhiteboardServer(options: Options) {
       if (draining && !['GET', 'HEAD'].includes(method)) throw new HttpError(503, 'Server is draining');
       // Browser cookie mutations must carry an approved Origin. Bearer clients
       // and CLI tools are explicit-token requests and do not use ambient auth.
-      if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && request.headers.cookie && !request.headers.authorization && !origin) throw new HttpError(403, 'Origin is required for cookie-authenticated changes');
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && request.headers.cookie && !request.headers.authorization?.startsWith('Bearer ') && !origin) throw new HttpError(403, 'Origin is required for cookie-authenticated changes');
       if (path === '/api/session' && method === 'POST') {
         const now = Date.now();
         for (const [key, entry] of loginAttempts) if (now - entry.since >= 60000) loginAttempts.delete(key);
@@ -182,7 +183,7 @@ export function createWhiteboardServer(options: Options) {
         response.setHeader('Set-Cookie', cookie(session.token)); return json(response, 200, publicSession(session));
       }
       const session = authenticate(request);
-      if (path === '/api/session' && method === 'GET') return json(response, 200, publicSession(session));
+      if (path === '/api/session' && readRequest) return json(response, 200, publicSession(session));
       if (path === '/api/session/logout' && method === 'POST') {
         store.logout(session.sessionId);
         // Passive sockets may not send another packet after logout. Revoke their
@@ -192,18 +193,18 @@ export function createWhiteboardServer(options: Options) {
         }
         response.setHeader('Set-Cookie', cookie('', 0)); return json(response, 204);
       }
-      if (path === '/api/boards' && method === 'GET') return json(response, 200, { boards: store.boards(session.user.id) });
+      if (path === '/api/boards' && readRequest) return json(response, 200, { boards: store.boards(session.user.id) });
       if (path === '/api/boards' && method === 'POST') {
         const name = title((await jsonBody(request)).title);
         return json(response, 201, { board: commitMutation(request, current => store.createBoard(current.user.id, name)) });
       }
-      if (path === '/api/metrics' && method === 'GET') return json(response, 200, { boards: store.boards(session.user.id).map(board => {
+      if (path === '/api/metrics' && readRequest) return json(response, 200, { boards: store.boards(session.user.id).map(board => {
         const stats = metric(board.id), seconds = Math.max(1, (Date.now() - stats.windowAt) / 1000);
         return { boardId: board.id, connections: server.hocuspocus.documents.get(board.id)?.getConnectionsCount() ?? 0, ...stats, updateRate: stats.windowUpdates / seconds, awarenessRate: stats.windowAwareness / seconds, storage: store.stats(board.id) };
       }) });
       const route = path.match(/^\/api\/boards\/([a-zA-Z0-9-]+)(?:\/(.*))?$/); if (!route) throw new HttpError(404, 'Not found');
-      const boardId = route[1]!, suffix = route[2] ?? '', board = boardAccess(boardId, session.user.id, method !== 'GET');
-      if (!suffix && method === 'GET') return json(response, 200, { board });
+      const boardId = route[1]!, suffix = route[2] ?? '', board = boardAccess(boardId, session.user.id, !readRequest);
+      if (!suffix && readRequest) return json(response, 200, { board });
       if (!suffix && method === 'PATCH') {
         const name = title((await jsonBody(request)).title);
         const renamed = commitMutation(request, current => {
@@ -278,9 +279,10 @@ export function createWhiteboardServer(options: Options) {
         return json(response, 201, result);
       }
       const assetMatch = suffix.match(/^assets\/([a-zA-Z0-9-]+)$/);
-      if (assetMatch && method === 'GET') {
+      if (assetMatch && readRequest) {
         const asset = store.asset(boardId, assetMatch[1]!); if (!asset) throw new HttpError(404, 'Asset not found');
-        response.writeHead(200, { 'Content-Type': asset.mimeType, 'Content-Length': asset.size, 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' }); return response.end(readFileSync(join(options.assetDirectory, asset.storageKey)));
+        response.writeHead(200, { 'Content-Type': asset.mimeType, 'Content-Length': asset.size, 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' });
+        return response.end(method === 'HEAD' ? undefined : readFileSync(join(options.assetDirectory, asset.storageKey)));
       }
       throw new HttpError(404, 'Not found');
     } catch (error) { if (!response.headersSent) json(response, error instanceof HttpError ? error.status : 500, { error: error instanceof HttpError ? error.message : 'Internal server error' }); else response.end(); }
@@ -313,7 +315,7 @@ export function createWhiteboardServer(options: Options) {
         try { persistSnapshot(documentName, document); }
         catch (error) { persistenceFailure(documentName, document, error); throw Object.assign(new Error('Board persistence is unavailable'), { reason: 'persistence-failed' }); }
       }
-      connectionConfig.readOnly = role === 'viewer'; return { userId: session.user.id, token: sessionToken, role, expiresAt: session.expiresAt };
+      connectionConfig.readOnly = role === 'viewer'; return { userId: session.user.id, name: session.user.username, token: sessionToken, role, expiresAt: session.expiresAt };
     },
     async connected({ connection, context, documentName }) {
       let expiration: ReturnType<typeof setTimeout> | undefined;
@@ -409,7 +411,18 @@ export function createWhiteboardServer(options: Options) {
       } catch (error) { persistenceFailure(documentName, document, error); }
     },
     async beforeUnloadDocument({ documentName }) { if (persistenceFailed.has(documentName)) throw null; },
-    async beforeHandleAwareness({ documentName }) { network.awarenessMessages++; const stats = metric(documentName); stats.awareness++; stats.windowAwareness++; },
+    async beforeHandleAwareness({ documentName, context, awareness, states }) {
+      for (const [clientId, state] of states) {
+        const existing = awareness.getStates().get(clientId);
+        if (!context || context.invalidated || !state || state.userId !== context.userId
+          || state.name !== undefined && state.name !== context.name
+          || existing && existing.userId !== context.userId) {
+          states.delete(clientId); continue;
+        }
+        state.userId = context.userId; state.name = context.name;
+      }
+      network.awarenessMessages++; const stats = metric(documentName); stats.awareness++; stats.windowAwareness++;
+    },
     async onRequest({ request, response }) { await api(request, response); throw null; },
     async onUpgrade({ request, socket }) { if (new URL(request.url ?? '/', 'http://localhost').pathname !== websocketPath) { socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n'); throw null; } },
   });

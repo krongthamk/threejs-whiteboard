@@ -71,10 +71,14 @@ incomplete headers are refused; these checks do not certify the compressed image
 payload. Clients verify headers before native decoding, and renderers check each
 image instance's declared dimensions against its immutable asset header. An asset copy creates a new
 board-scoped reference to the same immutable stored bytes. SVG uploads are not
-accepted. Cookie-authenticated mutations require an allowed Origin; explicit
-Bearer requests support CLI clients without ambient cookies. Browser WebSocket
+accepted. Cookie-authenticated mutations require an allowed Origin; only an
+`Authorization: Bearer ...` header selects explicit-token authentication and
+exempts requests from the cookie Origin requirement. Other Authorization schemes
+fall back to the cookie and still require Origin. Bearer requests support CLI
+clients without ambient cookies. Browser WebSocket
 Origin is checked as well. Unknown boards and boards outside membership both
-return 404.
+return 404. Authenticated GET endpoints also accept HEAD with the same read
+permissions and headers, without response bodies or board mutations.
 
 ## Collaboration and persistence
 
@@ -82,7 +86,12 @@ Connect to `/collaboration` with the board ID as Hocuspocus document name. Brows
 providers send an empty authentication token and the browser supplies the session
 cookie; explicit tools may still pass their signed token. Viewers are read-only. Membership
 and session revocation are rechecked before each message, including after an
-already authenticated session changes. Awareness remains ephemeral.
+already authenticated session changes. Awareness remains ephemeral. Presence
+user IDs and names come from the authenticated account; conflicting supplied
+identities are dropped before application or broadcast. A correct user ID with
+no name receives the server's account name. One account cannot overwrite another
+account's existing awareness client ID. Valid viewer cursor presence remains
+available even though viewers cannot write board content.
 
 Browser connections also send `expectedUserId` for the account that owns their
 local cache. The server compares this noncredential hint with the authenticated

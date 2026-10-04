@@ -5,6 +5,7 @@ import { appendFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { BoardDocument as WriterBoardDocument } from '../../model/src/index.js';
 import { createElement } from '../../model/src/index.js';
+import { productionIdentity } from './production-identity.js';
 
 const workerIndex = Number(process.env.WORKER_INDEX), clientsPerWorker = 5;
 const totalClients = 40, durationSeconds = Number(process.env.DURATION_SECONDS ?? 1800);
@@ -116,6 +117,7 @@ process.on('message', async (message: { type: string; startedAt?: number }) => {
   } catch (error) { void stop(error); }
 });
 try {
+  const identity = await productionIdentity(`http://127.0.0.1:${process.env.SPIKE_PORT ?? 12347}`, process.env.SESSION_TOKEN!);
   for (let local = 0; local < clientsPerWorker; local++) {
     const index = workerIndex * clientsPerWorker + local, doc = new Y.Doc(), board = new WriterBoardDocument(doc, { undo: false });
     const socket = new HocuspocusProviderWebsocket({ url: `ws://127.0.0.1:${process.env.SPIKE_PORT ?? 12347}/collaboration`, WebSocketPolyfill: MeasuredSocket });
@@ -132,7 +134,7 @@ try {
       onDisconnect() { if (running) disconnects++; },
     });
     client.provider.attach();
-    client.provider.awareness?.setLocalState({ userId: `load-${index}`, name: `User ${index}`, color: '#4678ca', cursor: { x: 0, y: 0 }, selection: [], editingTextId: null });
+    client.provider.awareness?.setLocalState({ ...identity, color: '#4678ca', cursor: { x: 0, y: 0 }, selection: [], editingTextId: null });
     clients.push(client);
   }
   await waitUntil(() => clients.every(client => client.provider.isSynced && !client.provider.hasUnsyncedChanges));

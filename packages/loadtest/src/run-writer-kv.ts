@@ -11,7 +11,7 @@ const stem = fileURLToPath(new URL(`../results/s3-${production ? 'production' : 
 mkdirSync(dirname(stem), { recursive: true });
 const record = (value: object) => appendFileSync(`${stem}.ndjson`, `${JSON.stringify(value)}\n`);
 const sourcePaths = ['packages/loadtest/src/run-writer-kv.ts', 'packages/loadtest/src/writer-client-worker.ts', 'packages/server/src/spike-writer-kv.ts', 'spikes/model-kv/writer-model.ts', 'spikes/model-kv/model.ts', 'packages/model/src/index.ts', 'packages/model/src/schema.ts', 'packages/model/src/types.ts', 'packages/loadtest/package.json', 'packages/server/package.json', 'packages/model/package.json', 'pnpm-lock.yaml'];
-if (production) sourcePaths.push('packages/loadtest/src/production-client-worker.ts', 'packages/server/src/benchmark.ts', 'packages/server/src/server.ts', 'packages/server/src/store.ts', 'packages/server/src/static.ts');
+if (production) sourcePaths.push('packages/loadtest/src/production-client-worker.ts', 'packages/loadtest/src/production-identity.ts', 'packages/server/src/benchmark.ts', 'packages/server/src/server.ts', 'packages/server/src/store.ts', 'packages/server/src/static.ts');
 sourcePaths.push(...readdirSync(fileURLToPath(new URL('../../model/src', import.meta.url))).filter(path => /\.(ts|json)$/.test(path)).map(path => `packages/model/src/${path}`));
 const sourceInputs = Object.fromEntries([...new Set(sourcePaths)].map(path => [path, readFileSync(fileURLToPath(new URL(`../../../${path}`, import.meta.url)), 'utf8')]));
 const sourceHashes = Object.fromEntries(Object.entries(sourceInputs).map(([path, content]) => [path, createHash('sha256').update(content).digest('hex')]));
