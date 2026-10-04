@@ -86,3 +86,19 @@ it('reanchors remaining touch fingers without a camera jump or an accidental edi
   fixture.events.get('blur')!({}); expect(fixture.captured.size).toBe(0);
   expect(board.readAll()).toEqual([]); fixture.destroy();
 });
+
+it('keeps a connector bound during standalone drag preview and commit', () => {
+  const board = new BoardDocument(), target = board.create('rect', { id: 'target' });
+  const binding = bindToElement(target, .5, .5);
+  const connector = board.create('connector', { id: 'connector', props: { start: binding, end: { x: 500, y: 200 }, kind: 'straight' } });
+  const fixture = setup(board); fixture.session.setState({ selectedIds: [connector.id] }); board.undoManager.clear();
+  const down = { ...fixture.pointer, clientX: 690, clientY: 425 };
+  fixture.canvasEvents.get('pointerdown')!(down);
+  fixture.canvasEvents.get('pointermove')!({ ...down, clientX: 720, clientY: 465 });
+  expect(board.read(connector.id)).toEqual(connector);
+  const preview = fixture.renderer.applyDiff.mock.calls.at(-1)![0].find((element: { id: string }) => element.id === connector.id);
+  expect(preview.props).toMatchObject({ start: binding, end: { x: 530, y: 240 } });
+  fixture.canvasEvents.get('pointerup')!({ ...down, clientX: 720, clientY: 465 });
+  expect(board.read(connector.id)!.props).toEqual(preview.props); expect(board.undoManager.undoStack).toHaveLength(1);
+  fixture.destroy();
+});

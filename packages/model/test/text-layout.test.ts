@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { createElement, documentToSvg, measureTextWidth, positionFontRuns, resolveFontRuns, textLayout, textSize } from '../src/index.js';
+import { createElement, documentToSvg, measureTextWidth, positionFontRuns, resolveFontRuns, textLayout, textSize, unsupportedFontCodePoints } from '../src/index.js';
 import metrics from '../src/font-metrics.generated.json';
 
 describe('shipped font metrics', () => {
@@ -53,6 +53,16 @@ describe('shipped font metrics', () => {
     expect(layout.lines.map(line => line.text)).toEqual(['e\u0301', '👩‍💻', 'X', 'Y', 'Z']);
   });
 
+  it.each([{ source: '\t\t', fontSize: 24 }, { source: 'word word word word ', fontSize: 16 }])('keeps the consumed final separator caret distinct for $source', ({ source, fontSize }) => {
+    const layout = textLayout(createElement('text', { w: 40, style: { fontSize }, props: { text: source, align: 'left', autoSize: false } }));
+    for (let at = 0; at <= source.length; at++) {
+      expect(layout.renderedToSource[layout.sourceToRendered[at]!]).toBe(at);
+      if (at) expect(layout.sourceToRendered[at]).toBeGreaterThanOrEqual(layout.sourceToRendered[at - 1]!);
+    }
+    expect(layout.sourceToRendered[source.length - 1]).not.toBe(layout.sourceToRendered[source.length]);
+    for (const line of layout.lines) expect(line.text).toBe(source.slice(line.start, line.end));
+  });
+
   it('keeps the actual fallback font across Latin suffixes and explicit newlines', () => {
     expect(resolveFontRuns('abc日本語 \nWWW', 'IBM Plex Mono')).toEqual([
       { family: 'IBM Plex Mono', text: 'abc', start: 0, end: 3 },
@@ -66,6 +76,19 @@ describe('shipped font metrics', () => {
     expect(resolveFontRuns('A\u0304')[0]!.family).toBe('Inter');
     expect(resolveFontRuns('Ā')[0]!.family).toBe('Noto Sans JP');
     expect(() => resolveFontRuns('🦄', 'Inter', { strict: true })).toThrow('U+1F984');
+  });
+
+  it('shares PDF coverage with nonblocking warnings using unique sorted source codepoints', () => {
+    expect(unsupportedFontCodePoints('🦄ก🦄ก')).toEqual([0x0e01, 0x1f984]);
+    for (const font of ['Inter', 'IBM Plex Mono', 'Noto Sans JP']) {
+      expect(unsupportedFontCodePoints('Hello 日本語\t\n\r ', font)).toEqual([]);
+      expect(unsupportedFontCodePoints('WWW\n日本語', font, 'Noto Sans JP')).toEqual([]);
+      for (const character of ['ก', '🦄']) {
+        expect(unsupportedFontCodePoints(character, font)).toEqual([character.codePointAt(0)]);
+        expect(() => resolveFontRuns(character, font, { strict: true })).toThrow(`U+${character.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`);
+        expect(() => resolveFontRuns(character, font)).not.toThrow();
+      }
+    }
   });
 
   it('measures ligatures and adjacent kerning without counting overlapping substitutions twice', () => {

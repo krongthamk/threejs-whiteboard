@@ -22,6 +22,30 @@ export function resolvedFontFamily(family: string): 'Inter' | 'IBM Plex Mono' {
   return family.toLowerCase().includes('mono') ? 'IBM Plex Mono' : 'Inter';
 }
 
+function coveredFont(character: string, primary: ShippedFontFamily, previous?: ShippedFontFamily): ShippedFontFamily | null {
+  const covers = (family: ShippedFontFamily) => Object.hasOwn(FONT_METRICS[family]!.advances, character);
+  return previous && (covers(previous) || /\s/u.test(character)) ? previous
+    : covers(primary) ? primary : covers('Noto Sans JP') ? 'Noto Sans JP' : null;
+}
+const codePointLabel = (point: number): string => `U+${point.toString(16).toUpperCase().padStart(4, '0')}`;
+
+/** Uses the same cmap, fallback priority and whitespace exceptions as PDF coverage. */
+export function unsupportedFontCodePoints(text: string, fontFamily = 'Inter', previousFont?: ShippedFontFamily): number[] {
+  const primary = fontFamily === 'Noto Sans JP' ? fontFamily : resolvedFontFamily(fontFamily);
+  const missing = new Set<number>();
+  let previous = previousFont;
+  for (const character of text) {
+    const family = coveredFont(character, primary, previous);
+    if (!family && !/\s/u.test(character)) missing.add(character.codePointAt(0)!);
+    previous = family ?? primary;
+  }
+  return [...missing].sort((a, b) => a - b);
+}
+
+export function fontCoverageWarning(points: readonly number[]): string {
+  return `Some text uses characters without a shipped font (${points.map(codePointLabel).join(', ')}). Text layout may be approximate, and PDF export cannot include those characters.`;
+}
+
 /** Pinned Troika 0.52.5 keeps the preceding font when it covers the next glyph,
  * including across whitespace/newlines. Offsets refer to unnormalized UTF-16 source.
  */
@@ -30,10 +54,8 @@ export function resolveFontRuns(text: string, fontFamily = 'Inter', options: { p
   const runs: FontRun[] = [];
   let previous = options.previousFont, start = 0;
   for (const character of text) {
-    const covers = (family: ShippedFontFamily) => Object.hasOwn(FONT_METRICS[family]!.advances, character);
-    const family = previous && (covers(previous) || /\s/u.test(character)) ? previous
-      : covers(primary) ? primary : covers('Noto Sans JP') ? 'Noto Sans JP' : null;
-    if (options.strict && !family && !/\s/u.test(character)) throw new Error(`PDF export has no shipped font for U+${character.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}.`);
+    const family = coveredFont(character, primary, previous);
+    if (options.strict && !family && !/\s/u.test(character)) throw new Error(`PDF export has no shipped font for ${codePointLabel(character.codePointAt(0)!)}.`);
     const selected = family ?? primary, end = start + character.length, last = runs.at(-1);
     if (last?.family === selected) { last.text += character; last.end = end; }
     else runs.push({ family: selected, text: character, start, end });
@@ -215,6 +237,9 @@ export function textLayout(element: Element): TextLayout {
       lines.push({ text, start, end: lineEnd, width: measure(start, lineEnd) });
       start = nextStart;
     }
+    // A consumed final separator still has two distinct caret boundaries.
+    // Preserve the boundary after it as the start of an empty final line.
+    if (lines.at(-1)!.end < end) lines.push({ text: '', start: end, end, width: 0 });
     if (paragraphEnd === -1) break;
     start = paragraphEnd + 1;
   }

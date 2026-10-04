@@ -1,4 +1,4 @@
-import { BoardDocument, SCHEMA_VERSION, type ElementStyle } from '@whiteboard/model';
+import { BoardDocument, fontCoverageWarning, SCHEMA_VERSION, unsupportedFontCodePoints, type Element, type ElementStyle } from '@whiteboard/model';
 import { createRenderer, type ThreeRenderer } from '@whiteboard/renderer';
 import { EditorController } from './controller';
 import { createSession, type SessionStore } from './session';
@@ -47,6 +47,7 @@ export class EditorRuntime {
   private unsubscribe: () => void;
   private unsubscribeSession: () => void;
   private readonly onChange: () => void;
+  private readonly warnedFontCoverage = new Set<string>();
 
   constructor(options: RuntimeOptions) {
     this.onChange = options.onChange;
@@ -68,6 +69,7 @@ export class EditorRuntime {
     reportDiagnostics();
     this.elementIds = new Set(initialElements.map(element => element.id));
     this.renderer.setElements(initialElements);
+    this.warnFontCoverage(initialElements, options.onError);
     this.renderer.setCamera(this.session.getState().camera);
     this.unsubscribe = this.board.subscribe(({ ids }) => {
       try {
@@ -78,6 +80,7 @@ export class EditorRuntime {
         for (const element of upserts) this.elementIds.add(element.id);
         for (const id of removals) this.elementIds.delete(id);
         this.renderer.applyDiff(upserts, removals);
+        this.warnFontCoverage(upserts, options.onError);
         if (removals.length) {
           const removed = new Set(removals), selectedIds = this.session.getState().selectedIds;
           if (selectedIds.some(id => removed.has(id))) this.session.setState({ selectedIds: selectedIds.filter(id => !removed.has(id)) });
@@ -118,6 +121,18 @@ export class EditorRuntime {
       this.frame = requestAnimationFrame(render);
     };
     render();
+  }
+
+  private warnFontCoverage(elements: readonly Element[], onError: RuntimeOptions['onError']): void {
+    const missing = new Set<number>();
+    for (const element of elements) {
+      if (element.type !== 'text' && element.type !== 'sticky') continue;
+      const points = unsupportedFontCodePoints(element.props.text, element.style.fontFamily);
+      const key = points.join(',');
+      if (!points.length || this.warnedFontCoverage.has(key)) continue;
+      this.warnedFontCoverage.add(key); for (const point of points) missing.add(point);
+    }
+    if (missing.size) onError(fontCoverageWarning([...missing].sort((a, b) => a - b)));
   }
 
   applyStyle(patch: Partial<ElementStyle>): void {

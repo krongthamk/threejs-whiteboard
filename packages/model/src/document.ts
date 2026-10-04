@@ -356,21 +356,17 @@ export class BoardDocument {
     this.updateMany(ids.flatMap(id => { const element = this.read(id); return element ? [{ id, patch: { style: { ...element.style, ...patch } } }] : []; }));
   }
   move(ids: readonly string[], delta: Point): void {
-    const selected = new Set(ids), updates: { id: string; patch: ElementPatch }[] = [];
-    let elements: Map<string, Element> | undefined;
+    const updates: { id: string; patch: ElementPatch }[] = [];
     for (const id of ids) {
       const element = this.read(id); if (!element) continue;
       if (element.type === 'stroke') updates.push({ id, patch: { props: { ...element.props, points: element.props.points.map((n, i) => i % 3 === 0 ? n + delta.x : i % 3 === 1 ? n + delta.y : n) } } });
       else if (element.type === 'connector') {
         const moveBinding = (binding: Binding): Binding => {
-          if ('elementId' in binding && selected.has(binding.elementId)) return binding;
-          elements ??= new Map();
-          if ('elementId' in binding && !elements.has(binding.elementId)) {
-            const target = this.read(binding.elementId); if (target) elements.set(target.id, target);
-          }
-          const p = resolveBinding(binding, elements); return { x: p.x + delta.x, y: p.y + delta.y };
+          if ('elementId' in binding) return binding;
+          return { x: binding.x + delta.x, y: binding.y + delta.y };
         };
-        updates.push({ id, patch: { props: { ...element.props, start: moveBinding(element.props.start), end: moveBinding(element.props.end) } } });
+        const start = moveBinding(element.props.start), end = moveBinding(element.props.end);
+        if (start !== element.props.start || end !== element.props.end) updates.push({ id, patch: { props: { ...element.props, start, end } } });
       } else updates.push({ id, patch: { x: element.x + delta.x, y: element.y + delta.y } });
     }
     this.updateMany(updates);
@@ -400,6 +396,7 @@ export class BoardDocument {
   duplicate(ids: readonly string[], delta: Point = { x: 24, y: 24 }): string[] {
     const sources = ids.flatMap(id => { const element = this.read(id); return element ? [element] : []; });
     const idMap = new Map(sources.map(element => [element.id, crypto.randomUUID()]));
+    const elements = new Map(sources.map(element => [element.id, element]));
     let index = this.highestIndex();
     const copies = sources.map(source => {
       index = generateKeyBetween(index, null);
@@ -408,7 +405,10 @@ export class BoardDocument {
         const remap = (binding: Binding): Binding => {
           if (!('elementId' in binding)) return { x: binding.x + delta.x, y: binding.y + delta.y };
           const elementId = idMap.get(binding.elementId);
-          return elementId ? { ...binding, elementId, fallback: { x: binding.fallback.x + delta.x, y: binding.fallback.y + delta.y } } : binding;
+          if (elementId) return { ...binding, elementId, fallback: { x: binding.fallback.x + delta.x, y: binding.fallback.y + delta.y } };
+          if (!elements.has(binding.elementId)) { const target = this.read(binding.elementId); if (target) elements.set(target.id, target); }
+          const point = resolveBinding(binding, elements);
+          return { x: point.x + delta.x, y: point.y + delta.y };
         };
         copy = { ...copy, props: { ...copy.props, start: remap(copy.props.start), end: remap(copy.props.end) } };
       } else if (copy.type === 'stroke') copy = { ...copy, props: { ...copy.props, points: copy.props.points.map((n, i) => i % 3 === 0 ? n + delta.x : i % 3 === 1 ? n + delta.y : n) } };

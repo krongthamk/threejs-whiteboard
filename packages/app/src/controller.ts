@@ -264,10 +264,9 @@ export class EditorController {
       elements.push(gesture.element.type === 'connector' ? { ...gesture.element, props: { ...gesture.element.props, end: this.connectorAnchor(gesture.point) } } :
         { ...gesture.element, ...box, w: Math.max(1, box.w), h: Math.max(1, box.h) });
     } else if (gesture.moved) {
-      const selectedIds = new Set(gesture.ids);
       for (const id of gesture.ids) {
         const latest = this.hitIndex.elements.get(id); if (!latest) continue;
-        elements.push(gesture.kind === 'move' ? translateElement(latest, gesture.delta, selectedIds, this.hitIndex.elements) : transformElement(latest, { ...gesture, elements: this.hitIndex.elements }));
+        elements.push(gesture.kind === 'move' ? translateElement(latest, gesture.delta) : transformElement(latest, { ...gesture, elements: this.hitIndex.elements }));
       }
     }
     const nextPreview = new Map(elements.map(element => [element.id, element]));
@@ -420,12 +419,12 @@ export class EditorController {
   }
 }
 
-function translateElement(element: Element, delta: Point, selection: ReadonlySet<string>, elements: ReadonlyMap<string, Element>): Element {
+function translateElement(element: Element, delta: Point): Element {
   if (element.type === 'stroke') return { ...element, x: element.x + delta.x, y: element.y + delta.y, props: { ...element.props, points: element.props.points.map((value, i) => value + (i % 3 === 0 ? delta.x : i % 3 === 1 ? delta.y : 0)) } };
   if (element.type === 'connector') {
     const translate = (binding: Binding): Binding => {
-      if ('elementId' in binding && selection.has(binding.elementId)) return binding;
-      const point = resolveBinding(binding, elements); return { x: point.x + delta.x, y: point.y + delta.y };
+      if ('elementId' in binding) return binding;
+      return { x: binding.x + delta.x, y: binding.y + delta.y };
     };
     return { ...element, props: { ...element.props, start: translate(element.props.start), end: translate(element.props.end) } };
   }
