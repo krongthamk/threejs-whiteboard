@@ -1,8 +1,10 @@
 # S3 archived-source comparison
 
+**Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
+
 Audited **2026-09-29T19:04:02.862866+00:00**. This is a source snapshot taken while the archived run and model font work were still in progress, not the final source freeze or a performance result.
 
-Archive: [`s3-production-2026-09-29T18-46-22.867Z.sources.json`](../../../packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.sources.json). Manifest SHA256: `b5ceff96b7276528ed343349be09b5637eedd794d21c9b2fae4d37c045f17556`. Every one of its **22 source strings and 22 frozen `.inputs` files** matches its recorded SHA256. The coordinator forks the frozen inputs; dependency directories are shared, and the captured lockfile remains unchanged. All full hashes and byte counts are in [source-audit.json](source-audit.json).
+Archive: `s3-production-2026-09-29T18-46-22.867Z.sources.json`. Manifest SHA256: `b5ceff96b7276528ed343349be09b5637eedd794d21c9b2fae4d37c045f17556`. Every one of its **22 source strings and 22 frozen `.inputs` files** matches its recorded SHA256. The coordinator forks the frozen inputs; dependency directories are shared, and the captured lockfile remains unchanged. All full hashes and byte counts are in source-audit.json.
 
 **18 of 22 current files are identical.** The harness, production worker, benchmark, BoardDocument, schema, geometry, Store, static server and dependency manifests/lockfile are unchanged. Changed files at this timestamp:
 

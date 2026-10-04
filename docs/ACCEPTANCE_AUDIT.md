@@ -1,5 +1,7 @@
 # Build-plan acceptance audit
 
+**Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and [font metrics evidence](../packages/model/reports/font-metrics-browser.json) remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
+
 Audit date: 2026-09-30 (local). Baseline: `ee372ddafd4744f67e1e1b0d467ebf2f608c968b`; scope is the complete implementation, including originally untracked files. This is an evidence map for [BUILD_PLAN.md](BUILD_PLAN.md), not a replacement for its numeric gates. No runtime code changed during this audit.
 
 **Current result:** Phases 0–4 have the implementation and measured evidence below, including the explicit Phase 0 decision-amendment exception. Phase 5 history/operations checks pass. **All planned phases and final acceptance checks are complete on the accepted Mac.** The final exact-source S3, source-frozen unit/browser/build/performance checks and actual production deployment have passed. A passing earlier run is not attributed to later source changes.
@@ -15,10 +17,10 @@ Audit date: 2026-09-30 (local). Baseline: `ee372ddafd4744f67e1e1b0d467ebf2f608c9
 
 | Requirement / exit | Evidence | Status / boundary |
 | --- | --- | --- |
-| S1: 5,000 shapes + 2,000 strokes + 500 texts ≥55 fps; 20,000 shapes ≥30 fps | [S1 report](S1_RENDERER_REPORT.md), [raw benchmark](../spikes/renderer/artifacts/s1-results.json) | Pass: both approximately 60 fps on accepted Mac. Production bundle, 90 warmup frames, 600 samples. |
+| S1: 5,000 shapes + 2,000 strokes + 500 texts ≥55 fps; 20,000 shapes ≥30 fps | [S1 report](S1_RENDERER_REPORT.md), [benchmark summary](benchmarks/s1/s1-results.json) | Pass: both approximately 60 fps on accepted Mac. Production bundle, 90 warmup frames, 600 samples. |
 | S1: 500 visible texts ≥55 fps; 5,000 offscreen texts add no text layout/GPU work | Same report and raw culling assertions | Pass: 500 visible every sampled frame; offscreen 0 text instances/draw calls/triangles. Document/index storage is not zero memory. |
 | S2: 10,000 concurrent pairs/3 clients, convergence and semantic validity | [S2 report](S2_MODEL_REPORT.md), [schema2 raw result](../packages/model/reports/s2-schema2-fuzz.json), [permanent fuzz](../packages/model/test/fuzz.test.ts) | Pass: 20,000 ops, 946,710 validations, 0 invalid/0 divergent; 15 classes including undo/redo. Latest full unit rerun also passes. |
-| S3: 40 clients×5 ops/s+20 Hz cursors, 30 min, p95<150 ms, CPU<70% of one core, flat retained memory | [S3 report](S3_LOAD_REPORT.md), candidate/reference raw reports linked there | Final exact-source production **PASS**: 360,000 acknowledgements, p95 36.89 ms, CPU maximum 40.73%, reviewed fixed-workload memory plateau; candidate and reference retained separately. The initial failure triggered D3, not a relaxed gate. |
+| S3: 40 clients×5 ops/s+20 Hz cursors, 30 min, p95<150 ms, CPU<70% of one core, flat retained memory | [S3 report](S3_LOAD_REPORT.md), candidate/reference summary reports linked there | Final exact-source production **PASS**: 360,000 acknowledgements, p95 36.89 ms, CPU maximum 40.73%, reviewed fixed-workload memory plateau; candidate and reference retained separately. The initial failure triggered D3, not a relaxed gate. |
 | S4: caret/selection/IME plus 2×PNG/SVG mixed-board fidelity | [S4 report](S4_TEXT_EXPORT_REPORT.md), [prototype results](benchmarks/s4/suite-results.json), [extended text report](TEXT_LAYOUT_REPORT.md) | Pass using the planned DOM editing fallback. Three.js remains display/PNG projection. |
 | Gate: all pass or affected decision amended before Phase 1 | [Plan§9](BUILD_PLAN.md#9-execution-amendments) | Explicit D3/D7 exception satisfied. Remaining Phase 5 production acceptance was never waived. |
 
@@ -75,7 +77,7 @@ The text comparison uses48 channel levels,0.5 CSS-pixel antialias allowance and 
 
 | Requirement / exit | Proof | Status / boundary |
 | --- | --- | --- |
-| Full production S3, p95<150 ms, CPU<70% of one core, flat30 min memory; bandwidth/awareness recorded | [Load report](S3_LOAD_REPORT.md), [production reference](../packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.json) | Final exact-source **PASS**: 360,000 acked gestures, 1,440,000 cursors, p95=36.89 ms, max CPU 40.73%, 0 disconnects. [Final raw result](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.json); the earlier linked reference remains separate. |
+| Full production S3, p95<150 ms, CPU<70% of one core, flat30 min memory; bandwidth/awareness recorded | [Load report](S3_LOAD_REPORT.md), [production reference](../packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.json) | Final exact-source **PASS**: 360,000 acked gestures, 1,440,000 cursors, p95=36.89 ms, max CPU 40.73%, 0 disconnects. [Final summary result](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.json); the earlier linked reference remains separate. |
 | Snapshot/update-log compaction at5 MiB or10,000 updates | Server compaction/offline-clock tests; [operations report](../packages/server/OPERATIONS_REPORT.md) | Verified; transactional snapshot/log replacement retains client clocks and offline merge; no reset/epoch discard. |
 | 100,000 historical updates load <2 s | [100k history result](../packages/loadtest/results/history-2026-09-29T09-04-08.887Z.json) | Pass: 67.78/42.38/34.96 ms including SQLite read, Yjs apply, model construction and 1,280-element projection; three OS-cache-warm loads. |
 | Six-month busy-board simulation | [180-day result](../packages/loadtest/results/churn-2026-09-29T18-41-21.033Z.json), [independent oracle review](../packages/loadtest/results/churn-2026-09-29T18-41-21.033Z.review.json) | Pass for declared accelerated workload: 108,000 updates, 360 fresh session writers, 900 delete/recreate pairs, 106 visible elements; 163.93/147.01/146.90 ms warm reload. Day 0 offline replica merges after final compaction; restore hashes agree. |
@@ -88,7 +90,7 @@ The text comparison uses48 channel levels,0.5 CSS-pixel antialias allowance and 
 
 ## Dependencies, scope and final closure
 
-[D1/D5/pin verification](DEPENDENCY_VERIFICATION.md) and the [license audit log](benchmarks/final/license-audit.log) cover pinned dependencies and exclusion of tldraw/@y/hub. Yjs 13.6.33 is deliberate: the undo ledger uses exported low-level Item split helpers and must rerun full regression tests before upgrading. Generated font files carry source hashes. No Redis, WebRTC, AI, public anonymous board, comments/version-history UI, mobile-native app or embedded tldraw/Excalidraw component was added as v1 scope.
+[D1/D5/pin verification](DEPENDENCY_VERIFICATION.md) and the [license audit script](../scripts/license-audit.mjs) cover pinned dependencies and exclusion of tldraw/@y/hub. Yjs 13.6.33 is deliberate: the undo ledger uses exported low-level Item split helpers and must rerun full regression tests before upgrading. Generated font files carry source hashes. No Redis, WebRTC, AI, public anonymous board, comments/version-history UI, mobile-native app or embedded tldraw/Excalidraw component was added as v1 scope.
 
 [FINAL_REVIEW.md](FINAL_REVIEW.md) records independent standards/specification review. The two functional findings were the omitted board-ID WebSocket routing key and mixed-script auto-size; both now have concrete fixes and regression evidence. Native editor typography and same-host sharding limits are explicit, not concealed as complete cross-platform/multi-host validation.
 

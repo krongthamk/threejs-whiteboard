@@ -233,7 +233,7 @@ Checklist legend: `[ ]` open, `[x]` done. Update the boxes as you go.
 3. In `server.test.ts:85-103`, assert the positive `read-only-write-rejected` stateless message (already used at `:197`) or `provider.hasUnsyncedChanges` staying true, instead of sleeping.
 4. Add a `workflow_dispatch` job on `macos-latest` that runs `RUN_APP_BENCHMARK=1 pnpm test:app` and `node spikes/renderer/run-benchmark.mjs`, or state in the README that these gates are never automated.
 
-### [ ] 19. About 80 MB of generated run artifacts are tracked (medium)
+### [x] 19. About 80 MB of generated run artifacts are tracked (medium)
 
 **Where:** `packages/loadtest/results/` (37 MB, 187 files: 105 `*.latencies.f64le`, 19 `.ndjson`, 10 `.pdf`, 5 `.pid` of dead processes, logs), `docs/benchmarks/` (38 MB, 133 files, 9 logs), `spikes/public/fonts` (3.5 MB byte-duplicates of `packages/app/public/fonts`), `spikes/renderer/artifacts/` (2.3 MB), `packages/model/reports/` (2 MB including a 1.85 MB `.bin`), `packages/loadtest/packages/loadtest/results/` (mis-nested).
 

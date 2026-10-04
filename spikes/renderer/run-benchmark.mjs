@@ -10,6 +10,7 @@ await mkdir(artifacts, { recursive: true });
 const spikesRoot = fileURLToPath(new URL('../', import.meta.url));
 const buildDirectory = fileURLToPath(new URL('./dist/', import.meta.url));
 await build({ configFile: false, root: spikesRoot,
+  publicDir: fileURLToPath(new URL('../../packages/app/public', import.meta.url)),
   resolve: { alias: {
     '@whiteboard/model': fileURLToPath(new URL('../../packages/model/src/index.ts', import.meta.url)),
     '@whiteboard/renderer': fileURLToPath(new URL('../../packages/renderer/src/index.ts', import.meta.url)),

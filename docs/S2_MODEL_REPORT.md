@@ -1,12 +1,14 @@
 # S2 — coherent Yjs document model
 
+**Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
+
 Measured 2026-09-29 with Yjs 13.6.33, y-utility 0.1.4 and Vitest 5.0.2. **PASS for production schema 2:** 10,000 concurrent operation pairs across three replicas, zero invalid elements, zero divergent pairs. The production adapter preserves the document API and now uses writer-owned registers under the explicit D3/D7 amendment in BUILD_PLAN §9. S3 transport/memory gates are separate and remain unchanged.
 
 ## Why schema 2 replaced the passing schema 1 model
 
 The original nested-map schema passed S2, including its two peer-preserving native-history repairs. S3 then measured persistent linear Yjs metadata growth under the exact 40-writer workload and its full run timed out during final synchronization. A single shared YKeyValue array also failed interleaved-writer growth and peer-preserving undo. Those failures triggered the plan's failed-spike exception; they were not removed from the evidence.
 
-The original model's 870,897-validation result remains in [s2-fuzz.json](../packages/model/reports/s2-fuzz.json). Its implementation, tests and report are preserved in [baseline-v1](../spikes/model-kv/baseline-v1). The alternatives, rejected assertions, private-API dependence and retention measurements are documented in [the isolated storage report](../spikes/model-kv/REPORT.md) and [D3_STORAGE_INVESTIGATION.md](D3_STORAGE_INVESTIGATION.md).
+The original model's 870,897-validation result remains in s2-fuzz.json. Its implementation, tests and report are preserved in [baseline-v1](../spikes/model-kv/baseline-v1). The alternatives, rejected assertions, private-API dependence and retention measurements are documented in [the isolated storage report](../spikes/model-kv/REPORT.md) and [D3_STORAGE_INVESTIGATION.md](D3_STORAGE_INVESTIGATION.md).
 
 ## Production representation and API
 
@@ -47,13 +49,13 @@ The permanent fuzz uses seed `334462` (`0x51a7e`), three fixed replica IDs, and 
 
 Production cleanup subsequently removed the unsupported clock-mode option. Its two duplicate control-mode cases remain in the isolated prototype; the same supported-mode assertions remain permanent. Two provider-metadata cases were added, so the current suite still contains 39 cases. All 33 affected document/history/storage cases passed after those changes, and TypeScript passed. The text tests and full fuzz evidence above remain unchanged; authenticated live coverage is recorded separately in PHASE3_MODEL_REPORT.md, with exact source hashes for its loaded implementation.
 
-Durable full-run evidence: [Vitest JSON](../packages/model/reports/s2-schema2-vitest.json), [runner exit status](../packages/model/reports/s2-schema2-runner-status.json), and [runner log](../packages/model/reports/s2-schema2-runner.log). The isolated candidate also has a clean 10,000-pair pass with 818,007 validations and exit code 0. Its initial 180-second timeout failure and subsequent lost runner-status incident are retained; neither was mislabeled a clean suite pass. The final candidate run preserved every-pair raw equality while replacing recursively sorted raw serialization with stricter exact JSON ordering comparison.
+Durable full-run evidence: Vitest JSON, runner exit status, and runner log. The isolated candidate also has a clean 10,000-pair pass with 818,007 validations and exit code 0. Its initial 180-second timeout failure and subsequent lost runner-status incident are retained; neither was mislabeled a clean suite pass. The final candidate run preserved every-pair raw equality while replacing recursively sorted raw serialization with stricter exact JSON ordering comparison.
 
 The targeted tests cover peer-preserving same-property undo, independent move/recolor, deletion/restoration, repeated redo/undo, history clearing/GC, equal-clock ties, concurrent different-type creation, offline old generations returning after fresh reload, collision rejection, batched validation, immutable reads, transaction subscriptions, one-step gestures, 1,000-element bulk ordering, schema rejection, geometry, SVG, fonts and caret mappings.
 
 ## Retention limits
 
-Bounded hot edits over fixed writers, generations and logical fields do **not** imply memory bounded by visible element count. Obsolete generations and retired writer arrays are retained to preserve undo and disconnected replicas. The isolated measurement of 200 create/edit/delete/undo/redo cycles leaves zero visible elements but 402 logical records, 1,800 structs and a 255,912-byte snapshot. Production repeats this measurement in [schema2-lifecycle-retention.json](../packages/model/reports/schema2-lifecycle-retention.json). Neither ordinary snapshot encoding nor this adapter discards retired writers or old generations. Writer churn, long lifecycle histories and the full S3 transport workload require their own measured gates.
+Bounded hot edits over fixed writers, generations and logical fields do **not** imply memory bounded by visible element count. Obsolete generations and retired writer arrays are retained to preserve undo and disconnected replicas. The isolated measurement of 200 create/edit/delete/undo/redo cycles leaves zero visible elements but 402 logical records, 1,800 structs and a 255,912-byte snapshot. Production repeats this measurement in schema2-lifecycle-retention.json. Neither ordinary snapshot encoding nor this adapter discards retired writers or old generations. Writer churn, long lifecycle histories and the full S3 transport workload require their own measured gates.
 
 ## Shared geometry, text and export
 

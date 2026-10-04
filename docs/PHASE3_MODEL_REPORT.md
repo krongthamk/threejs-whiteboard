@@ -1,5 +1,7 @@
 # Phase 3 — authenticated live model verification
 
+**Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
+
 Status: **PASS for these Phase 3 model gates**, measured 2026-09-29. The full acceptance run completed all 10,000 pairs, the actual 30-second socket-offline interval, per-user history assertions, and SQLite reload checks. Its process exited with code 0. The earlier shortened infrastructure smoke is explicitly marked `acceptanceRun: false` and is not used as acceptance evidence.
 
 ## Measured result
@@ -19,7 +21,7 @@ Status: **PASS for these Phase 3 model gates**, measured 2026-09-29. The full ac
 | Fuzz runtime | 531,346 ms |
 | Overall process runtime | 562.844 seconds; exit code 0 |
 
-Durable evidence: [result JSON](../packages/model/reports/phase3-live/2026-09-29T09-03-45-263Z.result.json), [process exit](../packages/model/reports/phase3-live/2026-09-29T09-03-45-263Z.runner-exit.json), [progress/status](../packages/model/reports/phase3-live/2026-09-29T09-03-45-263Z.status.json), [runner log](../packages/model/reports/phase3-live/2026-09-29T09-03-45-263Z.runner.log), and [final persisted Yjs update](../packages/model/reports/phase3-live/2026-09-29T09-03-45-263Z.final-update.bin). The final semantic SHA-256 is `ffe55f5fa68eae28e55486c17d9397ba706a3edb6f4dad7f69fedba57ba7a7b7`.
+Durable evidence: result JSON, process exit, progress/status, runner log, and final persisted Yjs update. The final semantic SHA-256 is `ffe55f5fa68eae28e55486c17d9397ba706a3edb6f4dad7f69fedba57ba7a7b7`.
 
 ## Workload and checks
 

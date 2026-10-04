@@ -1,5 +1,7 @@
 # Image and presence renderer acceptance
 
+**Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
+
 The renderer passed its image/presence checks and sustained **60.00 fps** on the user-approved Mac target with the S1 mixed workload plus 16 images and 40 moving remote peers. This is renderer acceptance; server fan-out, authentication, application collaboration, and export controls have separate integration tests.
 
 ## Measured fixture
@@ -23,13 +25,13 @@ Recorded on 2026-09-29 UTC in a production Vite build, installed Chrome 154.0.80
 
 The original S1 requirement for this mixed fixture is at least 55 fps. This extension meets it while retaining all 500 visible document texts. Images were 256 × 256 source bitmaps displayed as 80 × 80 document boxes; they were decoded before timing. The measurement does not claim the same throughput for arbitrary image counts, large image decoding during a frame, DPR 2, different hardware, or more than 40 remote peers.
 
-Evidence: [raw measured report](../../spikes/renderer/artifacts/media-presence-results.json), [mixed screenshot](../../spikes/renderer/artifacts/media-mixed-40-peers.png). The screenshot was inspected; cursor names and editing badges are visible, with expected label overlap in the deliberately dense fixture.
+Evidence: raw measured report, mixed screenshot. The screenshot was inspected; cursor names and editing badges are visible, with expected label overlap in the deliberately dense fixture.
 
 ## Correctness and resource checks
 
-The [final measured report](../../spikes/renderer/artifacts/media-presence-results.json) passes all 21 assertions, with no page errors or external HTTP requests. The separate [focused report](../../spikes/renderer/artifacts/media-presence-checks.json) records the prior 20-assertion run before the awareness coalescing check was added.
+The final measured report passes all 21 assertions, with no page errors or external HTTP requests. The separate focused report records the prior 20-assertion run before the awareness coalescing check was added.
 
-- A 1024 × 512 source uses a 64-pixel display thumbnail. A 4× export of its 256 × 128 document box preserves alternating one-source-pixel stripes that cannot exist in the thumbnail. The display texture is restored afterward. The [full-source PNG](../../spikes/renderer/artifacts/media-full-source-export.png) was visually inspected.
+- A 1024 × 512 source uses a 64-pixel display thumbnail. A 4× export of its 256 × 128 document box preserves alternating one-source-pixel stripes that cannot exist in the thumbnail. The display texture is restored afterward. The full-source PNG was visually inspected.
 - Two element copies of the same asset share a display texture. Newly offscreen images allocate no image handles or texture work; textures from previously visible images are released offscreen and load correctly on return.
 - Independently expected quadrant colors verify texture orientation and 90° rotation. A half-opacity red image over blue is `[128, 0, 128, 255]` on screen and in PNG. A higher half-opacity green shape yields `[64, 128, 64, 255]`. Half-alpha red stored inside an image exports as straight-alpha `[255, 0, 0, 128]`.
 - Forty peers load local-font name labels and an editing indicator. Thirty cursor updates preserve peer group and frame geometry identities. Presence makes no change to the exported PNG bytes. Clearing peers removes their primitives; repeated create/render/clear cycles retain four GPU geometries and two textures, matching the pre-cycle baseline. Shared font atlas allocation is retained by Troika.
@@ -40,9 +42,9 @@ The tests use actual Chrome WebGL rendering and native `ImageBitmap` decoding. T
 
 ## Failed runs and diagnosis
 
-Two earlier 60-snapshot runs failed the frame budget and are retained: [50.28 fps with an overlapping app export browser run](../../spikes/renderer/artifacts/media-presence-contended.json), and [35.43 fps with no managed test browser present at launch](../../spikes/renderer/artifacts/media-presence-quiet-failed.json). The latter had a 757 ms maximum CPU frame. The absence of another test browser did not mean the user's other applications or operating-system work were idle. These records are not used as passing acceptance evidence.
+Two earlier 60-snapshot runs failed the frame budget and are retained: 50.28 fps with an overlapping app export browser run, and 35.43 fps with no managed test browser present at launch. The latter had a 757 ms maximum CPU frame. The absence of another test browser did not mean the user's other applications or operating-system work were idle. These records are not used as passing acceptance evidence.
 
-After the session's long interruption, a [diagnostic control series](../../spikes/renderer/artifacts/media-diagnostic.json) measured the original mixed fixture, 40 peers with fixed zoom, 40 peers with changing zoom, hidden presence with the same update workload, and the original fixture again. Every case sustained 60 fps. Presence snapshot processing was at most about 0.1 ms at p95; zoom-related presence updates were about 0.3 ms. WebGL draw submission was the main measured cost: roughly 8.4 ms at p95 for the base fixture and 11.7 ms with visible peers.
+After the session's long interruption, a diagnostic control series measured the original mixed fixture, 40 peers with fixed zoom, 40 peers with changing zoom, hidden presence with the same update workload, and the original fixture again. Every case sustained 60 fps. Presence snapshot processing was at most about 0.1 ms at p95; zoom-related presence updates were about 0.3 ms. WebGL draw submission was the main measured cost: roughly 8.4 ms at p95 for the base fixture and 11.7 ms with visible peers.
 
 The exact full acceptance command then passed at 60.003 fps **without changing runtime code between the failed run, diagnostic controls, and passing rerun**. This establishes a passing measured workload and shows the earlier slowdown was not reproducible in that control series; it does not establish a specific application-code root cause for the slow runs. Performance under arbitrary competing system load remains unproven. The renderer change independently verified here is awareness coalescing, not a claimed repair of those unexplained timing outliers.
 
@@ -70,4 +72,4 @@ MEDIA_BENCHMARK=1 node spikes/renderer/run-media-checks.mjs
 
 Both build an isolated production bundle under ignored `spikes/renderer/dist/media`, serve port 4174, close their browser/server, and write their artifacts. `pnpm exec tsc --noEmit` also passes after integration.
 
-The final source-frozen rerun at approximately 19:35 UTC on 2026-09-29 also passed all 21 assertions, with 60.0024 fps, 12.9 ms p95 CPU, no page errors or external requests, after shared document/presence atlas readiness was integrated. [Final command log](../../docs/benchmarks/final/media.log). The prior passing reference remains in `docs/benchmarks/final/pre-final-reference/`.
+The final source-frozen rerun at approximately 19:35 UTC on 2026-09-29 also passed all 21 assertions, with 60.0024 fps, 12.9 ms p95 CPU, no page errors or external requests, after shared document/presence atlas readiness was integrated. Final command log. The prior passing reference remains in `docs/benchmarks/final/pre-final-reference/`.

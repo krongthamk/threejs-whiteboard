@@ -1,5 +1,7 @@
 # Build execution log
 
+**Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
+
 This file tracks evidence against [BUILD_PLAN.md](BUILD_PLAN.md). A phase is complete only when its exit criteria are demonstrated. On 2026-09-29 the user selected this Mac as the initial deployment and benchmark target. Measurements on this target do not establish performance on other hardware.
 
 ## Phase 0 — complete on the selected Mac
@@ -15,9 +17,9 @@ BUILD_PLAN §9 now explicitly amends D3 and selects S4's DOM editing fallback. P
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
-| S1 mixed 7,500-element board ≥55 fps; 20,000 shapes ≥30 fps; text culling | [Raw production benchmark](../spikes/renderer/artifacts/s1-results.json), [report](S1_RENDERER_REPORT.md) | Passed on selected Mac |
+| S1 mixed 7,500-element board ≥55 fps; 20,000 shapes ≥30 fps; text culling | [Raw production benchmark](benchmarks/s1/s1-results.json), [report](S1_RENDERER_REPORT.md) | Passed on selected Mac |
 | S2 10,000 concurrent pairs, 3 clients, convergence and coherent elements | [Integrated schema-2 fuzz](../packages/model/reports/s2-schema2-fuzz.json), [report](S2_MODEL_REPORT.md) | Original and integrated schema-2 models passed |
-| S3 40 clients, 5 ops/s, 20Hz awareness for 30 minutes | [Baseline trace](../packages/loadtest/results/s3-2026-09-29T07-38-42.314Z.ndjson), [report](S3_LOAD_REPORT.md) | Baseline failed; revised candidate and final production passed |
+| S3 40 clients, 5 ops/s, 20Hz awareness for 30 minutes | Baseline trace, [report](S3_LOAD_REPORT.md) | Baseline failed; revised candidate and final production passed |
 | S4 caret/selection/IME and 2× PNG/SVG fixture | [Browser flows](../tests/browser/text-spike.spec.ts), [recorded suite](benchmarks/s4/suite-results.json), [report](S4_TEXT_EXPORT_REPORT.md) | Passed |
 
 ## Remaining acceptance checklist
@@ -85,7 +87,7 @@ All unchecked items are requirements, not claims about the current implementatio
 
 ## Phase 1 / Phase 2 application evidence — 2026-09-29
 
-The production application with schema 2 passed 18 browser checks (25.5 seconds), including all seven core UI flows, five native-text flows, five gesture/concurrency flows, and the explicit 5,000-shape performance gate. The selected Mac sustained **60.002 fps over 360 animation frames**, with 5,000 actual document elements, three draw calls, zero page errors and 236 ms fixture preparation. Raw intervals, hardware and GPU from that run are preserved in [the prior performance reference](benchmarks/final/pre-final-reference/application-performance.json). The [captured application](benchmarks/phase1/5000-shapes.png) was visually inspected.
+The production application with schema 2 passed 18 browser checks (25.5 seconds), including all seven core UI flows, five native-text flows, five gesture/concurrency flows, and the explicit 5,000-shape performance gate. The selected Mac sustained **60.002 fps over 360 animation frames**, with 5,000 actual document elements, three draw calls, zero page errors and 236 ms fixture preparation. Raw intervals, hardware and GPU from that run are preserved in the prior performance reference. The captured application was visually inspected.
 
 The additional Phase 2 controller suite passed **9/9 browser flows in 13.6 seconds** (five retained Phase 1 plus four new pressure pen, eraser, text-tool and bound-connector cases). Its focused controller/geometry unit suite passed 19/19. These counts overlap the earlier application run; they must not be added as distinct test cases. The text regression preserves intentional trailing blank lines while removing Chromium's final caret placeholder after native cut/paste.
 
@@ -93,7 +95,7 @@ Reproduce core UI checks with `pnpm test:app`; the target-specific performance g
 
 ## Phase 3 application and model evidence — 2026-09-29
 
-Two production application browser tests passed in 45.6 seconds. They exercise private sign-in, board create/share/list/rename, owner/editor collaboration, rendered named presence, peer-preserving undo, a measured 30-second socket outage with local and remote edits, reload durability, viewer controls and outsider denial. [Browser flows](../tests/app/collaboration.spec.ts), [captured private board](benchmarks/phase3/private-board.png). Native core and text suites also passed after provider wiring.
+Two production application browser tests passed in 45.6 seconds. They exercise private sign-in, board create/share/list/rename, owner/editor collaboration, rendered named presence, peer-preserving undo, a measured 30-second socket outage with local and remote edits, reload durability, viewer controls and outsider denial. [Browser flows](../tests/app/collaboration.spec.ts), captured private board. Native core and text suites also passed after provider wiring.
 
 The independently authenticated live model suite passed 10,000 concurrent pairs / 20,000 operations, 771,378 semantic validations and zero invalid or divergent states. SQLite reload matched the authoritative result after 21,285 updates and two automatic compactions. The actual measured offline interval was 30,001.094 ms. See [PHASE3_MODEL_REPORT.md](PHASE3_MODEL_REPORT.md).
 
@@ -128,9 +130,9 @@ The final runtime/toolchain [SHA-256 manifest](benchmarks/final/sources.json) wa
 
 The real application performance rerun sustained **60.002 fps** over 360 frames with 5,000 document shapes, three draw calls and zero page errors; preparation took 293.1 ms. Earlier timing references are retained under `benchmarks/final/pre-final-reference/`.
 
-The production build, with test hooks disabled, is deployed at <http://127.0.0.1:3001> through the per-user `com.threejs-whiteboard.local` launch agent. Real UI verification created a four-element Welcome board and found identical SVG hashes after reload, fresh isolated browser login, and an actual redeployment from PID 95565 to 95790. The previous PID exited. Anonymous local mode and test hooks are absent. [Deployment smoke](benchmarks/deployment/local.json), [post-redeployment smoke](benchmarks/deployment/after-redeploy.json), [restart proof](benchmarks/deployment/restart-proof.json). Private data and generated owner credentials live outside the repository under `~/Library/Application Support/ThreejsWhiteboard/`.
+The production build, with test hooks disabled, is deployed at <http://127.0.0.1:3001> through the per-user `com.threejs-whiteboard.local` launch agent. Real UI verification created a four-element Welcome board and found identical SVG hashes after reload, fresh isolated browser login, and an actual redeployment from PID 95565 to 95790. The previous PID exited. Anonymous local mode and test hooks are absent. Deployment smoke, post-redeployment smoke, restart proof. Private data and generated owner credentials live outside the repository under `~/Library/Application Support/ThreejsWhiteboard/`.
 
-A separate controlled unrelated listener returning `ready=true` was correctly refused before any deployment data was created, and it remained alive until the test cleaned up its own process. [Foreign-port control](benchmarks/deployment/foreign-port-control.json). Final S1 and media/presence reruns also passed at approximately 60 fps with every correctness assertion. The independent deployed backup/restore audit also passed: launchd PID ownership, exact served HTML/JS/CSS hashes, private file modes, four-element Welcome board, database integrity and restored account/membership/document/secret equality. The deployed demo has no image assets; prior server/history drills separately verify nonempty assets. [Independent deployment audit](benchmarks/deployment/independent.json). The final full S3 subsequently passed the independent raw-count/source/trace/shutdown review below.
+A separate controlled unrelated listener returning `ready=true` was correctly refused before any deployment data was created, and it remained alive until the test cleaned up its own process. Foreign-port control. Final S1 and media/presence reruns also passed at approximately 60 fps with every correctness assertion. The independent deployed backup/restore audit also passed: launchd PID ownership, exact served HTML/JS/CSS hashes, private file modes, four-element Welcome board, database integrity and restored account/membership/document/secret equality. The deployed demo has no image assets; prior server/history drills separately verify nonempty assets. [Independent deployment audit](benchmarks/deployment/independent.json). The final full S3 subsequently passed the independent raw-count/source/trace/shutdown review below.
 
 
 ## Final S3 acceptance — all phases complete
@@ -139,4 +141,4 @@ The final exact-source authenticated SQLite production run passed all gates: 1,8
 
 Post-warmup RSS/used-heap slopes are **+0.2356 / +0.0013 MiB/min**. RSS has modest upward drift (five-minute medians 241.85 / 243.78 / 243.93 / 244.02 / 248.07 MiB), explicitly not zero. Heap floors remain 31–33 MiB, medians do not rise monotonically, and all retained/deleted structure counts remain exactly 3,363/1,720. The full curve and five-minute windows were reviewed, including 131 sampled heap drops of at least 5 MiB; no forced GC, resets, trace trimming or unlimited-churn memory claim. This meets the predeclared fixed-workload memory criterion.
 
-[Final result](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.json), [complete trace review](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.trace-review.json), [source audit](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.source-audit.json), [plot](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.png), [load report](S3_LOAD_REPORT.md), and [requirement audit](ACCEPTANCE_AUDIT.md) provide the completion evidence. All benchmark processes, including the coordinator and caffeinate helper, exited; the installed application remains running intentionally.
+[Final result](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.json), complete trace review, source audit, plot, [load report](S3_LOAD_REPORT.md), and [requirement audit](ACCEPTANCE_AUDIT.md) provide the completion evidence. All benchmark processes, including the coordinator and caffeinate helper, exited; the installed application remains running intentionally.

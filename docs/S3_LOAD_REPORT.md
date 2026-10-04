@@ -1,5 +1,7 @@
 # S3 Hocuspocus load spike
 
+**Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
+
 Status: **Original Y.Map S3 failed. D3 was amended to writer-owned registers.
 The replacement candidate passed the full 30-minute S3 gate. The
 production-server 30-minute reference completed and passed its measured gates.
@@ -317,9 +319,9 @@ The maximum latency/scheduler delay are disclosed rather than hidden by p95.
 The final production-server acceptance is documented below; this earlier
 candidate result alone did not establish persistence-enabled performance.
 
-[Candidate trace plot](../packages/loadtest/results/s3-writer-2026-09-29T08-45-53.680Z.png)
-and [standalone PDF](../packages/loadtest/results/s3-writer-2026-09-29T08-45-53.680Z.pdf)
-show the CPU, memory, retained metadata and all-acknowledgement latency CDF.
+The candidate trace plot and standalone PDF were used to inspect CPU, memory,
+retained metadata and the all-acknowledgement latency CDF. These generated
+outputs are no longer tracked; the measurements above record that review.
 
 ## Completed production reference
 
@@ -350,10 +352,9 @@ the first CPU interval is 6.032 seconds because it includes scheduled-start idle
 time. The full repository unit checks shared this Mac during the final portion;
 their actual scheduling/resource effects are retained in the trace.
 
-Visual memory review includes the complete
-[trace plot](../packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.png)
-and [PDF](../packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.pdf),
-plus `.trace-review.json`. After five-minute warmup:
+Visual memory review used the full trace plot, PDF and window statistics. Those
+generated files are no longer tracked. The [production reference summary](../packages/loadtest/results/s3-production-2026-09-29T18-46-22.867Z.json)
+and recorded five-minute windows remain:
 
 | Minutes | RSS min / median (MiB) | Used heap min / median (MiB) |
 | --- | ---: | ---: |
@@ -439,11 +440,9 @@ one-second scheduled-start idle period. SQLite recorded 360,080 updates, includi
 the remaining update log has 4,616 updates / 3,907,038 bytes, the stored snapshot
 is 1,671,854 bytes, and the current encoded state is 1,673,486 bytes.
 
-Visual review used the complete
-[trace plot](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.png),
-[standalone PDF](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.pdf)
-and [window statistics](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.trace-review.json).
-Post-warmup five-minute windows are:
+Visual review used the full trace plot, PDF and window statistics. Those
+generated files are no longer tracked. The [final production summary](../packages/loadtest/results/s3-production-2026-09-29T19-27-40.330Z.json)
+and recorded post-warmup five-minute windows remain:
 
 | Minutes | Samples | RSS min / median (MiB) | Used heap min / median (MiB) |
 | --- | ---: | ---: | ---: |

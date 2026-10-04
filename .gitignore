@@ -8,3 +8,16 @@ playwright-report/
 artifacts/local/
 *.tsbuildinfo
 packages/loadtest/packages/
+
+# Generated process and benchmark outputs. Historical tracked summaries remain.
+*.pid
+*.log
+**/results/*.f64le
+**/results/*.ndjson
+spikes/**/artifacts/
+.impeccable/
+artifacts/
+packages/loadtest/results/
+packages/model/reports/
+spikes/model-kv/reports/
+docs/benchmarks/

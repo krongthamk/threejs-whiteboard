@@ -1,13 +1,15 @@
 # S1 renderer benchmark
 
+**Evidence retention (October 2026):** Measurements below describe the original historical runs. Generated logs, raw latency/sample files, screenshots, PDFs and auxiliary JSON are no longer tracked. The audit-linked summary JSON and font metrics evidence remain; new run outputs stay local and ignored. Historical measurements were not rerun by this cleanup.
+
 **Result: passed on the user-approved initial Mac target, 2026-09-29.** The user explicitly selected this Mac in place of the original “2020-class laptop” reference. This run does not establish performance on other hardware.
 
 The final measured renderer keeps the planned three.js architecture. No Canvas 2D, glyph-atlas, or rasterized-text fallback is needed for these gates.
 
 ## Evidence
 
-- [Raw final measurements and assertions](../spikes/renderer/artifacts/s1-results.json), including browser/GPU identity and timestamps. `passed: true`, no browser errors.
-- [Mixed-board screenshot](../spikes/renderer/artifacts/mixed-board.png), visually inspected for actual rendered shapes, strokes, and text.
+- [Raw final measurements and assertions](benchmarks/s1/s1-results.json), including browser/GPU identity and timestamps. `passed: true`, no browser errors.
+- Mixed-board screenshot, visually inspected for actual rendered shapes, strokes, and text.
 - [Reproducible runner](../spikes/renderer/run-benchmark.mjs) and [browser fixture](../spikes/renderer/main.ts).
 - [Renderer API and color policy](../packages/renderer/README.md).
 
@@ -56,4 +58,4 @@ The runner builds its own static bundle, starts and closes its own preview serve
 CHECKS_ONLY=1 node spikes/renderer/run-benchmark.mjs
 ```
 
-The source-frozen final rerun completed at approximately 19:34:30 UTC on 2026-09-29 after the shared text-atlas export fix. The earlier reference is preserved in [pre-final measurements](benchmarks/final/pre-final-reference/s1-results.json). D7 (troika text) and the three.js portion of D8 remain supported on this initial deployment target.
+The source-frozen final rerun completed at approximately 19:34:30 UTC on 2026-09-29 after the shared text-atlas export fix. The earlier reference is preserved in pre-final measurements. D7 (troika text) and the three.js portion of D8 remain supported on this initial deployment target.

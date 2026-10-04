@@ -8,7 +8,8 @@ const artifacts = fileURLToPath(new URL('./artifacts/', import.meta.url));
 const spikesRoot = fileURLToPath(new URL('../', import.meta.url));
 const buildDirectory = fileURLToPath(new URL('./dist/media/', import.meta.url));
 await mkdir(artifacts, { recursive: true });
-await build({ configFile: false, root: spikesRoot, resolve: { alias: {
+await build({ configFile: false, root: spikesRoot,
+  publicDir: fileURLToPath(new URL('../../packages/app/public', import.meta.url)), resolve: { alias: {
   '@whiteboard/model': fileURLToPath(new URL('../../packages/model/src/index.ts', import.meta.url)),
   '@whiteboard/renderer': fileURLToPath(new URL('../../packages/renderer/src/index.ts', import.meta.url)),
 } }, build: { outDir: buildDirectory, emptyOutDir: true, rollupOptions: { input: fileURLToPath(new URL('./index.html', import.meta.url)) } } });
