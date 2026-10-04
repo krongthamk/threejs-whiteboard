@@ -1,6 +1,6 @@
 import Sqlite from 'better-sqlite3';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { Store } from './store.js';
 import * as Y from 'yjs';
@@ -54,7 +54,7 @@ export async function createBackup(store: Store, assetDirectory: string, session
   const staging = `${destination}.partial-${process.pid}`;
   mkdirSync(join(staging, 'assets'), { recursive: true, mode: 0o700 });
   try {
-    const database = join(staging, 'whiteboard.sqlite'); await store.backup(database);
+    const database = join(staging, 'whiteboard.sqlite'); await store.backup(database); chmodSync(database, 0o600);
     const snapshot = new Sqlite(database, { readonly: true });
     let keys: { storage_key: string }[], boards: number, assets: number;
     try {

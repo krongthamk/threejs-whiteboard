@@ -24,6 +24,8 @@ pnpm dev
 
 Open [the development app](http://127.0.0.1:5173), sign in, and create a board. The app proxies its authenticated API and WebSocket connection to port 3001. Share a board with another provisioned username as an editor or viewer. `Connected` reports transport synchronization; it is not a separate disk-fsync receipt. Temporary offline edits remain in the current browser's IndexedDB and merge when the provider reconnects. A server capacity or update limit pauses synchronization and retains those edits for export. Retry explicitly after a temporary refusal; an oversized local replica can be exported, then discarded with confirmation to reopen the server's saved board. See [server resource limits](packages/server/README.md#collaboration-resource-limits) for defaults and configuration.
 
+Renaming a board updates its saved title, collaborators’ open headings, rename dialogs, and export filenames.
+
 When a session expires or is revoked, the board returns to sign-in at the same URL. Queued document edits stay on the device and sync after signing in again as the same account. Existing quota or rejected-update blocks still require their explicit recovery action.
 
 The default server data directory is `packages/server/data` when launched through `pnpm server`. Set `WHITEBOARD_DATA_DIR` to an absolute directory to make its location explicit. It contains SQLite, immutable image files, and a private session-signing secret. Treat it as private user data.

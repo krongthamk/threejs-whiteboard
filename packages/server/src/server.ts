@@ -34,6 +34,7 @@ export function createWhiteboardServer(options: Options) {
   const releaseLocks = new Map<Connection<AuthContext>, () => void>();
   const inbound = new Map<Connection<AuthContext>, { bytes: number; messages: number }>();
   const validators = new Map<Y.Doc, BoardUpdateValidator>();
+  const persistedTitle = Symbol('persisted-title');
   const validatorCleanup = new WeakSet<Y.Doc>();
   const snapshots = new WeakMap<Y.Doc, { value?: Y.Snapshot }>();
   function snapshot(document: Y.Doc): Y.Snapshot {
@@ -222,10 +223,13 @@ export function createWhiteboardServer(options: Options) {
       if (!suffix && method === 'PATCH') {
         const name = title((await jsonBody(request)).title);
         const renamed = commitMutation(request, current => {
-          boardAccess(boardId, current.user.id, true); store.rename(boardId, name);
-          return store.board(boardId, current.user.id);
+          boardAccess(boardId, current.user.id, true);
+          const update = store.rename(boardId, name);
+          return { board: store.board(boardId, current.user.id), update };
         });
-        return json(response, 200, { board: renamed });
+        const live = server.hocuspocus.documents.get(boardId);
+        if (live) Y.applyUpdate(live, renamed.update, persistedTitle);
+        return json(response, 200, { board: renamed.board });
       }
       if (suffix === 'members' && method === 'POST') {
         if (board.role !== 'owner') throw new HttpError(403, 'Only the owner can change board membership');
@@ -419,12 +423,13 @@ export function createWhiteboardServer(options: Options) {
       const queue = inbound.get(connection); if (queue) { queue.bytes = Math.max(0, queue.bytes - update.byteLength); queue.messages = Math.max(0, queue.messages - 1); }
       releaseLocks.get(connection)?.();
     },
-    async onChange({ documentName, update, document }) {
+    async onChange({ documentName, update, document, transactionOrigin }) {
       try {
         validators.get(document)?.syncLive(update);
         network.changes++;
         const start = performance.now(), stats = metric(documentName); stats.updates++; stats.windowUpdates++;
-        store.appendUpdate(documentName, update); stats.persistedUpdates++;
+        if (transactionOrigin !== persistedTitle) store.appendUpdate(documentName, update);
+        stats.persistedUpdates++;
         if (persistenceFailed.has(documentName) || store.needsCompaction(documentName)) persistSnapshot(documentName, document);
         stats.persistenceMs += performance.now() - start;
       } catch (error) { persistenceFailure(documentName, document, error); }
@@ -447,7 +452,15 @@ export function createWhiteboardServer(options: Options) {
   });
   return { server, store, metrics, network, websocketPath,
     get port() { const address = server.httpServer.address(); return address && typeof address === 'object' ? address.port : options.port ?? 3001; },
-    async listen() { await server.listen(); },
+    async listen() {
+      await server.listen();
+      if (options.staticDirectory && options.port === 0 && options.allowedOrigins === undefined) {
+        const address = server.httpServer.address();
+        if (address && typeof address === 'object') {
+          origins.clear(); origins.add(`http://localhost:${address.port}`); origins.add(`http://127.0.0.1:${address.port}`);
+        }
+      }
+    },
     async close() { if (!closed) closed = (async () => { draining = true; await server.destroy(); for (const value of validators.values()) value.dispose(); validators.clear(); store.close(); })(); return closed; },
     beginDrain() { draining = true; },
   };

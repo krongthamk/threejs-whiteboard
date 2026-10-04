@@ -45,6 +45,10 @@ supported. Do not put tokens in URLs or localStorage.
 
 Board responses use `{ board: { id, title, role, updatedAt } }`, where `role` is
 `owner`, `editor`, or `viewer`, and `updatedAt` is Unix milliseconds.
+Renaming commits the SQL title and a Yjs metadata update atomically before
+broadcasting to connected collaborators. Reconnecting replicas receive the same
+title from persistence. The board heading, export filename, and rename dialog
+use the current document title.
 
 | Method and path | Body / result |
 | --- | --- |
@@ -163,7 +167,7 @@ pnpm --filter @whiteboard/server operations prune-element <boardId> <elementId>
 
 Backup uses SQLite's online backup API, then copies precisely the immutable
 asset files referenced by that database snapshot. It records SHA256 for every
-file and includes the mode 0600 session secret. Treat the backup as private user
+file and stores both SQLite and the session secret with mode 0600. Treat the backup as private user
 data and credentials. Restore verifies hashes and SQLite integrity, refuses an
 existing destination, and publishes the restored directory atomically. Point
 `WHITEBOARD_DATA_DIR` at that fresh directory only while the old server is
@@ -205,6 +209,13 @@ requests return headers only. Decoded traversal, dotfiles, and symlinks escaping
 the configured root are rejected. API, health, readiness and WebSocket routes
 retain their own handlers. SIGTERM/SIGINT perform the readiness/drain sequence
 above; there is no dependency on Vite preview for this deployment mode.
+Static GET, HEAD, and 304 responses include a Content Security Policy,
+`Referrer-Policy: same-origin`, and `X-Frame-Options: DENY`. Script, font, image,
+and connection sources default to this origin; blob scripts/workers support
+Troika, data fonts support PDF measurement, and inline styles support the app's
+positioned controls. Frames and objects are blocked. When an implicit-origin
+static listener uses port 0, the actual bound loopback port replaces the
+provisional origin; explicitly configured origins are preserved.
 
 HTTP mutations keep early authentication and board-access checks as an admission
 filter. After the bounded request body arrives, the server rechecks the current

@@ -47,7 +47,8 @@ test('all Store queries reuse constructor-prepared statements with separately bo
     store.setMember(board.id, member.id, 'editor'); expect(store.role(board.id, member.id)).toBe('editor');
     expect(store.board(board.id, owner.id)?.title).toBe("Title '?; --"); expect(store.boards(owner.id)).toHaveLength(round + 1);
     const doc = new Y.Doc(); Y.applyUpdate(doc, store.loadDocument(board.id)!); doc.getMap('test').set('bound', round);
-    store.appendUpdate(board.id, Y.encodeStateAsUpdate(doc)); expect(store.stats(board.id).updateCount).toBe(1);
+    const updateCount = store.stats(board.id).updateCount;
+    store.appendUpdate(board.id, Y.encodeStateAsUpdate(doc)); expect(store.stats(board.id).updateCount).toBe(updateCount + 1);
     store.assertUpdateFits(board.id, 1); expect(store.needsCompaction(board.id)).toBe(false);
     store.compact(board.id); expect(store.stats(board.id).updateCount).toBe(0); doc.destroy();
     const asset = { id: `asset-${round}`, boardId: board.id, mimeType: 'image/png', size: 1, storageKey: `blob-${round}` };

@@ -133,6 +133,8 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
   }, [access?.board.id, access?.session.user.id, connectionRevision]);
 
   const unsupportedSchema = diagnostics !== null && diagnostics.schemaVersion !== undefined && diagnostics.schemaVersion !== SCHEMA_VERSION;
+  const metadataTitle = runtime?.board.meta.get('title');
+  const boardTitle = typeof metadataTitle === 'string' && metadataTitle.trim() ? metadataTitle : access?.board.title ?? 'Untitled board';
   const effectiveReadOnly = readOnly || unsupportedSchema || !!syncBlocked;
   const hiddenItems = diagnostics ? [
     diagnostics.invalidIds.size ? `${diagnostics.invalidIds.size} invalid element${diagnostics.invalidIds.size === 1 ? '' : 's'}` : '',
@@ -144,7 +146,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     <input ref={fileInputRef} type="file" hidden multiple accept="image/png,image/jpeg,image/webp" aria-label="Import images" onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (runtime && files.length) void runtime.assets.importFiles(files); }} />
     <header className="board-header surface">
       {access ? <button className="icon-button board-back" aria-label="Back to boards" title="Back to boards" onClick={access.onBack}><ArrowLeft size={20} /></button> : <div className="brand-mark" aria-hidden="true"><SquarePen size={22} strokeWidth={1.7} /></div>}
-      <div className="board-heading"><span className="workspace-label">YOUR WORKSPACE</span><h1>{access?.board.title ?? 'Untitled board'}</h1></div>
+      <div className="board-heading"><span className="workspace-label">YOUR WORKSPACE</span><h1>{boardTitle}</h1></div>
       <div className={`board-status status-${status}`} role="status"><span className="status-dot" />{statusLabel}{effectiveReadOnly && <span className="view-only">View only</span>}</div>
       <button className="icon-button help-button" onClick={() => setShortcuts(true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts"><Keyboard size={19} /></button>
     </header>
@@ -176,8 +178,8 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
       <p>Unsynced changes on this device will be permanently discarded. The board will reopen from the server’s saved version. Export your local work first if you want to keep it.</p>
       <div className="sync-recovery-actions"><button className="board-reload" onClick={() => setConfirmDiscard(false)}>Keep local changes</button><button className="board-reload" onClick={() => { setConfirmDiscard(false); connectionRef.current?.discardLocalChanges(); }}>Discard and reopen saved board</button></div>
     </Modal>}
-    {dialog === 'export' && runtime && <ExportDialog runtime={runtime} title={access?.board.title ?? 'Untitled board'} onClose={() => setDialog(null)} />}
-    {dialog && dialog !== 'export' && access && <BoardSettings access={access} kind={dialog} onClose={() => setDialog(null)} />}
+    {dialog === 'export' && runtime && <ExportDialog runtime={runtime} title={boardTitle} onClose={() => setDialog(null)} />}
+    {dialog && dialog !== 'export' && access && <BoardSettings access={access} title={boardTitle} kind={dialog} onClose={() => setDialog(null)} />}
     {error && <div className="error-banner" role="alert"><span>{error}</span><button className="board-reload" onClick={() => window.location.reload()}>Reload board</button><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss error"><X size={16} /></button></div>}
     {shortcuts && <Modal title="Keep your ideas moving" className="shortcut-dialog" onClose={() => setShortcuts(false)}>
       <dl className="shortcut-list"><dt>Select</dt><dd><kbd>V</kbd></dd><dt>Rectangle / Ellipse / Note</dt><dd><kbd>R</kbd> <kbd>O</kbd> <kbd>N</kbd></dd><dt>Pan</dt><dd><kbd>Space</kbd> + drag</dd><dt>Zoom</dt><dd><kbd>⌘</kbd> + scroll</dd><dt>Undo / Redo</dt><dd><kbd>⌘ Z</kbd> / <kbd>⌘ ⇧ Z</kbd></dd><dt>Duplicate</dt><dd><kbd>⌘ D</kbd></dd><dt>Move / Move 10 px</dt><dd><kbd>↑</kbd> / <kbd>⇧ ↑</kbd></dd><dt>Delete</dt><dd><kbd>⌫</kbd></dd></dl>
@@ -279,8 +281,8 @@ function ColorField({ id, label, value, onCommit }: { id?: string; label: string
   return <input ref={ref} id={id} type="color" aria-label={label} defaultValue={supported} />;
 }
 
-function BoardSettings({ access, kind, onClose }: { access: BoardAccess; kind: 'share' | 'rename'; onClose(): void }) {
-  const [value, setValue] = useState(kind === 'rename' ? access.board.title : '');
+function BoardSettings({ access, title, kind, onClose }: { access: BoardAccess; title: string; kind: 'share' | 'rename'; onClose(): void }) {
+  const [value, setValue] = useState(kind === 'rename' ? title : '');
   const [role, setRole] = useState<'editor' | 'viewer'>('editor');
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
   return <Modal title={kind === 'rename' ? 'Rename board' : 'Share this board'} onClose={onClose}>

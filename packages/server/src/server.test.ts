@@ -135,8 +135,8 @@ test('static production defaults deny development origins while approved cookie 
   const { url, tokens } = await setup({ staticDirectory }); const cookie = `board_session=${encodeURIComponent(tokens.owner!)}`;
   const denied = await fetch(`${url}/api/session`, { headers: { Cookie: cookie, Origin: 'http://localhost:5173' } });
   expect(denied.status).toBe(403); expect(denied.headers.get('Access-Control-Allow-Origin')).toBeNull();
-  const approved = await fetch(`${url}/api/session`, { headers: { Cookie: cookie, Origin: 'http://localhost:3001' } });
-  expect(approved.status).toBe(200); expect(approved.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:3001');
+  const approved = await fetch(`${url}/api/session`, { headers: { Cookie: cookie, Origin: url } });
+  expect(approved.status).toBe(200); expect(approved.headers.get('Access-Control-Allow-Origin')).toBe(url);
 });
 
 test('credential and restored session JSON expose identity and expiry without any bearer token', async () => {
@@ -945,7 +945,7 @@ test('an authorized HTTP mutation rechecks its session and membership under the 
   const checks: string[] = [];
   const authSpy = vi.spyOn(app.store, 'authenticate').mockImplementation(token => { if (app.store.db.inTransaction) checks.push('session'); return authenticate(token); });
   const accessSpy = vi.spyOn(app.store, 'board').mockImplementation((id, user) => { if (app.store.db.inTransaction) checks.push('membership'); return access(id, user); });
-  const renameSpy = vi.spyOn(app.store, 'rename').mockImplementation((id, name) => { expect(app.store.db.inTransaction).toBe(true); expect(checks).toEqual(['session', 'membership']); rename(id, name); });
+  const renameSpy = vi.spyOn(app.store, 'rename').mockImplementation((id, name) => { expect(app.store.db.inTransaction).toBe(true); expect(checks).toEqual(['session', 'membership']); return rename(id, name); });
   cleanups.push(() => { authSpy.mockRestore(); accessSpy.mockRestore(); renameSpy.mockRestore(); });
   const response = await request(`/api/boards/${board.id}`, tokens.editor, { method: 'PATCH', body: JSON.stringify({ title: 'Atomic rename' }) });
   expect(response.status).toBe(200); expect(renameSpy).toHaveBeenCalledOnce();

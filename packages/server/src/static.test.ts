@@ -44,3 +44,22 @@ test('static lookup rejects traversal, dotfiles and symlinks outside its root wi
   });
   expect(response.status).toBe(404);
 });
+
+test('static GET, HEAD and conditional responses retain browser security headers', async () => {
+  const { url } = await fixture();
+  const first = await fetch(`${url}/`);
+  const responses = [first, await fetch(`${url}/`, { method: 'HEAD' }), await fetch(`${url}/`, { headers: { 'If-None-Match': first.headers.get('etag')! } })];
+  expect(responses.map(response => response.status)).toEqual([200, 200, 304]);
+  for (const response of responses) {
+    expect(response.headers.get('content-security-policy')).toContain("default-src 'self'");
+    expect(response.headers.get('content-security-policy')).toContain("connect-src 'self'");
+    expect(response.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+    expect(response.headers.get('referrer-policy')).toBe('same-origin'); expect(response.headers.get('x-frame-options')).toBe('DENY');
+  }
+});
+
+test('an ephemeral static listener approves its actual origin instead of the provisional port', async () => {
+  const { url } = await fixture();
+  expect((await fetch(`${url}/api/session`, { headers: { Origin: url } })).status).toBe(401);
+  expect((await fetch(`${url}/api/session`, { headers: { Origin: 'http://localhost:3001' } })).status).toBe(403);
+});

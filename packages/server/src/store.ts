@@ -145,7 +145,22 @@ export class Store {
       this.statements.createDocument.run(board.id, Buffer.from(snapshot));
     })(); return board;
   }
-  rename(boardId: string, title: string): void { this.statements.rename.run(title, Date.now(), boardId); }
+  /** Persist a metadata delta and its SQL projection before broadcasting it. */
+  rename(boardId: string, title: string): Uint8Array {
+    return this.db.transaction(() => {
+      const state = this.loadDocument(boardId); if (!state) throw new Error('Unknown board');
+      const doc = new Y.Doc();
+      try {
+        Y.applyUpdate(doc, state);
+        let delta: Uint8Array = new Uint8Array([0, 0]);
+        doc.on('update', update => { delta = update; });
+        doc.getMap('meta').set('title', title);
+        if (delta.byteLength !== 2 || delta[0] !== 0 || delta[1] !== 0) this.appendUpdate(boardId, delta);
+        this.statements.rename.run(title, Date.now(), boardId);
+        return delta;
+      } finally { doc.destroy(); }
+    }).immediate();
+  }
   setMember(boardId: string, userId: string, role: Role): void { this.statements.setMember.run(boardId, userId, role); this.membershipRevision++; }
   removeMember(boardId: string, userId: string): void {
     if (this.role(boardId, userId) === 'owner') throw new Error('Owner membership cannot be removed');

@@ -8,6 +8,13 @@ const types: Record<string, string> = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf', '.wasm': 'application/wasm', '.txt': 'text/plain; charset=utf-8',
 };
+const securityHeaders = {
+  // Troika bootstraps workers and their modules from blob URLs. React uses
+  // inline style attributes; PDF measurement loads embedded data-URL fonts.
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  'Referrer-Policy': 'same-origin',
+  'X-Frame-Options': 'DENY',
+};
 export function staticHandler(directory: string) {
   const root = realpathSync(resolve(directory));
   if (!statSync(root).isDirectory()) throw new Error('Static directory must be a directory');
@@ -26,7 +33,7 @@ export function staticHandler(directory: string) {
     const extension = extname(file).toLowerCase(), tag = `W/"${stat.size.toString(16)}-${stat.mtimeMs.toString(16)}"`;
     const immutable = /^\/assets\/[^/]+-[a-zA-Z0-9_-]{8,}\.[a-zA-Z0-9]+$/.test(decoded);
     const cache = extension === '.html' ? 'no-cache' : immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
-    const headers = { 'Cache-Control': cache, ETag: tag, 'X-Content-Type-Options': 'nosniff' };
+    const headers = { ...securityHeaders, 'Cache-Control': cache, ETag: tag, 'X-Content-Type-Options': 'nosniff' };
     if (request.headers['if-none-match'] === tag) { response.writeHead(304, headers); response.end(); return true; }
     response.writeHead(200, { ...headers, 'Content-Type': types[extension] ?? 'application/octet-stream', 'Content-Length': stat.size, 'Last-Modified': stat.mtime.toUTCString() });
     if (request.method === 'HEAD') response.end();
