@@ -1,12 +1,15 @@
 import { expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { assertValidElement, bindToElement, getElementBounds, LOCAL_ORIGIN, resolveConnectorEndpoints, type Element, type ElementType } from '../src/index.js';
-import { BoardDocument, WRITER_PREFIX, CLOCK_KEY } from '../src/document.js';
+import { BoardDocument, WRITER_PREFIX, CLOCK_PREFIX } from '../src/document.js';
 import { writeRunEvidence } from '../../../tests/evidence';
 
 const SEED = 0x51a7e;
 function rawState(client: BoardDocument): string {
-  return JSON.stringify([...client.doc.share.keys()].filter(name => name.startsWith(WRITER_PREFIX)).sort().flatMap(name => { const array = client.doc.getArray(name); return array.length ? [[name, array.toArray()]] : []; }));
+  return JSON.stringify([...client.doc.share.keys()].filter(name => name.startsWith(WRITER_PREFIX) || name.startsWith(CLOCK_PREFIX)).sort().flatMap(name => {
+    if (name.startsWith(CLOCK_PREFIX)) { const map = client.doc.getMap(name); return map.size ? [[name, [...map.entries()].sort(([a], [b]) => a.localeCompare(b))]] : []; }
+    const array = client.doc.getArray(name); return array.length ? [[name, array.toArray()]] : [];
+  }));
 }
 function rng(seed: number): () => number {
   return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let n = Math.imul(seed ^ seed >>> 15, 1 | seed); n = n + Math.imul(n ^ n >>> 7, 61 | n) ^ n; return ((n ^ n >>> 14) >>> 0) / 4294967296; };
@@ -130,7 +133,7 @@ it('S2: 10,000 seeded concurrent operation pairs across three clients converge w
     for (let i = 1; i < 3; i++) if (canonical(states[i]) !== expected) throw new Error(`Seed ${SEED}; pair ${pair}; client ${i} diverged`);
     const rawExpected = canonical(clients[0]!.readAll());
     for (let i = 1; i < 3; i++) if (canonical(clients[i]!.readAll()) !== rawExpected) throw new Error(`Seed ${SEED}; pair ${pair}; client ${i} raw CRDT state diverged`);
-    clients.forEach((client, i) => { const clock = client.own.kv.get(CLOCK_KEY)?.stamp.clock ?? 0; if (clock < clocks[i]!) throw new Error(`pair ${pair}: local clock decreased`); clocks[i] = clock; });
+    clients.forEach((client, i) => { const clock = client.writerClock(); if (clock < clocks[i]!) throw new Error(`pair ${pair}: local clock decreased`); clocks[i] = clock; });
     if ((pair + 1) % 1000 === 0) console.log(JSON.stringify({ spike: 'S2-schema2', completedPairs: pair + 1, durationMs: Math.round(performance.now() - started) }));
     if (pair % 200 === 0) clients.forEach(client => client.undoManager.clear());
   }

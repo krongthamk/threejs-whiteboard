@@ -2,8 +2,8 @@ import * as Y from 'yjs';
 import { generateKeyBetween } from 'fractional-indexing';
 import { assertValidElement, compareElements, createElement } from './schema.js';
 import { deriveElementGeometry, resolveBinding } from './geometry.js';
-import { CLOCK_KEY, SCHEMA_VERSION, WRITER_PREFIX, REGISTER_FIELDS, causalClockBound, projectedElement, registerKey, validWriterRecord, type StampedValue, type WriterRecord } from './document-validation.js';
-export { CLOCK_KEY, SCHEMA_VERSION, WRITER_PREFIX, type StampedValue, type WriterRecord } from './document-validation.js';
+import { CLOCK_KEY, CLOCK_PREFIX, inspectClockRoot, SCHEMA_VERSION, WRITER_PREFIX, REGISTER_FIELDS, causalClockBound, projectedElement, registerKey, validWriterRecord, type StampedValue, type WriterRecord } from './document-validation.js';
+export { CLOCK_KEY, CLOCK_PREFIX, SCHEMA_VERSION, WRITER_PREFIX, type StampedValue, type WriterRecord } from './document-validation.js';
 import type { Binding, Element, ElementInput, ElementOf, ElementPatch, ElementStyle, ElementType, Point } from './types.js';
 
 /** Local origins are not transmitted; providers use their own origin for incoming updates. */
@@ -113,6 +113,9 @@ export class BoardDocument {
   private maxIndexDirty = true;
   private pending = new Map<string, StampedValue>();
   private maxClock = 0;
+  private clockValues = new Map<string, number>();
+  private clockObservers = new Map<string, () => void>();
+  private readonly clock: Y.Map<unknown>;
   private depth = 0;
   private discovering = false;
 
@@ -126,27 +129,17 @@ export class BoardDocument {
       this.meta.set('createdAt', Date.now());
     }, 'initialization');
     doc.getArray<WriterRecord>(WRITER_PREFIX + this.actor);
+    this.clock = doc.getMap(CLOCK_PREFIX + this.actor);
     this.discover();
     for (const id of this.activeIds) this.read(id);
     this.own = this.writers.get(this.actor)!;
     this.undoManager = new Y.UndoManager(this.own.records, {
       trackedOrigins: new Set([LOCAL_ORIGIN]), captureTimeout: 0,
-      deleteFilter: item => !item.content.getContent().some(value => value && typeof value === 'object' && (value as WriterRecord).key === CLOCK_KEY),
     });
     const undo = this.undoManager.undo.bind(this.undoManager), redo = this.undoManager.redo.bind(this.undoManager);
     this.undoManager.undo = () => { this.assertSchemaVersion(); this.assertWriterIdentity(); return undo(); };
     this.undoManager.redo = () => { this.assertSchemaVersion(); this.assertWriterIdentity(); return redo(); };
     if (options.undo === false) this.undoManager.destroy();
-    // Yjs 13.6.33 can coalesce a field and clock into one ContentAny Item. The public
-    // deleteFilter must see the clock alone, or refusing it would refuse undoing the field too.
-    // These exported low-level split helpers are pinned and regression-tested upgrade dependencies.
-    doc.on('beforeTransaction', transaction => {
-      if (transaction.origin !== this.undoManager) return;
-      const index = this.own.records.toArray().findIndex(record => record.key === CLOCK_KEY);
-      if (index < 0) return;
-      const item = Y.createRelativePositionFromTypeIndex(this.own.records, index).item;
-      if (item) { Y.getItemCleanStart(transaction, item); Y.getItemCleanEnd(transaction, this.doc.store, item); }
-    });
     doc.on('beforeObserverCalls', this.discover);
     this.meta.observe(event => { this.diagnosticTransactions.add(event.transaction); });
     doc.on('afterTransaction', transaction => {
@@ -172,7 +165,18 @@ export class BoardDocument {
     if (this.discovering) return;
     this.discovering = true;
     try {
+      const clockBound = causalClockBound(this.doc);
       for (const name of this.doc.share.keys()) {
+        if (name.startsWith(CLOCK_PREFIX)) {
+          try { this.doc.getMap(name); } catch { /* Concrete wrong roots are quarantined below. */ }
+          this.refreshClock(name, transaction, clockBound);
+          if (!this.clockObservers.has(name)) {
+            const root = this.doc.share.get(name)!;
+            const listener = (_events: unknown[], next: Y.Transaction) => this.refreshClock(name, next);
+            root.observeDeep(listener); this.clockObservers.set(name, () => root.unobserveDeep(listener));
+          }
+          continue;
+        }
         if (!name.startsWith(WRITER_PREFIX)) continue;
         const actor = name.slice(WRITER_PREFIX.length);
         if (this.writers.has(actor)) continue;
@@ -190,6 +194,18 @@ export class BoardDocument {
       }
     } finally { this.discovering = false; }
   };
+
+  private refreshClock(name: string, transaction?: Y.Transaction, bound = causalClockBound(this.doc)): void {
+    const actor = name.slice(CLOCK_PREFIX.length), inspection = inspectClockRoot(this.doc, actor, bound);
+    const wasBad = this.malformedRoots.has(name);
+    if (inspection.issues.length) { this.malformedRoots.add(name); this.clockValues.delete(actor); }
+    else { this.malformedRoots.delete(name); this.clockValues.set(actor, inspection.clock!); this.maxClock = Math.max(this.maxClock, inspection.clock!); }
+    if (transaction && wasBad !== this.malformedRoots.has(name)) this.diagnosticTransactions.add(transaction);
+  }
+  /** Includes old array ledgers without changing their historical wire records. */
+  writerClock(actor = this.actor): number {
+    return Math.max(this.clockValues.get(actor) ?? 0, this.writers.get(actor)?.kv.get(CLOCK_KEY)?.stamp.clock ?? 0);
+  }
 
   private refresh(key: string, actor: string, value: StampedValue | undefined, transaction?: Y.Transaction): void {
     const parts = registerKey(key);
@@ -261,9 +277,8 @@ export class BoardDocument {
     if (parts[2] === 'index' || parts[2] === 'props' || parts[1] === '$base') this.read(parts[0]!);
   }
   private writeClock(): void {
-    const existing = this.own.kv.get(CLOCK_KEY);
-    if (existing && existing.stamp.clock >= this.maxClock) return;
-    this.own.kv.set(CLOCK_KEY, { stamp: { clock: this.maxClock, actor: this.actor }, value: this.maxClock });
+    if (this.clock.get('value') === this.maxClock) return;
+    this.clock.set('value', this.maxClock);
   }
 
   transact<T>(fn: () => T): T {
@@ -413,5 +428,5 @@ export class BoardDocument {
     this.update(id, { index: generateKeyBetween(remaining[insertion - 1]?.index ?? null, remaining[insertion]?.index ?? null) });
   }
   subscribe(listener: (change: DocumentChange) => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
-  destroy(): void { this.listeners.clear(); this.undoManager.destroy(); this.doc.off('beforeObserverCalls', this.discover); for (const writer of this.writers.values()) writer.kv.destroy(); this.doc.destroy(); }
+  destroy(): void { this.listeners.clear(); this.undoManager.destroy(); this.doc.off('beforeObserverCalls', this.discover); for (const writer of this.writers.values()) writer.kv.destroy(); for (const stop of this.clockObservers.values()) stop(); this.doc.destroy(); }
 }

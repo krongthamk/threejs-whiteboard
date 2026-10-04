@@ -4,7 +4,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, 
 import { dirname, join } from 'node:path';
 import type { Store } from './store.js';
 import * as Y from 'yjs';
-import { CLOCK_KEY, WRITER_PREFIX, plainRecord, causalClockBound, validWriterRecord } from '../../model/src/document-validation.js';
+import { CLOCK_PREFIX, clockRootValue, WRITER_PREFIX, plainRecord, causalClockBound, validWriterRecord } from '../../model/src/document-validation.js';
 
 /** Repair a poisoned element offline without constructing a projection or resetting Yjs clocks. */
 export function pruneElement(store: Store, boardId: string, elementId: string): { removedRecords: number } {
@@ -18,6 +18,7 @@ export function pruneElement(store: Store, boardId: string, elementId: string): 
     const removals: { records: Y.Array<unknown>; indices: number[] }[] = [];
     let clock = 0, removedRecords = 0;
     for (const name of doc.share.keys()) {
+      if (name.startsWith(CLOCK_PREFIX)) { clock = Math.max(clock, clockRootValue(doc, name.slice(CLOCK_PREFIX.length), clockBound) ?? 0); continue; }
       if (!name.startsWith(WRITER_PREFIX)) continue;
       let records: Y.Array<unknown>;
       try { records = doc.getArray(name); } catch { continue; }
@@ -37,10 +38,8 @@ export function pruneElement(store: Store, boardId: string, elementId: string): 
     const actor = String(doc.clientID), stamp = { actor, clock: clock + 1 };
     doc.transact(() => {
       for (const { records, indices } of removals) for (const index of indices.reverse()) records.delete(index, 1);
-      doc.getArray(WRITER_PREFIX + actor).push([
-        { key: JSON.stringify([elementId, '$base']), val: { stamp, value: null } },
-        { key: CLOCK_KEY, val: { stamp, value: stamp.clock } },
-      ]);
+      doc.getArray(WRITER_PREFIX + actor).push([{ key: JSON.stringify([elementId, '$base']), val: { stamp, value: null } }]);
+      doc.getMap(CLOCK_PREFIX + actor).set('value', stamp.clock);
     }, 'prune-element');
     store.compact(boardId, Y.encodeStateAsUpdate(doc));
     return { removedRecords };

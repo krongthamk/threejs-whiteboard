@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { bindToElement, createElement, documentToSvg, getElementBounds, hitTestElement, resolveConnectorEndpoints, textLines } from '../src/index.js';
-import { BoardDocument, WRITER_PREFIX } from '../src/document.js';
+import { BoardDocument, WRITER_PREFIX, CLOCK_PREFIX } from '../src/document.js';
 
 function replica(source: BoardDocument): BoardDocument {
   const doc = new Y.Doc();
@@ -198,7 +198,7 @@ describe('document contract', () => {
     const b = replica(a);
     expect(b.readAll()).toEqual(a.readAll());
     expect(b.undoManager.undoStack).toHaveLength(0);
-    expect([...b.doc.share.keys()].every(name => name === 'meta' || name.startsWith(WRITER_PREFIX))).toBe(true);
+    expect([...b.doc.share.keys()].every(name => name === 'meta' || name.startsWith(WRITER_PREFIX) || name.startsWith(CLOCK_PREFIX))).toBe(true);
     expect(b.meta.get('schemaVersion')).toBe(2);
     a.destroy(); b.destroy();
   });

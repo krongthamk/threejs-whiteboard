@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
 import { expect, it } from 'vitest';
 import { bindToElement } from '../src/index.js';
-import { BoardDocument } from '../src/document.js';
+import { BoardDocument, CLOCK_PREFIX } from '../src/document.js';
 
 function pair(): [BoardDocument, BoardDocument] {
   const a = new BoardDocument(); a.create('rect', { id: 's' });
@@ -59,12 +59,16 @@ it('releases retained local history Items when native history clears and allows 
   a.updateStyle(['s'], { fill: '#0000ff' });
   b.move(['s'], { x: 75, y: 20 }); sync(a, b);
   const stack = a.undoManager.undoStack.at(-1)!;
-  const retained: Y.Item[] = [];
+  const retained: Y.Item[] = [], clocksOutsideHistory: Y.Item[] = [];
   a.doc.transact(transaction => Y.iterateDeletedStructs(transaction, stack.deletions, struct => {
-    if (struct instanceof Y.Item && struct.deleted && struct.id.client === a.doc.clientID) retained.push(struct);
+    if (!(struct instanceof Y.Item) || !struct.deleted || struct.id.client !== a.doc.clientID) return;
+    if (struct.parent === a.own.records) retained.push(struct);
+    if (struct.parent === a.doc.getMap(CLOCK_PREFIX + a.actor)) clocksOutsideHistory.push(struct);
   }), 'inspection');
   expect(retained.length).toBeGreaterThanOrEqual(1);
   expect(retained.every(item => item.keep)).toBe(true);
+  expect(clocksOutsideHistory.length).toBeGreaterThanOrEqual(1);
+  expect(clocksOutsideHistory.every(item => !item.keep)).toBe(true);
   a.undoManager.clear();
   // Array tombstones can coalesce, so inspect the authoritative struct by ID rather than a replaced Item object.
   expect(retained.every(item => { const current = Y.getItem(a.doc.store, item.id); return !(current instanceof Y.Item) || !current.keep; })).toBe(true);

@@ -6,6 +6,7 @@ import type { Element } from './types.js';
 export const REGISTER_FIELDS = ['x', 'y', 'w', 'h', 'rotation', 'index', 'style', 'props'] as const;
 export const WRITER_PREFIX = 'element-properties:';
 export const CLOCK_KEY = JSON.stringify(['$clock']);
+export const CLOCK_PREFIX = 'clock:';
 export const SCHEMA_VERSION = 2;
 export type StampedValue = { stamp: { clock: number; actor: string }; value: unknown };
 export type WriterRecord = { key: string; val: StampedValue };
@@ -69,6 +70,27 @@ function contentFingerprint(value: unknown): string {
   }) ?? String(value);
 }
 
+export interface ClockRootInspection { clock?: number; rawClock?: number; issues: readonly BoardValidationIssue[] }
+/** The legacy array ledger remains readable; new writer clocks live outside undo scope. */
+export function inspectClockRoot(doc: Y.Doc, actor: string, bound = causalClockBound(doc)): ClockRootInspection {
+  const name = CLOCK_PREFIX + actor;
+  const bad = (value: unknown): ClockRootInspection => ({ issues: [{ code: 'clock-root', location: name, fingerprint: `clock-root:${name}:${contentFingerprint(value)}` }] });
+  if (!actor) return bad('empty actor');
+  if (!doc.share.has(name)) return { clock: 0, issues: [] };
+  try {
+    const root = doc.getMap(name), sequence: unknown[] = [];
+    for (let item: Y.Item | null = root._start; item; item = item.right) if (!item.deleted) sequence.push(...item.content.getContent());
+    const rawClock = root.get('value');
+    const valid = !sequence.length && [...root.keys()].every(key => key === 'value') &&
+      (rawClock === undefined || typeof rawClock === 'number' && Number.isSafeInteger(rawClock) && rawClock >= 0 && rawClock <= bound);
+    if (valid) return { clock: typeof rawClock === 'number' ? rawClock : 0, ...(typeof rawClock === 'number' ? { rawClock } : {}), issues: [] };
+    return { ...bad({ map: root.toJSON(), sequence }), ...(typeof rawClock === 'number' ? { rawClock } : {}) };
+  } catch { return bad(doc.share.get(name)?.toJSON()); }
+}
+export function clockRootValue(doc: Y.Doc, actor: string, bound = causalClockBound(doc)): number | undefined {
+  return inspectClockRoot(doc, actor, bound).clock;
+}
+
 /** Read raw schema-2 registers without observers, initialization writes or duplicate cleanup. */
 export function inspectBoardDocument(doc: Y.Doc): BoardDocumentInspection {
   const issues: BoardValidationIssue[] = [], winners = new Map<string, StampedValue>(), invalidIds = new Set<string>();
@@ -96,6 +118,11 @@ export function inspectBoardDocument(doc: Y.Doc): BoardDocumentInspection {
     } catch { issue('metadata-root', 'meta', doc.share.get('meta')?.toJSON()); }
   }
   for (const name of doc.share.keys()) {
+    if (name.startsWith(CLOCK_PREFIX)) {
+      const clock = inspectClockRoot(doc, name.slice(CLOCK_PREFIX.length), clockBound);
+      if (clock.issues.length) { malformedRecords++; issues.push(...clock.issues); }
+      continue;
+    }
     if (!name.startsWith(WRITER_PREFIX)) continue;
     const actor = name.slice(WRITER_PREFIX.length);
     let values: unknown[];
@@ -172,6 +199,7 @@ const validationIssue = (code: string, location: string, value: unknown, element
 export class BoardUpdateValidator {
   private stage!: Y.Doc;
   private writers = new Map<string, CachedWriter>();
+  private clocks = new Map<string, { dirty: boolean; inspection?: ClockRootInspection }>();
   private winners = new Map<string, StampedValue>();
   private elementKeys = new Map<string, Set<string>>();
   private elements = new Map<string, Element>();
@@ -221,7 +249,7 @@ export class BoardUpdateValidator {
 
   private assertActive(): void { if (this.disposed) throw new Error('Board update validator is disposed'); }
   private clear(): void {
-    this.writers.clear(); this.winners.clear(); this.elementKeys.clear(); this.elements.clear(); this.projectionIssues.clear(); this.otherRootIssues.clear(); this.issueCounts.clear(); this.metadataIssues = []; this.metadataDirty = true; this.bound = 0;
+    this.writers.clear(); this.clocks.clear(); this.winners.clear(); this.elementKeys.clear(); this.elements.clear(); this.projectionIssues.clear(); this.otherRootIssues.clear(); this.issueCounts.clear(); this.metadataIssues = []; this.metadataDirty = true; this.bound = 0;
   }
   private rebuild(): void {
     this.stage?.destroy(); this.clear(); this.counters.fullScans++;
@@ -232,6 +260,14 @@ export class BoardUpdateValidator {
 
   private discover = (): void => {
     for (const name of this.stage.share.keys()) {
+      if (name.startsWith(CLOCK_PREFIX)) {
+        if (!this.clocks.has(name)) {
+          const cached = { dirty: true }; this.clocks.set(name, cached);
+          try { this.stage.getMap(name); } catch { /* Wrong concrete roots are inspected below. */ }
+          this.stage.share.get(name)!.observeDeep(() => { cached.dirty = true; });
+        }
+        continue;
+      }
       if (name === 'meta' && !this.otherRootIssues.has('meta-observer')) {
         try { this.stage.getMap('meta').observeDeep(() => { this.metadataDirty = true; }); }
         catch { /* The metadata inspection below records the incompatible root. */ }
@@ -278,6 +314,14 @@ export class BoardUpdateValidator {
   private flush(): void {
     const previousBound = this.bound; this.bound = causalClockBound(this.stage);
     const touched = new Set<string>();
+    for (const [name, cached] of this.clocks) {
+      const raw = cached.inspection?.rawClock;
+      const causalChanged = raw !== undefined && (raw > previousBound && raw <= this.bound || !this.bound && !!previousBound);
+      if (!cached.dirty && !causalChanged) continue;
+      this.adjust(cached.inspection?.issues ?? [], -1);
+      cached.inspection = inspectClockRoot(this.stage, name.slice(CLOCK_PREFIX.length), this.bound);
+      this.adjust(cached.inspection.issues, 1); cached.dirty = false;
+    }
     // Only previously impossible clock records need reconsideration when the causal budget grows.
     for (const writer of this.writers.values()) {
       const causalChanged = [...writer.records.values()].some(value => value.clock !== undefined && (value.clock > previousBound && value.clock <= this.bound || !this.bound && previousBound));

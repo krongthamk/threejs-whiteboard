@@ -84,7 +84,7 @@ Every projected element has these logical fields. Storage uses an immutable comp
 
 Independent fields stay separate keys so concurrent move (`x`,`y`) and recolor (`style`) both survive.
 
-Each register carries `{ clock, actor }` and a JSON value. The greatest Lamport clock wins, with actor ID breaking ties. A lifecycle register selects the complete base/generation or a deletion marker. A replacement generation ignores the old generation's overrides. Each writer modifies only its own array, preserving Yjs's adjacent-history compression and allowing undo to reveal a peer's register. Deleted generations and retired writers remain available for offline merging and local history; repeated-edit boundedness does not imply unlimited lifecycle churn is free.
+Each register carries `{ clock, actor }` and a JSON value. The greatest Lamport clock wins, with actor ID breaking ties. A lifecycle register selects the complete base/generation or a deletion marker. A replacement generation ignores the old generation's overrides. Each writer modifies its own register array and clock map, preserving Yjs's adjacent-history compression and allowing undo to reveal a peer's register. Deleted generations and retired writers remain available for offline merging and local history; repeated-edit boundedness does not imply unlimited lifecycle churn is free.
 
 Deletion writes a null lifecycle value. Connectors bound to a missing element degrade to their captured resolved free point; known bindings are detached in the deletion gesture. No document reset or epoch replacement may discard offline updates during compaction.
 
@@ -98,7 +98,7 @@ Camera `{ x, y, zoom }`, active tool, tool options, panel state, snap settings. 
 
 ### 3.5 Undo/redo
 
-`new Y.UndoManager(ownWriterArray, { trackedOrigins: new Set([LOCAL_ORIGIN]), captureTimeout: 0, deleteFilter })`. Every local write goes through `doc.transact(fn, LOCAL_ORIGIN)`; one gesture (a drag, a stroke, a text commit) is exactly one transaction and one undo step. The monotonic clock ledger is part of that transaction and is preserved across undo/redo. An adapter isolates its Yjs Item before undo, using pinned Yjs 13.6.33 low-level exports, so `deleteFilter` excludes only the clock. Regression coverage is required when changing that pin. Undo/redo restores the original causal stamps, so it cannot overwrite a causally newer peer change. Remote changes arrive under the provider origin and are never tracked as this user's gestures.
+`new Y.UndoManager(ownWriterArray, { trackedOrigins: new Set([LOCAL_ORIGIN]), captureTimeout: 0 })`. Every local write goes through `doc.transact(fn, LOCAL_ORIGIN)`; one gesture (a drag, a stroke, a text commit) is exactly one transaction and one undo step. The monotonic clock is the `value` in the writer's root `Y.Map` named `clock:<actor>`, written in that same transaction outside the UndoManager scope. Undo/redo therefore preserves the clock without Item splitting or a clock delete filter, and receiving peers emit no cleanup packets. Legacy array `$clock` records remain readable and unchanged; persisted schema-2 boards need no migration. Undo/redo restores the original causal stamps, so it cannot overwrite a causally newer peer change. Remote changes arrive under the provider origin and are never tracked as this user's gestures.
 
 ### 3.6 Renderer
 

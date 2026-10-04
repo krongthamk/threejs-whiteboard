@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
 import { expect, it } from 'vitest';
 import { writeRunEvidence } from '../../../tests/evidence';
-import { CLOCK_KEY, BoardDocument as WriterBoardDocument, WRITER_PREFIX, type WriterOptions } from '../src/document.js';
+import { BoardDocument as WriterBoardDocument, WRITER_PREFIX, CLOCK_PREFIX, type WriterOptions } from '../src/document.js';
 
 const NETWORK = Symbol('network');
 function pair(options: WriterOptions = {}): [WriterBoardDocument, WriterBoardDocument] {
@@ -17,15 +17,15 @@ function sync(clients: WriterBoardDocument[]): void {
   for (const client of clients) expect(client.readAll()).toEqual(clients[0]!.readAll());
 }
 
-it('same-transaction clock deleteFilter keeps one gesture undoable without decrementing clock', () => {
+it('same-transaction root clock keeps one gesture undoable without decrementing clock', () => {
   const [a, b] = pair(); let updates = 0;
   a.doc.on('update', () => updates++);
   a.move(['s'], { x: 75, y: 20 });
-  const clock = a.own.kv.get(CLOCK_KEY)!.stamp.clock;
+  const clock = a.writerClock();
   expect(updates).toBe(1); expect(a.undoManager.undoStack).toHaveLength(1);
   a.undoManager.undo();
   expect(a.read('s')).toMatchObject({ x: 0, y: 0 });
-  expect(a.own.kv.get(CLOCK_KEY)!.stamp.clock).toBe(clock);
+  expect(a.writerClock()).toBe(clock);
   a.destroy(); b.destroy();
 });
 
@@ -43,12 +43,12 @@ it('retains peer edits in concurrent winner undo and local deletion undo', () =>
 
 it('clock survives undo and a fresh writer reload', () => {
   const [a, b] = pair();
-  a.move(['s'], { x: 75, y: 20 }); const oldClock = a.own.kv.get(CLOCK_KEY)!.stamp.clock;
+  a.move(['s'], { x: 75, y: 20 }); const oldClock = a.writerClock();
   a.undoManager.undo(); sync([a, b]);
   const doc = new Y.Doc(); doc.clientID = 3; Y.applyUpdate(doc, Y.encodeStateAsUpdate(a.doc), NETWORK);
   const c = new WriterBoardDocument(doc);
   c.update('s', { x: 120 }); sync([a, b, c]);
-  expect(c.own.kv.get(CLOCK_KEY)!.stamp.clock).toBeGreaterThan(oldClock);
+  expect(c.writerClock()).toBeGreaterThan(oldClock);
   a.undoManager.redo(); sync([a, b, c]); expect(a.read('s')!.x).toBe(120);
   // Empty writer arrays are local handles only and have no encoded CRDT contents.
   expect([...c.doc.share.keys()].filter(name => name.startsWith(WRITER_PREFIX))).toHaveLength(3);
@@ -100,7 +100,7 @@ it('keeps an offline old writer safe across deletion, recreation and a fresh-cli
 
 it('measures retained generation and writer records honestly under repeated lifecycle churn', () => {
   const board = new WriterBoardDocument();
-  const samples: { cycles: number; visibleElements: number; liveRecords: number; structs: number; snapshotBytes: number }[] = [];
+  const samples: { cycles: number; visibleElements: number; writerRecords: number; clockRecords: number; liveRecords: number; structs: number; snapshotBytes: number }[] = [];
   for (let cycle = 1; cycle <= 200; cycle++) {
     board.create(cycle % 2 ? 'rect' : 'ellipse', { id: 'reused' });
     board.update('reused', { x: cycle, y: cycle * 2 });
@@ -108,9 +108,13 @@ it('measures retained generation and writer records honestly under repeated life
     board.undoManager.undo(); expect(board.read('reused')).toMatchObject({ x: cycle, y: cycle * 2 });
     board.undoManager.redo(); expect(board.readAll()).toEqual([]);
     board.undoManager.clear();
-    if (cycle % 50 === 0) samples.push({ cycles: cycle, visibleElements: board.readAll().length, liveRecords: [...board.writers.values()].reduce((sum, writer) => sum + writer.records.length, 0), structs: [...board.doc.store.clients.values()].reduce((sum, structs) => sum + structs.length, 0), snapshotBytes: Y.encodeStateAsUpdate(board.doc).byteLength });
+    if (cycle % 50 === 0) {
+      const writerRecords = [...board.writers.values()].reduce((sum, writer) => sum + writer.records.length, 0);
+      const clockRecords = [...board.doc.share.keys()].filter(name => name.startsWith(CLOCK_PREFIX)).reduce((sum, name) => sum + board.doc.getMap(name).size, 0);
+      samples.push({ cycles: cycle, visibleElements: board.readAll().length, writerRecords, clockRecords, liveRecords: writerRecords + clockRecords, structs: [...board.doc.store.clients.values()].reduce((sum, structs) => sum + structs.length, 0), snapshotBytes: Y.encodeStateAsUpdate(board.doc).byteLength });
+    }
   }
-  expect(samples.at(-1)!.liveRecords).toBe(402);
+  expect(samples.at(-1)).toMatchObject({ writerRecords: 401, clockRecords: 1, liveRecords: 402 });
   expect(samples.every(sample => sample.visibleElements === 0)).toBe(true);
   expect(samples[3]!.snapshotBytes).toBeGreaterThan(samples[0]!.snapshotBytes);
   writeRunEvidence('model', 'schema2-lifecycle-retention.json', 'packages/model/reports/schema2-lifecycle-retention.json', `${JSON.stringify({ interpretation: 'Hot edits plateau for fixed writer/key/generation sets. Retired writer arrays and obsolete generation overrides are retained to preserve offline merge and undo; lifecycle churn is not bounded by visible element count.', samples }, null, 2)}\n`);
