@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
-import { BoardDocument, bindToElement, createElement, MAX_EXCALIDRAW_BYTES, type ImportBudget } from '@whiteboard/model';
+import { BoardDocument, bindToElement, createElement, importExcalidraw, MAX_EXCALIDRAW_BYTES, type ImportBudget } from '@whiteboard/model';
 import { ExcalidrawImporter, isExcalidrawText, parseExcalidrawSource, placeImportedElements, type ImportReport } from './excalidraw-import';
 import { createSession } from './session';
 import type { ImportLease } from './import-transport';
@@ -11,6 +11,9 @@ let board: BoardDocument, session: ReturnType<typeof createSession>, importer: E
 beforeEach(() => { vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn() }); board = new BoardDocument(); session = createSession('imports'); });
 afterEach(() => { importer?.destroy(); session.dispose(); board.destroy(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const source = (count = 1) => JSON.stringify({ type: 'excalidraw', version: 2, elements: Array.from({ length: count }, (_, i) => ({ id: 'source-' + i, type: 'rectangle', x: 100 + i * 5, y: 100, width: 100, height: 80 })) });
+const imageSource = (bytes = pngHeader(10, 10), mimeType = 'image/png') => ({ type: 'excalidraw', version: 2,
+  elements: [{ id: 'image', type: 'image', fileId: 'pixels', x: 0, y: 0, width: 10, height: 10 }],
+  files: { pixels: { mimeType, dataURL: `data:${mimeType};base64,` + Buffer.from(bytes).toString('base64') } } });
 function fixture(options: { limit?: number; imageLimit?: number; readOnly?: () => boolean; acknowledgment?: () => Promise<void>; budget?: () => Promise<ImportBudget> } = {}) {
   const reports: ImportReport[] = [], release = vi.fn(), controller = new AbortController();
   const budget = options.budget ?? (async () => ({ maxUpdateBytes: options.limit ?? 4e6, maxBoardBytes: 64e6, maxInboundBytes: 8e6, maxClockGrowth: 1e6, snapshotBytes: 0, updateBytes: 0, stateVector: Y.encodeStateVector(board.doc) }));
@@ -72,4 +75,44 @@ it('refuses an unavailable renderer texture limit before decoding or uploading i
   const upload = vi.spyOn(api, 'uploadAsset'), decode = vi.fn(); vi.stubGlobal('createImageBitmap', decode); fixture({ imageLimit: NaN });
   const scene = { type: 'excalidraw', version: 2, elements: [{ id: 'image', type: 'image', fileId: 'pixels', x: 0, y: 0, width: 10, height: 10 }], files: { pixels: { mimeType: 'image/png', dataURL: 'data:image/png;base64,' + Buffer.from(pngHeader(10, 10)).toString('base64') } } };
   await expect(importer.importText(JSON.stringify(scene))).rejects.toThrow('image limit is unavailable'); expect(upload).not.toHaveBeenCalled(); expect(decode).not.toHaveBeenCalled(); expect(board.readAll()).toEqual([]);
+});
+
+it.each(['elements', 'images'] as const)('rejects excessive source %s before IDs, base64 decoding, pixel work, upload, live writes or undo', async kind => {
+  const { reports } = fixture(), before = Y.encodeStateAsUpdate(board.doc), allocate = vi.spyOn(crypto, 'randomUUID');
+  const base64 = vi.spyOn(globalThis, 'atob'), decode = vi.fn(), upload = vi.spyOn(api, 'uploadAsset'); vi.stubGlobal('createImageBitmap', decode);
+  const json = kind === 'elements' ? source(10001) : JSON.stringify({ type: 'excalidraw', version: 2, elements: Array.from({ length: 101 }, (_, i) => ({ id: `image-${i}`, type: 'image', fileId: 'missing', x: 0, y: 0, width: 1, height: 1 })) });
+  await expect(importer.importText(json)).rejects.toThrow(kind === 'elements' ? 'element count' : 'image count');
+  expect(allocate).not.toHaveBeenCalled(); expect(base64).not.toHaveBeenCalled(); expect(decode).not.toHaveBeenCalled(); expect(upload).not.toHaveBeenCalled();
+  expect(Y.encodeStateAsUpdate(board.doc)).toEqual(before); expect(board.undoManager.undoStack).toHaveLength(0); expect(reports).toEqual([]);
+});
+it.each(['magic', 'mime', 'dimensions', 'bytes'] as const)('skips a hostile embedded image with bad %s before browser decoding or upload', async fault => {
+  const { reports } = fixture(), before = Y.encodeStateAsUpdate(board.doc), decode = vi.fn(), upload = vi.spyOn(api, 'uploadAsset'); vi.stubGlobal('createImageBitmap', decode);
+  const json = imageSource(fault === 'magic' ? new Uint8Array([1, 2, 3]) : fault === 'dimensions' ? pngHeader(16385, 1) : fault === 'bytes' ? new Uint8Array(20 * 1024 * 1024 + 1) : pngHeader(10, 10), fault === 'mime' ? 'image/jpeg' : 'image/png');
+  const base64 = vi.spyOn(globalThis, 'atob'); await importer.importText(JSON.stringify(json));
+  expect(reports.at(-1)).toMatchObject({ imported: 0, skipped: [{ id: 'image', type: 'image' }] });
+  expect(reports.at(-1)!.skipped[0]!.reason).toMatch(fault === 'magic' ? /header/ : fault === 'mime' ? /MIME/ : fault === 'dimensions' ? /16384/ : /20 MiB/);
+  if (fault === 'bytes') expect(base64).not.toHaveBeenCalled();
+  expect(decode).not.toHaveBeenCalled(); expect(upload).not.toHaveBeenCalled(); expect(Y.encodeStateAsUpdate(board.doc)).toEqual(before); expect(board.undoManager.undoStack).toHaveLength(0);
+});
+it.each([4096, 4097])('enforces an available 4096-pixel GPU cap for a %i-wide imported source', async width => {
+  fixture({ imageLimit: 4096 }); const decode = vi.fn(async () => ({ width, height: 1, close: vi.fn() })); vi.stubGlobal('createImageBitmap', decode);
+  const upload = vi.spyOn(api, 'uploadAsset').mockResolvedValue({ assetId: crypto.randomUUID(), width, height: 1 });
+  vi.stubGlobal('document', { createElement: () => ({ width: 0, height: 0, getContext: () => ({ drawImage: vi.fn() }), toBlob: (done: (blob: Blob) => void) => done(new Blob([Uint8Array.from(pngHeader(width, 1))], { type: 'image/png' })) }) });
+  const pending = importer.importText(JSON.stringify(imageSource(pngHeader(width, 1))));
+  if (width === 4097) { await expect(pending).rejects.toThrow('texture limit'); expect(decode).not.toHaveBeenCalled(); expect(upload).not.toHaveBeenCalled(); expect(board.readAll()).toEqual([]); expect(board.undoManager.undoStack).toHaveLength(0); }
+  else { await pending; expect(decode).toHaveBeenCalledOnce(); expect(upload).toHaveBeenCalledOnce(); expect(board.readAll()[0]).toMatchObject({ props: { naturalW: 4096, naturalH: 1 } }); }
+});
+it.each(['label', 'points'] as const)('preflights every element before image I/O when a later %s is individually unsendable', async kind => {
+  fixture({ limit: 2000 }); const before = Y.encodeStateAsUpdate(board.doc), decode = vi.fn(), upload = vi.spyOn(api, 'uploadAsset'); vi.stubGlobal('createImageBitmap', decode);
+  const json: { elements: unknown[]; [key: string]: unknown } = imageSource();
+  json.elements.push(kind === 'label' ? { id: 'large', type: 'text', x: 30, y: 0, width: 500, height: 50, text: 'x'.repeat(5000), fontFamily: 1 } : { id: 'large', type: 'freedraw', x: 30, y: 0, width: 1999, height: 1, points: Array.from({ length: 2000 }, (_, i) => [i, i % 2]), pressures: Array(2000).fill(.5) });
+  const converted = importExcalidraw(json, { newId: () => crypto.randomUUID(), firstIndex: null }); expect(converted.elements).toHaveLength(2); expect(converted.report.skipped).toEqual([]);
+  await expect(importer.importText(JSON.stringify(json))).rejects.toThrow(); expect(decode).not.toHaveBeenCalled(); expect(upload).not.toHaveBeenCalled(); expect(Y.encodeStateAsUpdate(board.doc)).toEqual(before); expect(board.undoManager.undoStack).toHaveLength(0);
+});
+it('destroying an import during a budget await releases its lease and never starts live writes', async () => {
+  let finish!: (budget: ImportBudget) => void;
+  const { release } = fixture({ budget: () => new Promise(resolve => { finish = resolve; }) }), before = Y.encodeStateAsUpdate(board.doc);
+  const pending = importer.importText(source()); await vi.waitFor(() => expect(finish).toBeTypeOf('function')); importer.destroy();
+  finish({ maxUpdateBytes: 4e6, maxBoardBytes: 64e6, maxInboundBytes: 8e6, maxClockGrowth: 1e6, snapshotBytes: 0, updateBytes: 0, stateVector: Y.encodeStateVector(board.doc) });
+  await expect(pending).rejects.toThrow('closed'); expect(release).toHaveBeenCalledOnce(); expect(Y.encodeStateAsUpdate(board.doc)).toEqual(before); expect(board.undoManager.undoStack).toHaveLength(0);
 });

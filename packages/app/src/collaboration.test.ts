@@ -89,6 +89,13 @@ test('disconnect aborts an outstanding import ACK and releases its event listene
   await expect(pending).rejects.toThrow('connection closed'); expect(transport.listeners.get('unsyncedChanges')?.size).toBe(0);
   lease.release(); expect(connection.provider.awareness?.on).toHaveBeenCalledOnce();
 });
+test.each(['scope', 'destroy'] as const)('%s change aborts an outstanding import ACK and releases its listener without another batch', async change => {
+  const { connection } = await open(), lease = connection.beginImport(new AbortController().signal);
+  transport.unsynced = true; const pending = lease.waitAcknowledged();
+  if (change === 'scope') transport.options.onAuthenticated({ scope: 'readonly' }); else await connection.destroy();
+  await expect(pending).rejects.toThrow(change === 'scope' ? 'read-only' : 'closed'); expect(transport.listeners.get('unsyncedChanges')?.size).toBe(0);
+  expect(() => lease.assertReady()).toThrow(); lease.release(); lease.release();
+});
 test('wire presence obeys receiver and exact byte caps without truncating local selection', () => {
   const selection = Array.from({ length: 10000 }, (_, i) => `${i}-` + 'long-id-'.repeat(8)), presence = { userId: 'u', name: 'Name', color: '#334455', cursor: null, selection, editingTextId: null };
   const state = boundedWirePresence(presence, '日本語-board', 0xffffffff, 128, 1024)!;

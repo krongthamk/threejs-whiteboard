@@ -98,7 +98,9 @@ of at most 500 elements, reduced further to fit byte and resource limits; each
 batch takes a separate undo step. Batches wait for server acknowledgements.
 If the connection or available capacity changes, import stops and reports
 what was added locally and what was acknowledged. An acknowledgement means
-server application, not a separate disk-durability receipt.
+server application, not a separate disk-durability receipt. A stopped-import
+report records acknowledgements at the time it stopped; retained local changes
+can finish syncing after reconnection.
 
 Views are bounded to one million document units from the origin on each axis. The canvas adapts when display pixel density changes, including between monitors, with a pixel ratio capped at two.
 

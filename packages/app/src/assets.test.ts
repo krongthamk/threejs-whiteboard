@@ -4,6 +4,7 @@ import { pngHeader } from '../../../tests/image-fixtures';
 import { api } from './api';
 import { BoardAssets } from './assets';
 import { createSession } from './session';
+import { ExcalidrawImporter } from './excalidraw-import';
 
 let board: BoardDocument, assets: BoardAssets, errors: string[];
 let session: ReturnType<typeof createSession>;
@@ -45,4 +46,14 @@ test.each(['target', 'another-board'])('clipboard validates actual asset dimensi
   vi.spyOn(api, 'copyAsset').mockResolvedValue({ assetId: 'copied', width: 10, height: 10 });
   await (assets as unknown as { importClipboard(value: typeof envelope): Promise<void> }).importClipboard(envelope);
   expect(errors[0]).toContain('do not match'); expect(board.readAll()).toEqual([]); expect(decode).not.toHaveBeenCalled();
+});
+
+test('closing while an Excalidraw file is being read prevents preparation, uploads and document changes', async () => {
+  const text = JSON.stringify({ type: 'excalidraw', version: 2, elements: [{ id: 'source', type: 'rectangle', x: 0, y: 0, width: 20, height: 30 }] });
+  const documentFile = new File([text], 'scene.excalidraw', { type: 'application/json' });
+  let finish!: (text: string) => void; vi.spyOn(documentFile, 'text').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const upload = vi.spyOn(api, 'uploadAsset'), allocate = vi.spyOn(crypto, 'randomUUID'), preparation = vi.spyOn(ExcalidrawImporter.prototype, 'importText'), before = board.readAll();
+  const pending = assets.importFiles([documentFile]); await vi.waitFor(() => expect(finish).toBeTypeOf('function')); assets.destroy();
+  finish(text); await pending;
+  expect(preparation).not.toHaveBeenCalled(); expect(allocate).not.toHaveBeenCalled(); expect(decode).not.toHaveBeenCalled(); expect(upload).not.toHaveBeenCalled(); expect(board.readAll()).toEqual(before); expect(board.undoManager.undoStack).toHaveLength(0); expect(errors).toEqual([]);
 });

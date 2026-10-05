@@ -27,6 +27,12 @@ test('enforces positive integer dimensions, the 16384 side limit and the 100mill
   for (const [width, height] of [[16385, 1], [10001, 10000], [0, 1], [1, -1], [1.5, 2], [Infinity, 1]]) expect(() => assertSafeImageDimensions(width, height)).toThrow();
 });
 
+test('accepts exactly 100million header pixels without allocating decoded pixels', () => {
+  const header = readImageHeader(pngHeader(10000, 10000));
+  expect(header.width * header.height).toBe(100_000_000);
+  expect(() => assertSafeImageDimensions(header.width, header.height)).not.toThrow();
+});
+
 function extendedWebp(canvasWidth: number, canvasHeight: number, streamWidth: number, streamHeight: number, animated = false): Uint8Array {
   const canvas = webpHeader(canvasWidth, canvasHeight, 'VP8X');
   if (animated) canvas[20] = 2;

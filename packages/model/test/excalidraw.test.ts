@@ -240,6 +240,36 @@ describe('global admission versus independent malformed elements', () => {
     expect(() => importExcalidraw(document([raw('a'), raw('b')]), { firstIndex: null, newId: () => 'same' })).toThrow('fresh unique');
     expect(() => importExcalidraw(document([raw('a')]), { firstIndex: null, newId: () => '\ud800' })).toThrow('fresh unique');
   });
+  it('accepts exactly 10k raw elements and refuses a deleted 10001st record before allocating or decoding', () => {
+    const source = [raw('limit-image', 'image', { fileId: 'shared' }),
+      ...Array.from({ length: MAX_IMPORT_ELEMENTS - 1 }, (_, i) => raw('limit-shape-' + i))];
+    const files = { shared: { dataURL: dataURL('image/png', pngHeader(2, 3)) } };
+    let sequence = 0;
+    const newId = vi.fn(() => 'limit-native-' + sequence++), decode = vi.spyOn(globalThis, 'atob');
+    try {
+      const result = importExcalidraw(document(source, { files }), { newId, firstIndex: null });
+      expect(result.report.imported).toBe(MAX_IMPORT_ELEMENTS); expect(result.report.skipped).toEqual([]);
+      expect(newId).toHaveBeenCalledTimes(MAX_IMPORT_ELEMENTS); expect(decode).toHaveBeenCalledTimes(1);
+      newId.mockClear(); decode.mockClear();
+      expect(() => importExcalidraw(document([...source, raw('deleted-over-count', 'rectangle', { isDeleted: true })], { files }), { newId, firstIndex: null })).toThrow('element count');
+      expect(newId).not.toHaveBeenCalled(); expect(decode).not.toHaveBeenCalled();
+    } finally { decode.mockRestore(); }
+  });
+  it('accepts exactly 100 shared-file images and rejects the 101st before allocating or decoding', () => {
+    const source = Array.from({ length: 100 }, (_, i) => raw('limit-image-' + i, 'image', { fileId: 'shared' }));
+    const files = { shared: { dataURL: dataURL('image/png', pngHeader(2, 3)) } };
+    let sequence = 0;
+    const newId = vi.fn(() => 'limit-native-' + sequence++), decode = vi.spyOn(globalThis, 'atob');
+    try {
+      const result = importExcalidraw(document(source, { files }), { newId, firstIndex: null });
+      expect(result.report.imported).toBe(100); expect(result.report.skipped).toEqual([]); expect(result.images).toHaveLength(100);
+      expect(newId).toHaveBeenCalledTimes(100); expect(decode).toHaveBeenCalledTimes(1);
+      expect(result.images.every(image => image.bytes === result.images[0]!.bytes)).toBe(true);
+      newId.mockClear(); decode.mockClear();
+      expect(() => importExcalidraw(document([...source, raw('limit-image-100', 'image', { fileId: 'shared' })], { files }), { newId, firstIndex: null })).toThrow('image count');
+      expect(newId).not.toHaveBeenCalled(); expect(decode).not.toHaveBeenCalled();
+    } finally { decode.mockRestore(); }
+  });
   it('keeps unrelated elements when a JSON-valid element has invalid values or identity', () => {
     const bad: Raw[] = [raw('coord', 'rectangle', { x: MAX_COORDINATE + 1 }), raw('size', 'rectangle', { width: -1 }),
       label('font', { fontSize: MAX_FONT_SIZE + 1 }), label('surrogate', { originalText: '\ud800' }), label('long', { originalText: 'x'.repeat(MAX_TEXT_LENGTH + 1) }),

@@ -135,6 +135,17 @@ describe('byte, resource, storage and acknowledgement bounds', () => {
     const server = new Y.Doc(); Y.applyUpdate(server, bytes(board)); const validator = new BoardUpdateValidator(server);
     expect(validator.validate(batch.update).length).toBe(batch.acceptedBytes); validator.dispose(); server.destroy(); board.destroy();
   });
+  it('accepts exact single-element frame and inbound-reserve limits and rejects either one byte below', () => {
+    const board = new BoardDocument(), input = shapes(1), base = options(board), batch = planImport(board, input, base).batches[0]!;
+    const cap = Math.max(batch.frameBytes, batch.reconnectFrameBytes), reserve = 23;
+    const atLimit = { ...base, budget: budget(board, { maxUpdateBytes: cap, maxInboundBytes: cap + reserve }), inboundReserveBytes: reserve };
+    const plan = planImport(board, input, atLimit);
+    expect(plan.batches).toHaveLength(1); expect(plan.batches[0]!.elements).toHaveLength(1);
+    expect(Math.max(plan.batches[0]!.frameBytes, plan.batches[0]!.reconnectFrameBytes)).toBe(cap);
+    expect(() => planImport(board, input, { ...atLimit, budget: { ...atLimit.budget, maxUpdateBytes: cap - 1 } })).toThrow('frame limit');
+    expect(() => planImport(board, input, { ...atLimit, budget: { ...atLimit.budget, maxInboundBytes: cap + reserve - 1 } })).toThrow('frame limit');
+    expect(board.readAll()).toEqual([]); expect(board.undoManager.undoStack).toHaveLength(0); board.destroy();
+  });
   it('requires acknowledged baseline history and includes historical deletion bytes in reconnect bounds', () => {
     const board = baselineWithHistory(), input = shapes(1), plan = planImport(board, input, options(board));
     expect(plan.batches[0]!.reconnectPayloadBytes).toBeGreaterThan(plan.batches[0]!.payloadBytes);

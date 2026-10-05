@@ -169,7 +169,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     {(hiddenItems || unsupportedSchema || syncBlocked || importReport) && <div className="board-data-notice surface" role="status" aria-label="Board data notice">
       {importReport && <section aria-label="Import report">
         <button className="icon-button" aria-label="Dismiss import report" onClick={() => setImportReport(null)}><X size={16} /></button>
-        <p>Imported {importReport.imported} element{importReport.imported === 1 ? '' : 's'}. Skipped {importReport.skipped.length}. {importReport.pending > 0 ? `${importReport.pending} added locally, awaiting sync.` : `${importReport.acknowledged} acknowledged by the server.`}</p>
+        <p>Imported {importReport.imported} element{importReport.imported === 1 ? '' : 's'}. Skipped {importReport.skipped.length}. {importReport.pending > 0 ? importReport.message ? `${importReport.pending} added locally, not acknowledged before the import stopped.` : `${importReport.pending} added locally, awaiting sync.` : `${importReport.acknowledged} acknowledged by the server.`}</p>
         {importReport.message && <p>{importReport.message}</p>}
         {importReport.batches > 1 && <p>This import uses {importReport.batches} undo steps. Undo each step to remove it.</p>}
         <button className="board-reload" onClick={() => {

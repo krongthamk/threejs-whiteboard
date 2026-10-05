@@ -7,6 +7,11 @@ import { evidenceDirectory } from '../evidence';
 const genuinePath = resolve('packages/model/test/fixtures/excalidraw/official-app-mixed.excalidraw');
 const genuineText = readFileSync(genuinePath, 'utf8');
 const simple = (count = 1) => ({ type: 'excalidraw', version: 2, elements: Array.from({ length: count }, (_, i) => ({ id: `source-${i}`, type: 'rectangle', x: 100 + i * 8, y: 100, width: 100, height: 80 })) });
+function namedMessageKind(bytes: Buffer): number[] {
+  let cursor = 0;
+  const uint = () => { let n = 0, shift = 0, value: number; do { value = bytes[cursor++]!; n += (value & 127) * 2 ** shift; shift += 7; } while (value & 128 && cursor < bytes.length); return n; };
+  const nameLength = uint(); cursor += nameLength; return [uint(), uint()];
+}
 async function open(page: Page, title: string) {
   await page.goto('/'); await page.getByLabel('Username', { exact: true }).fill('alice'); await page.getByLabel('Password', { exact: true }).fill('browser-test-only-password'); await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('button', { name: 'New board', exact: true }).or(page.getByRole('button', { name: 'Back to boards', exact: true }))).toBeVisible();
@@ -156,4 +161,80 @@ test('a later budget failure retains acknowledged batches with truthful count, s
   await expect(page.getByRole('region', { name: 'Import report' })).toContainText(`Imported ${added} elements`); await expect(page.getByRole('region', { name: 'Import report' })).toContainText(`${added} acknowledged by the server`);
   expect(await page.evaluate(() => window.whiteboard.session.getState().selectedIds.length)).toBe(added); expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
   await page.locator('.board-canvas').focus(); await page.keyboard.press('ControlOrMeta+z'); expect(await values(page)).toEqual([]);
+});
+
+test('image-containing imports preflight quota and every later element before decoding or uploading', async ({ page }, info) => {
+  await open(page, 'Image admission ordering');
+  await page.evaluate(() => { window.whiteboard.board.create('rect', { id: 'existing' }); }); await page.waitForFunction(() => !window.whiteboardConnection!.provider.hasUnsyncedChanges);
+  const baseline = await page.evaluate(() => ({ values: window.whiteboard.board.readAll(), undo: window.whiteboard.board.undoManager.undoStack.length }));
+  let uploads = 0; page.on('request', request => { if (request.method() === 'POST' && /\/assets$/.test(request.url())) uploads++; });
+  await page.evaluate(() => {
+    const original = window.createImageBitmap; Object.assign(window, { importDecodes: 0 });
+    window.createImageBitmap = ((...args: Parameters<typeof createImageBitmap>) => { (window as unknown as { importDecodes: number }).importDecodes++; return original(...args); }) as typeof createImageBitmap;
+  });
+  await page.route('**/import-budget', async route => { const response = await route.fetch(), body = await response.json(); body.limits.maxBoardBytes = 1; await route.fulfill({ json: body }); });
+  await file(page, genuineText); await expect(page.getByRole('alert')).toContainText('storage');
+  expect(uploads).toBe(0); expect(await page.evaluate(() => (window as unknown as { importDecodes: number }).importDecodes)).toBe(0);
+  await page.unroute('**/import-budget'); await page.getByRole('button', { name: 'Dismiss error', exact: true }).click();
+  const image = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = 4; canvas.height = 4; const ctx = canvas.getContext('2d')!; ctx.fillStyle = '#dc2525'; ctx.fillRect(0, 0, 4, 4); return canvas.toDataURL('image/png'); });
+  await page.route('**/import-budget', async route => { const response = await route.fetch(), body = await response.json(); body.limits.maxUpdateBytes = Math.min(body.limits.maxUpdateBytes, 2000); await route.fulfill({ json: body }); });
+  for (const kind of ['label', 'points']) {
+    const late = kind === 'label' ? { id: 'late', type: 'text', x: 20, y: 0, width: 200, height: 30, text: 'x'.repeat(5000), fontFamily: 1 } : { id: 'late', type: 'freedraw', x: 20, y: 0, width: 1999, height: 1, points: Array.from({ length: 2000 }, (_, i) => [i, i % 2]), pressures: Array(2000).fill(.5) };
+    const scene = { type: 'excalidraw', version: 2, elements: [{ id: 'image', type: 'image', fileId: 'pixels', x: 0, y: 0, width: 4, height: 4 }, late], files: { pixels: { mimeType: 'image/png', dataURL: image } } };
+    const converted = importExcalidraw(scene, { newId: () => crypto.randomUUID(), firstIndex: null }); expect(converted.elements).toHaveLength(2); expect(converted.report.skipped).toEqual([]);
+    await file(page, JSON.stringify(scene)); await expect(page.getByRole('alert')).toBeVisible();
+    expect(uploads).toBe(0); expect(await page.evaluate(() => (window as unknown as { importDecodes: number }).importDecodes)).toBe(0);
+    expect(await values(page)).toEqual(baseline.values); expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(baseline.undo);
+    await page.getByRole('button', { name: 'Dismiss error', exact: true }).click();
+  }
+  writeFileSync(resolve(evidenceDirectory(info), 'image-preflight.json'), JSON.stringify({ uploads, baseline, decodes: 0, probes: ['genuine quota', 'late label', 'late points'] }, null, 2));
+});
+
+test('a real upload failure leaves no imported document prefix or undo gesture', async ({ page }, info) => {
+  await open(page, 'Import upload failure'); const baseline = await values(page), undo = await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length); let uploads = 0;
+  await page.route('**/assets', async route => { if (route.request().method() !== 'POST') { await route.continue(); return; } uploads++; await route.fulfill({ status: 503, json: { error: 'Controlled asset failure' } }); });
+  await file(page, genuineText); await expect(page.getByRole('alert')).toContainText('Controlled asset failure'); expect(uploads).toBe(1);
+  expect(await values(page)).toEqual(baseline); expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(undo);
+  await expect(page.getByRole('region', { name: 'Import report' })).toContainText('Imported 0 elements');
+  writeFileSync(resolve(evidenceDirectory(info), 'upload-failure.json'), JSON.stringify({ uploads, baseline, undo }));
+});
+
+test('socket close while a positive ACK is withheld stops later batches and reconnects only the bounded suffix', async ({ page }, info) => {
+  let armed = false, withheld = false, generation = 0;
+  const events: { direction: string; generation: number; kind: number[]; bytes: number }[] = [];
+  await page.routeWebSocket('**/collaboration*', client => {
+    const server = client.connectToServer(), current = ++generation;
+    client.onMessage(message => { if (typeof message !== 'string') events.push({ direction: 'out', generation: current, kind: namedMessageKind(message), bytes: message.length }); server.send(message); });
+    server.onMessage(message => {
+      const kind = typeof message === 'string' ? [] : namedMessageKind(message);
+      if (typeof message !== 'string') events.push({ direction: 'in', generation: current, kind, bytes: message.length });
+      if (armed && !withheld && kind[0] === 8 && kind[1] === 1) {
+        withheld = true; armed = false;
+        // This is a real accepted server update; only its acknowledgment is blocked at the proxy.
+        void Promise.all([server.close({ code: 1001, reason: 'Controlled import interruption' }), client.close({ code: 1001, reason: 'Controlled import interruption' })]); return;
+      }
+      client.send(message);
+    });
+  });
+  await open(page, 'Import ACK interruption');
+  const initialGeneration = generation, actor = await page.evaluate(() => window.whiteboard.board.actor);
+  await page.route('**/import-budget', async route => { const response = await route.fetch(), body = await response.json(); body.limits.maxUpdateBytes = Math.min(body.limits.maxUpdateBytes, 2000); body.limits.maxInboundBytes = Math.min(body.limits.maxInboundBytes, 6000); await route.fulfill({ json: body }); });
+  events.length = 0; armed = true;
+  await file(page, JSON.stringify(simple(20))); await expect(page.getByRole('alert')).toContainText('connection closed');
+  const imported = (await values(page)).length; expect(imported).toBeGreaterThan(0); expect(imported).toBeLessThan(20); expect(withheld).toBe(true);
+  await expect(page.getByRole('region', { name: 'Import report' })).toContainText(`Imported ${imported} elements`);
+  expect(events.filter(event => event.direction === 'out' && event.kind[0] === 0 && event.kind[1] === 2)).toHaveLength(1);
+  await page.waitForFunction(() => !!window.whiteboardConnection?.provider.synced && !window.whiteboardConnection.provider.hasUnsyncedChanges);
+  expect(await values(page)).toHaveLength(imported); expect(await page.evaluate(() => window.whiteboard.session.getState().selectedIds.length)).toBe(imported);
+  expect(events.filter(event => event.direction === 'out' && event.kind[0] === 0 && event.kind[1] === 2)).toHaveLength(1);
+  const reconnect = events.filter(event => event.direction === 'out' && event.generation > initialGeneration && event.kind[0] === 0 && event.kind[1] === 1);
+  expect(reconnect.length).toBeGreaterThan(0); expect(Math.max(...reconnect.map(event => event.bytes))).toBeLessThanOrEqual(2000);
+  expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(1);
+  expect(await page.evaluate(() => window.whiteboard.board.actor)).toBe(actor); expect(await page.evaluate(() => window.whiteboard.readOnly)).toBe(false);
+  writeFileSync(resolve(evidenceDirectory(info), 'withheld-ack.json'), JSON.stringify({ events, imported, generation, withheld, pendingAfterReconnect: await page.evaluate(() => window.whiteboardConnection!.provider.unsyncedChanges) }, null, 2));
+  // Counts are a historical stopped-import result; a later reconnect must not leave a false live waiting claim.
+  await expect(page.getByRole('region', { name: 'Import report' })).not.toContainText('awaiting sync');
+  await expect(page.getByRole('region', { name: 'Import report' })).toContainText(`${imported} added locally, not acknowledged before the import stopped`);
+  await page.getByRole('button', { name: 'Dismiss error', exact: true }).click(); await file(page, JSON.stringify(simple()));
+  await expect.poll(async () => (await values(page)).length).toBe(imported + 1); await expect(page.getByRole('region', { name: 'Import report' })).toContainText('1 acknowledged by the server');
 });
