@@ -7,6 +7,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { Store } from '../packages/server/src/store.js';
 import { serverConfig } from '../packages/server/src/config.js';
+import { readGoogleConfig } from '../packages/server/src/google-config.js';
+import { deploymentEnvironment, deploymentEnvironmentXml } from './deploy-environment.js';
 
 if (process.platform !== 'darwin') throw new Error('This deployment helper targets the selected Mac. See the server README for other hosts.');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -69,6 +71,10 @@ const occupied = listeners();
 if (occupied.some(pid => !previous.pid || !belongsTo(pid, previous.pid, previousTable))) throw new Error('Port 3001 belongs to another process. Stop that service or browser-test fixture before deploying.');
 
 mkdirSync(dataDirectory, { recursive: true, mode: 0o700 }); chmodSync(dataDirectory, 0o700);
+const environment = deploymentEnvironment({ dataDirectory, staticDirectory });
+// Validate exactly what launchd receives before any credentials or service changes.
+// Secret files remain selectors in the plist, never their decoded contents.
+readGoogleConfig(dataDirectory, environment);
 process.env.WHITEBOARD_DATA_DIR = dataDirectory;
 const credentialsPath = join(dataDirectory, 'owner-credentials.json');
 let credentials: { username: string; password: string; url: string };
@@ -106,7 +112,6 @@ if (previous.loaded) {
   }
 }
 mkdirSync(agents, { recursive: true }); mkdirSync(logs, { recursive: true, mode: 0o700 });
-const environment = { WHITEBOARD_DATA_DIR: dataDirectory, WHITEBOARD_STATIC_DIR: staticDirectory, WHITEBOARD_ORIGINS: 'http://127.0.0.1:3001,http://localhost:3001', HOST: '127.0.0.1', PORT: '3001', NODE_ENV: 'production', WHITEBOARD_DRAIN_MS: '5000' };
 // Import the TypeScript loader in the server process: launchd owns the actual
 // listener PID and sends SIGTERM directly to its five-second drain handler.
 const arguments_ = [process.execPath, '--import', pathToFileURL(join(root, 'node_modules/tsx/dist/loader.mjs')).href, join(root, 'packages/server/src/index.ts')];
@@ -116,7 +121,7 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <key>Label</key><string>${label}</string>
 <key>ProgramArguments</key><array>${arguments_.map(value => `<string>${xml(value)}</string>`).join('')}</array>
 <key>WorkingDirectory</key><string>${xml(root)}</string>
-<key>EnvironmentVariables</key><dict>${Object.entries(environment).map(([key, value]) => `<key>${key}</key><string>${xml(value)}</string>`).join('')}</dict>
+<key>EnvironmentVariables</key><dict>${deploymentEnvironmentXml(environment)}</dict>
 <key>RunAtLoad</key><true/>
 <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
 <key>ThrottleInterval</key><integer>10</integer>

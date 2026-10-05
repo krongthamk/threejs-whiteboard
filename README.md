@@ -14,13 +14,15 @@ pnpm --filter @whiteboard/server provision myname
 pnpm server
 ```
 
-The provisioning command prints a generated password once. Set `WHITEBOARD_PASSWORD` to supply a password of at least 12 characters instead. Accounts are provisioned by the operator; there are no anonymous boards or public registration.
+The password provisioning command prints a generated password once. Set `WHITEBOARD_PASSWORD` to supply a password of at least 12 characters instead. Operators provision password accounts; Google accounts require an explicit allowlist. There are no anonymous boards or public registration.
 
 Owners can grant, change, or remove another account’s board access through Share. Operators can reset a password with `provision --reset-password <username>` (which revokes that account’s existing sessions), or revoke sessions with `provision --revoke-sessions <username>`. See the [account controls](packages/server/README.md) for deployment data-directory and live-connection behavior.
 
 The server migrates legacy account storage transactionally while preserving existing accounts and schema-2 boards. Sessions include a display name and optional local avatar URL; backups and asset cleanup retain current avatar files.
 
 Configured deployments show **Continue with Google** below the password form. Sign-in returns to the current board, including its query and fragment, with the usual HttpOnly session cookie. Display names appear in presence and profile pictures appear beside Sign out; a failed picture falls back to an initial. The server links verified identities to intended accounts and keeps pictures locally. Password sign-in remains available when Google is disabled or public configuration cannot load. See [Google configuration](packages/server/README.md#google-configuration).
+
+Use `pnpm --filter @whiteboard/server provision --google 'teammate@example.com'` with the deployment's data directory to pre-create a Google account and share a board before its first sign-in. This creates no password and preserves a unique matching existing account. Follow the [operator setup](packages/server/README.md#operator-setup) for OAuth client, private secret file and allowlist settings.
 
 ```sh
 pnpm dev
@@ -46,6 +48,8 @@ pnpm exec tsx scripts/deploy-local.ts
 The helper rejects test bundles and port 3001 listeners outside its own launch agent. It provisions an `owner` account if needed, writes its credentials to a mode-0600 file, and starts the app at [127.0.0.1:3001](http://127.0.0.1:3001). Before reporting success it verifies the running launchd PID owns the listener, the served HTML/entry bundles exactly match the selected build, and the saved owner credentials authenticate against the expected database. It revokes that temporary verification session and prints paths/PID/build hash, never the password or token. The same server serves the built app, API, and WebSocket endpoint. Existing data and credentials survive redeployment.
 
 Redeployment drains only this checkout's owned service and waits for its processes and listener to exit. A failed new launch is unloaded rather than left in a restart loop. The helper never force-kills a port owner. Stop the disposable browser-test fixture before deploying; its `/ready` response is not accepted as deployment proof. This is a per-user launch agent: it starts when this macOS user logs in, not before login.
+
+The helper carries explicitly supplied Google settings into its private launch configuration. Prefer a mode-0600 secret file inside the deployment data directory; its contents are not copied into the plist. Supply the settings on each redeploy to keep Google enabled. See [operator setup](packages/server/README.md#operator-setup).
 
 - Data and credentials: `~/Library/Application Support/ThreejsWhiteboard/`
 - Launch agent: `~/Library/LaunchAgents/com.threejs-whiteboard.local.plist`

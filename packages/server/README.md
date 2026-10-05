@@ -19,6 +19,17 @@ sessions without changing its password. There is no public
 signup or anonymous board access. Password-account names are unique, case-sensitive,
 2–80 Unicode letters/numbers or `_.@-`.
 
+`provision --google <email>` pre-creates an external account without a password,
+session or provider identity, so it can receive board access before first sign-in.
+It prints only the public user profile. External addresses are ASCII, at most
+254 characters, lowercased with plus tags preserved. A unique existing e-mail
+username is reused without changing its exact spelling, password or memberships;
+ambiguous case variants are refused. Google configuration is not needed to
+pre-create an account. The verified first sign-in attaches its provider identity.
+An allowed user can also be created on first Google sign-in, without automatic
+access to anyone else's boards. Explicitly resetting an external account's
+password adds password login and revokes its sessions; it keeps the Google link.
+
 `WHITEBOARD_DATA_DIR` selects the data directory (default `data` relative to the
 server package when run through pnpm). It contains `whiteboard.sqlite`, `assets/`,
 and a generated mode-0600 `session-secret`. Keep the secret stable across restarts;
@@ -94,6 +105,56 @@ ID/access/refresh tokens and provider picture URLs are never stored or logged.
 Sessions remain twelve hours; external accounts without a password use the same
 dummy-scrypt failure path as an incorrect password. Google start/callback and
 password login share the per-address sign-in limit.
+
+### Operator setup
+
+In your Google Cloud project, configure the Google Auth platform's branding and
+audience. Use **Internal** for a Workspace-only application or **External** for
+personal/outside accounts. In **Clients**, create a **Web application** OAuth
+client and register the exact `${WHITEBOARD_PUBLIC_URL}/api/auth/google/callback`
+under authorized redirect URIs. Google permits HTTP loopback callbacks for local
+use; other deployments require HTTPS. These steps follow Google's
+[web-server setup](https://developers.google.com/identity/protocols/oauth2/web-server)
+and [audience guidance](https://developers.google.com/identity/protocols/oauth2/production-readiness/overview).
+The app requests only `openid email profile`. Google's audience/testing settings
+do not replace this server's required domain or e-mail allowlist.
+
+Store the **raw client secret**, not the downloaded client JSON, in a private
+regular file such as `google-client-secret` inside the actual data directory.
+Use a private editor or your secret-management tooling, then set mode 0600.
+The file can contain a trailing newline. Do not put the secret on a command line.
+The client ID is supplied separately. For the local Mac deployment, after that
+file exists:
+
+```sh
+export WHITEBOARD_DATA_DIR="$HOME/Library/Application Support/ThreejsWhiteboard"
+chmod 600 "$WHITEBOARD_DATA_DIR/google-client-secret"
+export WHITEBOARD_GOOGLE_CLIENT_ID='your-client-id.apps.googleusercontent.com'
+export WHITEBOARD_GOOGLE_CLIENT_SECRET_FILE='google-client-secret'
+export WHITEBOARD_PUBLIC_URL='http://127.0.0.1:3001'
+export WHITEBOARD_GOOGLE_ALLOWED_DOMAINS='example.com'
+pnpm --filter @whiteboard/server provision --google 'teammate@example.com'
+VITE_TEST_HOOKS=0 pnpm --filter @whiteboard/app build
+pnpm exec tsx scripts/deploy-local.ts
+```
+
+For personal accounts, set `WHITEBOARD_GOOGLE_ALLOWED_EMAILS` to the exact
+comma-separated addresses instead of a domain rule. An allowed domain is exact,
+does not include subdomains, and must match both the verified hosted-domain claim
+and e-mail domain. Use the same host in the browser, public URL and registered
+callback; `localhost` and `127.0.0.1` are different origins. Share a board with
+the exact username printed by provisioning before the teammate signs in.
+
+The local helper keeps its fixed loopback deployment. It validates and passes
+the six Google settings above (including the inline-secret alternative) into
+the mode-0600 launch plist, without logging their values. With a secret file it
+passes only the file selector; it does not copy the decoded secret into the plist.
+An explicitly supplied inline secret is stored in that private plist, so prefer
+the file. Supply the settings on every redeploy; omitting them disables Google
+on that redeploy. Test-provider overrides are never forwarded. An HTTPS remote
+deployment uses the manual server/proxy configuration, including its real
+`WHITEBOARD_ORIGINS` and `WHITEBOARD_SECURE_COOKIES=1`; the local helper does not
+configure that proxy, certificates or remote origins.
 
 ## HTTP contract
 
@@ -285,8 +346,9 @@ raw image reference in every board, including losing generations and readable
 quarantined records, and retains blobs shared by surviving asset rows. It never
 rewrites document snapshots. Missing, corrupt, incomplete or unknown-schema
 documents, unknown roots, and unsupported nested Yjs types stop collection
-without changing asset rows or files. Future avatar or other asset roots need
-explicit GC support before collection can handle them.
+without changing asset rows or files. Current avatar keys are retained roots,
+including conservative case-alias retention; invalid persisted avatar keys stop
+collection. Future asset categories need explicit root support.
 
 Orphan-row removal commits in an immediate SQLite transaction before any blob
 is unlinked, under the exclusive maintenance lease. A crash cannot remove a
