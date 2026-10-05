@@ -57,6 +57,11 @@ preserved. Existing password usernames remain case-sensitive. Missing settings
 leave Google disabled; malformed fully configured settings fail startup with
 sanitized diagnostics. Never supply both secret sources or commit a secret.
 `GET /api/config` exposes only `{googleSignIn: boolean}` and contains no credentials.
+The app shows **Continue with Google** only when that boolean is true. A failed
+configuration request leaves password sign-in available. The link preserves the
+current path, query and fragment; the existing session bootstrap reads the
+returned cookie. Profile pictures appear beside Sign out in the board and account
+headers, with an initial when the image cannot load.
 
 The browser starts at `/api/auth/google/start?return=/board/<id>`. The return
 value must be a local absolute path; unsafe values are refused. Google uses an

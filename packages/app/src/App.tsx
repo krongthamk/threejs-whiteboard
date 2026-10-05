@@ -12,6 +12,7 @@ import type { ImportReport } from './excalidraw-import';
 import type { Tool } from './session';
 import { Modal } from './modal';
 import { AccountAccess, type BoardAccess } from './account';
+import { AccountAvatar } from './account-avatar';
 import { BoardConnection, type ConnectionStatus, type RemotePresence, type SyncBlockedState } from './collaboration';
 import { api, ApiError } from './api';
 import { ExportDialog } from './export-dialog';
@@ -161,7 +162,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
       {access?.board.role === 'owner' && <button className="share-button" onClick={() => setDialog('share')}><Users size={16} />Share</button>}
       {access && !effectiveReadOnly && <button className="icon-button" aria-label="Add images" title="Import images or Excalidraw file" disabled={uploading || !runtime} onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /></button>}
       <button className="icon-button" aria-label="Export board" title="Export board" disabled={!runtime} onClick={() => setDialog('export')}><Download size={18} /></button>
-      {access && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={access.onSignOut}><LogOut size={17} /></button>}
+      {access && <><AccountAvatar user={access.session.user} /><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={access.onSignOut}><LogOut size={17} /></button></>}
     </div>
     {!runtime && !error && <div className="board-loading" role="status">Opening board…</div>}
     {uploading && <div className="upload-status surface" role="status">Importing…</div>}
@@ -343,7 +344,7 @@ function BoardSettings({ access, title, kind, onClose }: { access: BoardAccess; 
       finally { setBusy(false); }
     })(); }}>
       {kind === 'share' && <p className="dialog-description">Give an existing workspace account access to this board.</p>}
-      <label htmlFor="board-setting">{kind === 'rename' ? 'Board name' : 'Username'}</label><input autoFocus id="board-setting" required maxLength={120} value={value} onChange={event => setValue(event.target.value)} />
+      <label htmlFor="board-setting">{kind === 'rename' ? 'Board name' : 'Username'}</label><input autoFocus id="board-setting" required maxLength={kind === 'rename' ? 120 : 254} value={value} onChange={event => setValue(event.target.value)} />
       {kind === 'share' && <><label htmlFor="member-role">Permission</label><select id="member-role" value={role} onChange={event => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></>}
       {error && <p className="form-error" role="alert">{error}</p>}{message && <p className="form-success" role="status">{message}</p>}
       <button className="primary-button" disabled={busy || !value.trim()} type="submit">{busy ? 'Saving…' : kind === 'rename' ? 'Save name' : 'Grant access'}</button>

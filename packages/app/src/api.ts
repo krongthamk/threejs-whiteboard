@@ -1,4 +1,5 @@
-export interface User { id: string; username: string; name?: string; color?: string }
+export interface User { id: string; username: string; name?: string; color?: string; avatarUrl?: string | null }
+export interface PublicConfig { googleSignIn: boolean }
 export interface Session { user: User; expiresAt: number }
 export type BoardRole = 'owner' | 'editor' | 'viewer';
 export interface BoardInfo { id: string; title: string; role: BoardRole; updatedAt: number }
@@ -26,6 +27,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 const boardPath = (id: string) => `/api/boards/${encodeURIComponent(id)}`;
 export const api = {
+  config: (signal?: AbortSignal) => request<PublicConfig>('/api/config', { signal }),
   session: () => request<Session>('/api/session'),
   login: (username: string, password: string) => request<Session>('/api/session', { method: 'POST', body: JSON.stringify({ username, password }) }),
   logout: () => request<void>('/api/session/logout', { method: 'POST' }),

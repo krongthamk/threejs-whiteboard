@@ -22,7 +22,7 @@ export default defineConfig({
     launchOptions: { args: ['--enable-webgl', '--ignore-gpu-blocklist'] },
   },
   webServer: [{
-    command: 'pnpm exec tsx scripts/app-test-server.ts',
+    command: `${process.env.WHITEBOARD_TEST_GOOGLE === '1' ? 'NODE_ENV=test ' : ''}pnpm exec tsx scripts/app-test-server.ts`,
     url: `http://127.0.0.1:${testPort}/health`,
     reuseExistingServer: false,
     timeout: 30_000,

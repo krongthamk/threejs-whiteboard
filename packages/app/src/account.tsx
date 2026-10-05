@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { ArrowRight, LogOut, Plus, SquarePen, X } from 'lucide-react';
 import { api, ApiError, type BoardInfo, type Session } from './api';
 import { Modal } from './modal';
+import { AccountAvatar } from './account-avatar';
 
 export interface BoardAccess { session: Session; board: BoardInfo; onBack(): void; onSignOut(): void; onSessionExpired(): void; onBoardChange(board: BoardInfo): void }
 const routeBoard = () => /^\/board\/([^/]+)\/?$/.exec(location.pathname)?.[1];
@@ -12,10 +13,18 @@ export function AccountAccess({ children }: { children(access: BoardAccess): Rea
   const [board, setBoard] = useState<BoardInfo | null>(null);
   const [loading, setLoading] = useState(true), [error, setError] = useState('');
   const [creating, setCreating] = useState(false), [busy, setBusy] = useState(false);
+  const [googleSignIn, setGoogleSignIn] = useState(false);
   const navigation = useRef(0);
 
   const enter = (selected: BoardInfo) => { navigation.current++; history.pushState({}, '', `/board/${encodeURIComponent(selected.id)}`); setBoard(selected); setError(''); };
   const loadBoards = async (ticket = navigation.current) => { const result = await api.boards(); if (ticket === navigation.current) setBoards(result); return result; };
+  useEffect(() => {
+    const controller = new AbortController();
+    void api.config(controller.signal).then(config => {
+      if (!controller.signal.aborted) setGoogleSignIn(config.googleSignIn === true);
+    }).catch(() => { /* Public config failure leaves password sign-in available. */ });
+    return () => controller.abort();
+  }, []);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -81,9 +90,9 @@ export function AccountAccess({ children }: { children(access: BoardAccess): Rea
 
   if (loading) return <div className="account-page"><div className="account-loading" role="status">Opening your workspace…</div></div>;
   if (session && board) return <>{children({ session, board, onBack: back, onSignOut: () => void signOut(), onSessionExpired: sessionExpired, onBoardChange: value => { if (decodeURIComponent(routeBoard() ?? '') === value.id) setBoard(value); } })}{banner}</>;
-  if (!session) return <div className="account-page"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><SignIn onSubmit={login} busy={busy} />{banner}</div>;
+  if (!session) return <div className="account-page"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><SignIn onSubmit={login} busy={busy} googleSignIn={googleSignIn} />{banner}</div>;
   return <div className="account-page boards-page">
-    <header className="account-topbar"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><div className="account-user"><span>{session.user.name ?? session.user.username}</span><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}><LogOut size={18} /></button></div></header>
+    <header className="account-topbar"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><div className="account-user"><AccountAvatar user={session.user} /><span>{session.user.name ?? session.user.username}</span><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}><LogOut size={18} /></button></div></header>
     <section className="boards-content"><div className="boards-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Room for the next idea.</h1><p>Pick up where you left off, or start a fresh board.</p></div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={17} />New board</button></div>
       <div className="board-list" aria-label="Your boards">
         {boards.map((item, index) => <button className="board-card surface" key={item.id} onClick={() => enter(item)}><div className={`board-card-preview palette-${index % 3}`} aria-hidden="true"><span /><i /><b /></div><div className="board-card-details"><h2>{item.title}</h2><div><span>{item.role === 'viewer' ? 'View only' : item.role === 'owner' ? 'Your board' : 'Shared with you'}</span><span>{new Date(item.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></div></div></button>)}
@@ -95,14 +104,16 @@ export function AccountAccess({ children }: { children(access: BoardAccess): Rea
   </div>;
 }
 
-function SignIn({ onSubmit, busy }: { onSubmit(username: string, password: string): Promise<void>; busy: boolean }) {
+const googleSignInUrl = () => `/api/auth/google/start?return=${encodeURIComponent(location.pathname + location.search + location.hash)}`;
+
+function SignIn({ onSubmit, busy, googleSignIn }: { onSubmit(username: string, password: string): Promise<void>; busy: boolean; googleSignIn: boolean }) {
   const [username, setUsername] = useState(''), [password, setPassword] = useState('');
   const submit = (event: FormEvent) => { event.preventDefault(); if (username.trim() && password) void onSubmit(username.trim(), password); };
   return <section className="signin-card surface"><p className="eyebrow">WELCOME BACK</p><h1>Make space<br />for your ideas.</h1><p>Sign in with your workspace account.</p><form onSubmit={submit}>
     <label htmlFor="username">Username</label><input autoFocus id="username" name="username" autoComplete="username" required value={username} onChange={event => setUsername(event.target.value)} />
     <label htmlFor="password">Password</label><input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} />
     <button className="primary-button" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}<ArrowRight size={17} /></button>
-  </form></section>;
+  </form>{googleSignIn && <a className="google-signin" href={googleSignInUrl()} onClick={event => { event.currentTarget.href = googleSignInUrl(); }} onAuxClick={event => { event.currentTarget.href = googleSignInUrl(); }}>Continue with Google</a>}</section>;
 }
 
 function NewBoard({ onSubmit, busy }: { onSubmit(title: string): Promise<void>; busy: boolean }) {
