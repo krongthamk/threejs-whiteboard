@@ -40,6 +40,24 @@ and never replace an existing account's password. Backup snapshots include the
 avatar blobs referenced by their copied database. Asset GC retains current
 avatars and can collect superseded, unreferenced copies.
 
+## Google configuration
+
+Google authentication requires all of `WHITEBOARD_GOOGLE_CLIENT_ID`,
+`WHITEBOARD_PUBLIC_URL` (the browser origin), and either
+`WHITEBOARD_GOOGLE_CLIENT_SECRET` or `WHITEBOARD_GOOGLE_CLIENT_SECRET_FILE`.
+The file must be a regular mode-0600 file inside `WHITEBOARD_DATA_DIR`, with no
+symlink components. Prefer that file for persistent deployments. The public
+origin must use HTTPS, except literal localhost/127.0.0.1/[::1] HTTP origins.
+It cannot include a path, query, fragment, or credentials.
+
+At least one comma-separated allowlist must also be set:
+`WHITEBOARD_GOOGLE_ALLOWED_DOMAINS` or `WHITEBOARD_GOOGLE_ALLOWED_EMAILS`.
+External e-mail addresses are canonical ASCII addresses; plus addressing is
+preserved. Existing password usernames remain case-sensitive. Missing settings
+leave Google disabled; malformed fully configured settings fail startup with
+sanitized diagnostics. Never supply both secret sources or commit a secret.
+`GET /api/config` exposes only `{googleSignIn: boolean}` and contains no credentials.
+
 ## HTTP contract
 
 Errors are `{ "error": "message" }`. Session responses are
@@ -64,6 +82,7 @@ use the current document title.
 
 | Method and path | Body / result |
 | --- | --- |
+| `GET/HEAD /api/config` | Public `{googleSignIn: boolean}`; no secrets |
 | `POST /api/session` | `{username,password}` → session + cookie |
 | `GET /api/session` | Current identity and expiry; no token |
 | `POST /api/session/logout` | Revokes session and clears cookie; 204 |

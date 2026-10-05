@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { readGoogleConfig } from './google-config.js';
 
 export function serverConfig() {
   const limit = (name: string, fallback: number) => {
@@ -26,6 +27,7 @@ export function serverConfig() {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('PORT must be 0–65535');
   return {
     databasePath: join(dataDirectory, 'whiteboard.sqlite'),
+    google: readGoogleConfig(dataDirectory),
     assetDirectory: join(dataDirectory, 'assets'), sessionSecret,
     port, host: process.env.HOST ?? '127.0.0.1',
     websocketPath: process.env.WHITEBOARD_WEBSOCKET_PATH ?? '/collaboration',

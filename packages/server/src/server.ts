@@ -12,9 +12,10 @@ import { BoardUpdateValidator, IncompleteBoardUpdateError } from '../../model/sr
 import { assertSafeImageDimensions, readImageHeader } from '../../model/src/image-header.js';
 import { checkUpdateResources, UpdateResourceError } from './update-limits.js';
 import { acquireMaintenanceLease } from './maintenance.js';
+import type { GoogleConfig } from './google-config.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
-interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; trustedProxy?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
+interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; google?: GoogleConfig | null; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; trustedProxy?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
 interface AuthContext { token: string; userId: string; name: string; role: 'owner' | 'editor' | 'viewer'; roleVersion?: string; expiresAt: number; invalidated?: boolean }
 type Metrics = { updates: number; awareness: number; persistedUpdates: number; persistenceMs: number; compactions: number; windowAt: number; windowUpdates: number; windowAwareness: number };
 
@@ -166,6 +167,8 @@ export function createWhiteboardServer(options: Options) {
       if (path === '/ready') { const ready = !draining && persistenceFailed.size === 0; return json(response, ready ? 200 : 503, { ready }); }
       if (serveStatic && path !== websocketPath && serveStatic(request, response, path)) return;
       if (serveStatic && !path.startsWith('/api/')) throw new HttpError(404, 'Not found');
+      if (path === '/api/config' && readRequest) return json(response, 200, { googleSignIn: !!options.google });
+      if (!options.google && (path === '/api/auth/google/start' || path === '/api/auth/google/callback')) throw new HttpError(404, 'Not found');
       if (draining && !['GET', 'HEAD'].includes(method)) throw new HttpError(503, 'Server is draining');
       // Browser cookie mutations must carry an approved Origin. Bearer clients
       // and CLI tools are explicit-token requests and do not use ambient auth.
