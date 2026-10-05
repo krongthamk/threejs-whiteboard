@@ -7,6 +7,7 @@ import { serverConfig } from './config.js';
 
 let directory: string;
 const valid = (): NodeJS.ProcessEnv => ({
+  WHITEBOARD_GOOGLE_ENABLED: '1',
   WHITEBOARD_GOOGLE_CLIENT_ID: 'fixture-client.apps.googleusercontent.com',
   WHITEBOARD_GOOGLE_CLIENT_SECRET: 'fixture-secret-do-not-echo',
   WHITEBOARD_PUBLIC_URL: 'https://board.example',
@@ -16,6 +17,13 @@ beforeEach(() => { directory = mkdtempSync(join(tmpdir(), 'whiteboard-google-con
 afterEach(() => { vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); });
 
 describe('Google sign-in configuration', () => {
+  it.each([undefined, '', '0', 'false', 'true'])('keeps configured Google disabled unless explicitly enabled: %s', enabled => {
+    expect(readGoogleConfig(directory, { ...valid(), WHITEBOARD_GOOGLE_ENABLED: enabled })).toBeNull();
+    const env = valid(); delete env.WHITEBOARD_GOOGLE_CLIENT_SECRET;
+    expect(readGoogleConfig(directory, { ...env, WHITEBOARD_GOOGLE_ENABLED: enabled,
+      WHITEBOARD_GOOGLE_CLIENT_SECRET_FILE: '/missing/private/file' })).toBeNull();
+  });
+
   it('disables absent and partial configurations without reading a secret file', () => {
     expect(readGoogleConfig(directory, {})).toBeNull();
     for (const key of ['WHITEBOARD_GOOGLE_CLIENT_ID', 'WHITEBOARD_GOOGLE_CLIENT_SECRET', 'WHITEBOARD_PUBLIC_URL', 'WHITEBOARD_GOOGLE_ALLOWED_DOMAINS']) {

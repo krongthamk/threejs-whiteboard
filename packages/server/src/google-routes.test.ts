@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createWhiteboardServer } from './server.js';
 import { createBackup, restoreBackup } from './operations.js';
-import type { GoogleConfig } from './google-config.js';
+import { readGoogleConfig, type GoogleConfig } from './google-config.js';
 import * as Y from 'yjs';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
 import WebSocket from 'ws';
@@ -50,7 +50,10 @@ async function setup(enabled = true) {
   cleanups.push(async () => { provider.closeAllConnections(); await new Promise<void>((resolve, reject) => provider.close(error => error ? reject(error) : resolve())); });
   const providerOrigin = `http://127.0.0.1:${(provider.address() as { port: number }).port}`;
   const google: GoogleConfig = { clientId: 'test-client', clientSecret: 'test-client-private-secret', publicOrigin: 'http://localhost:3001', redirectUri: 'http://localhost:3001/api/auth/google/callback', allowedDomains: ['example.com'], allowedEmails: [], testIssuerOverride: providerOrigin };
-  const options = { databasePath: join(directory, 'whiteboard.sqlite'), assetDirectory: join(directory, 'assets'), sessionSecret: secret, port: 0, google: enabled ? google : null };
+  const disabledGoogle = readGoogleConfig(directory, { WHITEBOARD_GOOGLE_CLIENT_ID: google.clientId,
+    WHITEBOARD_GOOGLE_CLIENT_SECRET: google.clientSecret, WHITEBOARD_PUBLIC_URL: google.publicOrigin,
+    WHITEBOARD_GOOGLE_ALLOWED_DOMAINS: google.allowedDomains.join(',') });
+  const options = { databasePath: join(directory, 'whiteboard.sqlite'), assetDirectory: join(directory, 'assets'), sessionSecret: secret, port: 0, google: enabled ? google : disabledGoogle };
   const app = createWhiteboardServer(options); await app.listen(); cleanups.push(() => app.close());
   const origin = `http://127.0.0.1:${app.port}`;
   const request = (path: string, init: RequestInit = {}) => fetch(origin + path, { redirect: 'manual', ...init });
@@ -67,11 +70,17 @@ async function setup(enabled = true) {
   return { app, options, google, directory, providerOrigin, providerState, origin, request, start, counts };
 }
 
-test('disabled Google config is public and secret-free; auth routes remain unavailable', async () => {
-  const { request, counts } = await setup(false), before = counts();
+test('configured Google stays off without explicit opt-in; password sign-in still works', async () => {
+  const { request, counts, app, providerState } = await setup(false), before = counts();
   expect(await (await request('/api/config')).json()).toEqual({ googleSignIn: false });
   for (const method of ['GET', 'HEAD', 'POST']) for (const route of ['start', 'callback']) expect((await request('/api/auth/google/' + route, { method })).status).toBe(404);
   expect(counts()).toEqual(before);
+  app.store.createUser('password-user', password);
+  const login = await request('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'password-user', password }) });
+  expect(login.status).toBe(200);
+  expect(login.headers.get('set-cookie')).toContain('board_session=');
+  expect(providerState.tokenRequests).toBe(0);
 });
 
 test('Google browser flow binds random state/PKCE, returns to the board, sets cookie-only session and serves avatar', async () => {

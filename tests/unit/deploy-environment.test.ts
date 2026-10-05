@@ -12,7 +12,7 @@ function paths() {
   chmodSync(dataDirectory, 0o700);
   return { dataDirectory, staticDirectory: '/checkout/packages/app/dist' };
 }
-const inline: NodeJS.ProcessEnv = { WHITEBOARD_GOOGLE_CLIENT_ID: 'operator-client.apps.googleusercontent.com',
+const inline: NodeJS.ProcessEnv = { WHITEBOARD_GOOGLE_ENABLED: '1', WHITEBOARD_GOOGLE_CLIENT_ID: 'operator-client.apps.googleusercontent.com',
   WHITEBOARD_GOOGLE_CLIENT_SECRET: 'inline-test-marker<&\"', WHITEBOARD_PUBLIC_URL: 'http://127.0.0.1:3001',
   WHITEBOARD_GOOGLE_ALLOWED_DOMAINS: 'example.test', WHITEBOARD_GOOGLE_ALLOWED_EMAILS: 'Extra+Member@Example.test' };
 
@@ -24,11 +24,19 @@ describe('local deployment launch environment', () => {
       NODE_ENV: 'production', WHITEBOARD_DRAIN_MS: '5000' });
     expect(readGoogleConfig(input.dataDirectory, result)).toBeNull(); expect(Object.isFrozen(result)).toBe(true);
   });
-  it('launches a complete inline Google configuration with all six explicitly supported selectors', () => {
+  it('launches a complete inline Google configuration with the explicit enable switch', () => {
     const input = paths(), result = deploymentEnvironment(input, inline), config = readGoogleConfig(input.dataDirectory, result);
     expect(config).toMatchObject({ clientId: inline.WHITEBOARD_GOOGLE_CLIENT_ID, clientSecret: inline.WHITEBOARD_GOOGLE_CLIENT_SECRET,
       redirectUri: 'http://127.0.0.1:3001/api/auth/google/callback', allowedDomains: ['example.test'], allowedEmails: ['extra+member@example.test'] });
     for (const [key, value] of Object.entries(inline)) expect(result[key]).toBe(value);
+  });
+  it('keeps configured Google disabled across deployment when the switch is absent or off', () => {
+    const input = paths();
+    for (const enabled of [undefined, '0']) {
+      const result = deploymentEnvironment(input, { ...inline, WHITEBOARD_GOOGLE_ENABLED: enabled });
+      expect(result.WHITEBOARD_GOOGLE_ENABLED).toBe(enabled);
+      expect(readGoogleConfig(input.dataDirectory, result)).toBeNull();
+    }
   });
   it('passes the raw private-file selector without decoding its secret into the launch environment', () => {
     const input = paths(), selector = 'google<&\".secret', secret = 'private-file-only-marker';

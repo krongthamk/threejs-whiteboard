@@ -81,8 +81,9 @@ function secretFile(dataDirectory: string, value: string): string {
   finally { if (descriptor !== undefined) { try { closeSync(descriptor); } catch { invalid('secret file'); } } }
 }
 
-/** Incomplete deployments disable Google without reading optional secret files. */
+/** Google stays disabled until explicitly enabled, without reading optional secrets. */
 export function readGoogleConfig(dataDirectory: string, env: NodeJS.ProcessEnv = process.env): GoogleConfig | null {
+  if (env.WHITEBOARD_GOOGLE_ENABLED !== '1') return null;
   const clientId = env.WHITEBOARD_GOOGLE_CLIENT_ID, inline = env.WHITEBOARD_GOOGLE_CLIENT_SECRET, file = env.WHITEBOARD_GOOGLE_CLIENT_SECRET_FILE;
   const publicUrl = env.WHITEBOARD_PUBLIC_URL, rawDomains = env.WHITEBOARD_GOOGLE_ALLOWED_DOMAINS, rawEmails = env.WHITEBOARD_GOOGLE_ALLOWED_EMAILS;
   const hasAllowlist = [rawDomains, rawEmails].some(value => value?.split(',').some(entry => entry.trim()));

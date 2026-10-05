@@ -53,7 +53,13 @@ avatars and can collect superseded, unreferenced copies.
 
 ## Google configuration
 
-Google authentication requires all of `WHITEBOARD_GOOGLE_CLIENT_ID`,
+Google authentication is temporarily disabled by default. To enable it, explicitly
+set `WHITEBOARD_GOOGLE_ENABLED=1` and restart or redeploy the server. Setting the
+switch to `0` or leaving it unset disables the Google button and both OAuth routes,
+even with existing credentials. Disabled configurations do not read the secret
+file. Password sign-in and existing accounts, sessions, and boards are preserved.
+
+When enabled, Google authentication requires all of `WHITEBOARD_GOOGLE_CLIENT_ID`,
 `WHITEBOARD_PUBLIC_URL` (the browser origin), and either
 `WHITEBOARD_GOOGLE_CLIENT_SECRET` or `WHITEBOARD_GOOGLE_CLIENT_SECRET_FILE`.
 The file must be a regular mode-0600 file inside `WHITEBOARD_DATA_DIR`, with no
@@ -137,6 +143,7 @@ file exists:
 
 ```sh
 export WHITEBOARD_DATA_DIR="$HOME/Library/Application Support/ThreejsWhiteboard"
+export WHITEBOARD_GOOGLE_ENABLED=1
 chmod 600 "$WHITEBOARD_DATA_DIR/google-client-secret"
 export WHITEBOARD_GOOGLE_CLIENT_ID='your-client-id.apps.googleusercontent.com'
 export WHITEBOARD_GOOGLE_CLIENT_SECRET_FILE='google-client-secret'
@@ -155,7 +162,7 @@ callback; `localhost` and `127.0.0.1` are different origins. Share a board with
 the exact username printed by provisioning before the teammate signs in.
 
 The local helper keeps its fixed loopback deployment. It validates and passes
-the six Google settings above (including the inline-secret alternative) into
+the enable switch and Google settings above (including the inline-secret alternative) into
 the mode-0600 launch plist, without logging their values. With a secret file it
 passes only the file selector; it does not copy the decoded secret into the plist.
 An explicitly supplied inline secret is stored in that private plist, so prefer

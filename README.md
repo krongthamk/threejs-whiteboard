@@ -6,6 +6,17 @@ Implementation and measured acceptance evidence are tracked against [the build p
 
 ## Run locally
 
+Google sign-in is temporarily disabled by default, including when OAuth credentials
+are present. Use a provisioned username and password. To restore Google later,
+set `WHITEBOARD_GOOGLE_ENABLED=1` with the settings in the
+[Google configuration guide](packages/server/README.md#google-configuration),
+then restart or redeploy the server. Setting it to `0` (or unsetting it) disables
+Google again. Existing accounts and boards are preserved.
+
+[`.env.example`](.env.example) lists optional server settings without credentials.
+The server reads exported environment variables; it does not automatically load
+`.env` files. No Google credentials are needed for local password sign-in.
+
 Use Node.js 26 (the CI runtime), pnpm 9.15.9, and Chrome for browser tests. `.npmrc` enforces the package's allowed Node range (`^22.12.0 || ^24.0.0 || >=26.0.0`) during installation. Current local verification uses Node 26.8.1. Development needs two terminals:
 
 ```sh
@@ -37,6 +48,36 @@ Renaming a board updates its saved title, collaborators’ open headings, rename
 When a session expires or is revoked, the board returns to sign-in at the same URL. Queued document edits stay on the device and sync after signing in again as the same account. Existing quota or rejected-update blocks still require their explicit recovery action.
 
 The default server data directory is `packages/server/data` when launched through `pnpm server`. Set `WHITEBOARD_DATA_DIR` to an absolute directory to make its location explicit. It contains SQLite, immutable image files, and a private session-signing secret. Treat it as private user data.
+
+## Push to GitHub
+
+The repository includes a GitHub Actions workflow for type checking, unit tests,
+dependency license checks, production builds, and browser tests. Google browser
+tests use a disposable local provider and need no GitHub secrets or OAuth account.
+
+Before pushing, run:
+
+```sh
+pnpm typecheck
+pnpm test
+VITE_TEST_HOOKS=0 pnpm --filter @whiteboard/app build
+node scripts/check-production-hooks.mjs
+git status --short
+```
+
+Keep runtime data, real `.env` files, passwords, and OAuth secrets local. The
+ignore rules cover those files; the committed SQLite fixture contains synthetic
+test data. Review new files before staging them.
+
+For a new private repository, after committing the intended changes:
+
+```sh
+gh auth login --hostname github.com
+gh repo create threejs-whiteboard --private --source=. --remote=origin --push
+```
+
+For an existing empty repository, add its URL with
+`git remote add origin <repository-url>`, then run `git push -u origin main`.
 
 ## Production on this Mac
 

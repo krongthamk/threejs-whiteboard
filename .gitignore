@@ -2,6 +2,19 @@ node_modules/
 dist/
 .DS_Store
 .env
+.env.*
+!.env.example
+!.env.*.example
+# Private runtime credentials (the synthetic SQLite test fixture stays tracked).
+session-secret
+google-client-secret
+credentials.json
+owner-credentials.json
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+!packages/server/test/fixtures/*.sqlite
 data/
 test-results/
 playwright-report/
