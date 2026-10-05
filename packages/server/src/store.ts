@@ -9,6 +9,7 @@ import { displayName, normalizeExternalEmail } from './identity.js';
 
 export type Role = 'owner' | 'editor' | 'viewer';
 export interface User { id: string; username: string; name: string; avatarUrl: string | null }
+export interface Member extends User { role: Role }
 export interface UserProfile extends User { avatarKey: string | null; avatarUpdatedAt: number | null; avatarUrlFingerprint: string | null }
 export interface ExternalIdentity { provider: string; subject: string; email: string; displayName?: string | null }
 export interface OAuthState { state: string; nonce: string; verifier: string; returnPath: string; expiresAt: number; browserBindingHash: string }
@@ -76,7 +77,7 @@ function initializeSchema(db: Sqlite.Database): void {
   } finally { db.pragma('foreign_keys=ON'); }
 }
 interface ProfileRow { id: string; username: string; displayName: string | null; avatarKey: string | null; avatarUpdatedAt: number | null; avatarUrlFingerprint: string | null }
-const publicUser = (profile: UserProfile): User => ({ id: profile.id, username: profile.username, name: profile.name, avatarUrl: profile.avatarUrl });
+export const publicUser = (profile: UserProfile): User => ({ id: profile.id, username: profile.username, name: profile.name, avatarUrl: profile.avatarUrl });
 function profile(row: ProfileRow): UserProfile {
   return { id: row.id, username: row.username, name: displayName(row.displayName, row.username), avatarKey: row.avatarKey, avatarUpdatedAt: row.avatarUpdatedAt, avatarUrlFingerprint: row.avatarUrlFingerprint,
     avatarUrl: row.avatarKey ? `/api/users/${encodeURIComponent(row.id)}/avatar?v=${row.avatarUpdatedAt}` : null };
@@ -116,6 +117,8 @@ const queries = {
   role: 'SELECT role FROM members WHERE board_id=? AND user_id=?',
   board: 'SELECT b.id,b.title,m.role,b.updated_at AS updatedAt FROM boards b JOIN members m ON m.board_id=b.id WHERE b.id=? AND m.user_id=?',
   boards: 'SELECT b.id,b.title,m.role,b.updated_at AS updatedAt FROM boards b JOIN members m ON m.board_id=b.id WHERE m.user_id=? ORDER BY b.updated_at DESC,b.id',
+  members: 'SELECT u.id,u.username,u.display_name AS displayName,u.avatar_key AS avatarKey,u.avatar_updated_at AS avatarUpdatedAt,u.avatar_url_fingerprint AS avatarUrlFingerprint,m.role FROM members m JOIN users u ON u.id=m.user_id WHERE m.board_id=? ORDER BY u.username COLLATE BINARY,u.id',
+  sharesBoard: 'SELECT EXISTS(SELECT 1 FROM members a JOIN members b ON b.board_id=a.board_id WHERE a.user_id=? AND b.user_id=?) AS shared',
   createBoard: 'INSERT INTO boards VALUES (?,?,?)',
   createMember: 'INSERT INTO members VALUES (?,?,?)',
   createDocument: 'INSERT INTO documents(board_id,snapshot) VALUES (?,?)',
@@ -281,6 +284,10 @@ export class Store {
     return this.statements.board.get(boardId, userId) as Board | undefined;
   }
   boards(userId: string): Board[] { return this.statements.boards.all(userId) as Board[]; }
+  members(boardId: string): Member[] {
+    return (this.statements.members.all(boardId) as (ProfileRow & { role: Role })[]).map(row => ({ ...publicUser(profile(row)), role: row.role }));
+  }
+  sharesBoard(firstUserId: string, secondUserId: string): boolean { return Boolean((this.statements.sharesBoard.get(firstUserId, secondUserId) as { shared: number }).shared); }
   createBoard(userId: string, title: string): Board {
     const board: Board = { id: randomUUID(), title, role: 'owner', updatedAt: Date.now() };
     const doc = new Y.Doc();

@@ -24,6 +24,8 @@ Configured deployments show **Continue with Google** below the password form. Si
 
 Use `pnpm --filter @whiteboard/server provision --google 'teammate@example.com'` with the deployment's data directory to pre-create a Google account and share a board before its first sign-in. This creates no password and preserves a unique matching existing account. Follow the [operator setup](packages/server/README.md#operator-setup) for OAuth client, private secret file and allowlist settings.
 
+Profiles and avatars are accessible only to their own account or users who share a board with that account. Every member, including a viewer, can read the board's member list through the [members API](packages/server/README.md#http-contract).
+
 ```sh
 pnpm dev
 ```

@@ -6,7 +6,7 @@ import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readFi
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { isIP } from 'node:net';
-import { Store, BoardFullError, type Session } from './store.js';
+import { Store, BoardFullError, publicUser, type Session } from './store.js';
 import { staticHandler } from './static.js';
 import { BoardUpdateValidator, IncompleteBoardUpdateError } from '../../model/src/document-validation.js';
 import { assertSafeImageDimensions, readImageHeader } from '../../model/src/image-header.js';
@@ -106,6 +106,11 @@ export function createWhiteboardServer(options: Options) {
   function boardAccess(boardId: string, userId: string, write = false) {
     const board = store.board(boardId, userId); if (!board) throw new HttpError(404, 'Board not found');
     if (write && board.role === 'viewer') throw new HttpError(403, 'This board is read-only'); return board;
+  }
+  function profileAccess(targetUserId: string, requesterUserId: string) {
+    const user = store.userProfile(targetUserId);
+    if (!user || (targetUserId !== requesterUserId && !store.sharesBoard(targetUserId, requesterUserId))) throw new HttpError(404, 'User not found');
+    return user;
   }
   // Bodies arrive asynchronously. Recheck the current session and membership
   // under an immediate SQLite write lock, with no await before the mutation.
@@ -281,20 +286,29 @@ export function createWhiteboardServer(options: Options) {
       }
       const session = authenticate(request);
       if (path === '/api/session' && readRequest) return json(response, 200, publicSession(session));
+      const profileRoute = path.match(/^\/api\/users\/([a-zA-Z0-9-]+)$/);
+      if (profileRoute && readRequest) return json(response, 200, publicUser(profileAccess(profileRoute[1]!, session.user.id)));
       const avatarRoute = path.match(/^\/api\/users\/([a-zA-Z0-9-]+)\/avatar$/);
       if (avatarRoute && readRequest) {
-        const user = store.userProfile(avatarRoute[1]!);
+        const user = profileAccess(avatarRoute[1]!, session.user.id);
         if (!user?.avatarKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.avatarKey)) throw new HttpError(404, 'Avatar not found');
-        let descriptor: number | undefined;
+        let descriptor: number | undefined, bytes: Buffer, mimeType: string;
         try {
           descriptor = openSync(join(options.assetDirectory, user.avatarKey), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
           const stat = fstatSync(descriptor); if (!stat.isFile() || stat.size > 2 * 1024 * 1024) throw new Error();
-          const bytes = readFileSync(descriptor), header = readImageHeader(bytes);
+          bytes = readFileSync(descriptor);
+          if (bytes.length > 2 * 1024 * 1024) throw new Error();
+          const header = readImageHeader(bytes);
           if (!['image/png', 'image/jpeg'].includes(header.mimeType)) throw new Error();
-          response.writeHead(200, { 'Content-Type': header.mimeType, 'Content-Length': bytes.length, 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' });
-          return response.end(method === 'HEAD' ? undefined : bytes);
+          mimeType = header.mimeType;
         } catch { throw new HttpError(404, 'Avatar not found'); }
         finally { if (descriptor !== undefined) closeSync(descriptor); }
+        // External session, membership or profile changes may happen during
+        // the file read. Recheck before headers, preserving authentication 401.
+        const current = profileAccess(user.id, authenticate(request).user.id);
+        if (current.avatarKey !== user.avatarKey || current.avatarUpdatedAt !== user.avatarUpdatedAt) throw new HttpError(404, 'Avatar not found');
+        response.writeHead(200, { 'Content-Type': mimeType, 'Content-Length': bytes.length, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+        return response.end(method === 'HEAD' ? undefined : bytes);
       }
       if (path === '/api/session/logout' && method === 'POST') {
         store.logout(session.sessionId);
@@ -317,6 +331,7 @@ export function createWhiteboardServer(options: Options) {
       const route = path.match(/^\/api\/boards\/([a-zA-Z0-9-]+)(?:\/(.*))?$/); if (!route) throw new HttpError(404, 'Not found');
       const boardId = route[1]!, suffix = route[2] ?? '', board = boardAccess(boardId, session.user.id, !readRequest);
       if (!suffix && readRequest) return json(response, 200, { board });
+      if (suffix === 'members' && readRequest) return json(response, 200, store.members(boardId));
       if (suffix === 'import-budget' && readRequest) {
         if (draining || persistenceFailed.size) throw new HttpError(503, 'Import budget is unavailable');
         // This is an advisory read, not a capacity reservation. Keep the two

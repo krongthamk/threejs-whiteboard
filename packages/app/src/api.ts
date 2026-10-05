@@ -2,6 +2,7 @@ export interface User { id: string; username: string; name?: string; color?: str
 export interface PublicConfig { googleSignIn: boolean }
 export interface Session { user: User; expiresAt: number }
 export type BoardRole = 'owner' | 'editor' | 'viewer';
+export interface Member extends User { name: string; avatarUrl: string | null; role: BoardRole }
 export interface BoardInfo { id: string; title: string; role: BoardRole; updatedAt: number }
 export interface AssetInfo { assetId: string; width: number; height: number; mimeType?: string; url?: string }
 export interface ImportBudgetResponse {
@@ -33,6 +34,7 @@ export const api = {
   logout: () => request<void>('/api/session/logout', { method: 'POST' }),
   boards: async () => (await request<{ boards: BoardInfo[] }>('/api/boards')).boards,
   board: async (id: string) => (await request<{ board: BoardInfo }>(boardPath(id))).board,
+  members: (id: string) => request<Member[]>(`${boardPath(id)}/members`, { cache: 'no-store' }),
   createBoard: async (title: string) => (await request<{ board: BoardInfo }>('/api/boards', { method: 'POST', body: JSON.stringify({ title }) })).board,
   renameBoard: async (id: string, title: string) => (await request<{ board: BoardInfo }>(boardPath(id), { method: 'PATCH', body: JSON.stringify({ title }) })).board,
   membership: (id: string, username: string, role: 'editor' | 'viewer') => request<void>(`${boardPath(id)}/members`, { method: 'POST', body: JSON.stringify({ username, role }) }),

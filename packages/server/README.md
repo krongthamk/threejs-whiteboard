@@ -106,6 +106,15 @@ Sessions remain twelve hours; external accounts without a password use the same
 dummy-scrypt failure path as an incorrect password. Google start/callback and
 password login share the per-address sign-in limit.
 
+Public profiles and avatar bytes are available to the account itself, or to an
+authenticated user who shares at least one board with that account. Other
+requests receive 404. Self access preserves the account header before the user
+has any boards. Avatar responses use `Cache-Control: no-store`; each new request
+checks current membership, and serving bytes rechecks the session and access
+after reading the file. A member of any role, including a viewer, can list that
+board's members. These responses contain only public profile fields and, for a
+member list, the role on that board.
+
 ### Operator setup
 
 In your Google Cloud project, configure the Google Auth platform's branding and
@@ -186,11 +195,13 @@ use the current document title.
 | `GET /api/auth/google/callback` | One-use browser-bound callback; sets the ordinary session cookie and redirects locally; HEAD is not accepted |
 | `POST /api/session` | `{username,password}` → session + cookie |
 | `GET /api/session` | Current identity and expiry; no token |
-| `GET/HEAD /api/users/:id/avatar` | Authenticated local PNG/JPEG or 404; private one-hour cache and nosniff |
+| `GET/HEAD /api/users/:id` | `{id,username,name,avatarUrl}`; self or common-board access, otherwise 404; no-store |
+| `GET/HEAD /api/users/:id/avatar` | Local PNG/JPEG; self or common-board access, otherwise 404; no-store and nosniff |
 | `POST /api/session/logout` | Revokes session and clears cookie; 204 |
 | `GET /api/boards` | `{boards: Board[]}`; membership only |
 | `POST /api/boards` | `{title}` → 201 `{board}`; caller becomes owner |
 | `GET /api/boards/:id` | `{board}` |
+| `GET/HEAD /api/boards/:id/members` | `[{id,username,name,avatarUrl,role}]`; any member, including viewers; no-store |
 | `GET/HEAD /api/boards/:id/import-budget` | Member-only advisory update/storage limits, exact storage counters, and authoritative Yjs state vector; no-store |
 | `PATCH /api/boards/:id` | `{title}` → `{board}`; owner/editor |
 | `POST /api/boards/:id/members` | `{username,role:'editor'|'viewer'}`; owner only; 204 |

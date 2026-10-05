@@ -99,7 +99,7 @@ test('Google browser flow binds random state/PKCE, returns to the board, sets co
   for (const method of ['GET', 'HEAD']) {
     const avatar = await request(session.user.avatarUrl, { method, headers: { Cookie: sessionCookie.split(';')[0]! } });
     expect(avatar.status).toBe(200); expect(avatar.headers.get('content-type')).toBe('image/png');
-    expect(avatar.headers.get('cache-control')).toBe('private, max-age=3600'); expect(avatar.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(avatar.headers.get('cache-control')).toBe('no-store'); expect(avatar.headers.get('x-content-type-options')).toBe('nosniff');
     const bytes = Buffer.from(await avatar.arrayBuffer()); expect(bytes.equals(method === 'HEAD' ? Buffer.alloc(0) : png)).toBe(true);
   }
 });
