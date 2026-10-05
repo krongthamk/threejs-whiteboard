@@ -21,7 +21,7 @@ test.each(['known', 'unknown', 'wrong', 'malformed', 'null'])('%s credentials us
   const store = database(), user = store.createUser('alice', password);
   if (kind === 'malformed') store.db.prepare('UPDATE users SET password_hash=? WHERE id=?').run('not-a-password-hash', user.id);
   if (kind === 'null') {
-    // Model a legacy/corrupt row without weakening the production NOT NULL schema.
+    // Model a legacy/corrupt nullable row independently of current migration DDL.
     vi.spyOn(loginStatement!, 'get').mockReturnValue({ ...user, password_hash: null });
   }
   let progressed = false;

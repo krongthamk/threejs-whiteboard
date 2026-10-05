@@ -31,10 +31,22 @@ port (normally 3001). The local deployment helper explicitly sets
 `WHITEBOARD_ORIGINS=http://127.0.0.1:3001,http://localhost:3001`. TLS termination
 deployments must set their real browser origin and secure cookies.
 
+Startup transactionally migrates the original account tables to SQLite
+`user_version=1`, retaining account IDs, password hashes, memberships, sessions,
+documents and update logs. Unknown schemas or versions are refused. This does
+not change the board's Yjs schema version, which remains 2. Profiles add a display
+name and optional local avatar; external identities use stable provider subjects
+and never replace an existing account's password. Backup snapshots include the
+avatar blobs referenced by their copied database. Asset GC retains current
+avatars and can collect superseded, unreferenced copies.
+
 ## HTTP contract
 
 Errors are `{ "error": "message" }`. Session responses are
-`{ user: { id, username }, expiresAt }`; `expiresAt` is Unix milliseconds.
+`{ user: { id, username, name, avatarUrl }, expiresAt }`; `expiresAt` is Unix milliseconds.
+`name` falls back to the username and fits within 80 UTF-16 units without splitting
+a grapheme; `avatarUrl` is a local versioned URL or null. Internal storage keys,
+provider picture URLs and avatar fingerprints are never session fields.
 The session token lasts 12 hours, is signed, and is checked against SQLite on
 every authenticated request and collaboration message. Both sign-in and restored
 session JSON omit the token, including responses to Bearer clients. Browsers use

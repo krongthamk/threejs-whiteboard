@@ -10,7 +10,7 @@ import { acquireMaintenanceLease, canonicalDatabasePath } from './maintenance.js
 export interface AssetGCResult { removedAssets: number; removedBlobs: number; leftoverBlobs: string[] }
 const uuidLeaf = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function safeStorageKey(key: unknown): asserts key is string {
-  if (typeof key !== 'string' || !/^[a-zA-Z0-9-]+$/.test(key) || key === 'session-secret') throw new Error('Unsafe asset storage key');
+  if (typeof key !== 'string' || !/^[a-zA-Z0-9-]+$/.test(key) || key.toLowerCase() === 'session-secret') throw new Error('Unsafe asset storage key');
 }
 function safeAssetRoot(store: Store, directory: string): string {
   const stat = lstatSync(resolve(directory));
@@ -35,6 +35,14 @@ function regularBlob(root: string, key: string, required = false): boolean {
     if (required) throw new Error(`Referenced asset blob is missing: ${key}`);
     return false;
   }
+}
+/** Avatar pointers name immutable UUID blobs independently of board asset rows. */
+function avatarStorageKeys(database: Sqlite.Database): string[] {
+  const rows = database.prepare('SELECT DISTINCT avatar_key AS key FROM users WHERE avatar_key IS NOT NULL').all() as { key: unknown }[];
+  return rows.map(({ key }) => {
+    if (typeof key !== 'string' || !uuidLeaf.test(key) || key !== key.toLowerCase()) throw new Error('Unsafe avatar storage key');
+    return key;
+  });
 }
 /** Preserve every surviving raw image reference, including losing generations and readable quarantine. */
 function rawAssetReferences(update: Uint8Array, boardId: string): Set<string> {
@@ -103,19 +111,22 @@ export function gcAssets(store: Store, assetDirectory: string): AssetGCResult {
         for (const id of rawAssetReferences(update, board.id)) references.add(id);
       }
       const rows = store.db.prepare('SELECT id,board_id AS boardId,storage_key AS storageKey FROM assets').all() as { id: string; boardId: string; storageKey: string }[];
-      const boardIds = new Set(boards.map(board => board.id)), retainedKeys = new Set<string>();
+      const boardIds = new Set(boards.map(board => board.id)), retainedKeys = new Set(avatarStorageKeys(store.db));
+      for (const key of retainedKeys) regularBlob(root, key, true);
       for (const row of rows) {
         if (!boardIds.has(row.boardId)) throw new Error('Asset belongs to an unknown board');
         safeStorageKey(row.storageKey);
-        if (references.has(row.id)) retainedKeys.add(row.storageKey);
+        // Safe blob names are ASCII. Conservatively keep all case aliases,
+        // including on case-sensitive disks, rather than unlink a live inode.
+        if (references.has(row.id)) retainedKeys.add(row.storageKey.toLowerCase());
       }
       for (const row of rows) {
-        regularBlob(root, row.storageKey, retainedKeys.has(row.storageKey));
-        if (!retainedKeys.has(row.storageKey)) candidates.add(row.storageKey);
+        regularBlob(root, row.storageKey, references.has(row.id));
+        if (!retainedKeys.has(row.storageKey.toLowerCase())) candidates.add(row.storageKey);
       }
       // Recover UUID blobs left by interrupted uploads or postcommit deletion
       // failures; never sweep unrelated leaf files such as session-secret.
-      for (const name of readdirSync(root)) if (uuidLeaf.test(name) && !retainedKeys.has(name)) {
+      for (const name of readdirSync(root)) if (uuidLeaf.test(name) && !retainedKeys.has(name.toLowerCase())) {
         regularBlob(root, name); candidates.add(name);
       }
       const remove = store.db.prepare('DELETE FROM assets WHERE id=?');
@@ -124,10 +135,10 @@ export function gcAssets(store: Store, assetDirectory: string): AssetGCResult {
       return count;
     }).immediate();
     const result: AssetGCResult = { removedAssets, removedBlobs: 0, leftoverBlobs: [] };
-    const stillReferenced = store.db.prepare('SELECT 1 FROM assets WHERE storage_key=? LIMIT 1');
+    const stillReferenced = store.db.prepare('SELECT 1 FROM assets WHERE storage_key=? COLLATE NOCASE UNION ALL SELECT 1 FROM users WHERE avatar_key=? COLLATE NOCASE LIMIT 1');
     for (const key of candidates) {
       try {
-        if (stillReferenced.get(key)) continue;
+        if (stillReferenced.get(key, key)) continue;
         // Validate again immediately before unlink, after the SQL commit.
         if (regularBlob(root, key)) { unlinkSync(join(root, key)); result.removedBlobs++; }
       } catch { result.leftoverBlobs.push(key); }
@@ -181,6 +192,7 @@ const hash = (path: string) => createHash('sha256').update(readFileSync(path)).d
 /** The SQLite backup API captures a coherent live snapshot. Asset blobs are immutable. */
 export async function createBackup(store: Store, assetDirectory: string, sessionSecret: string, destination: string): Promise<Manifest> {
   if (existsSync(destination)) throw new Error('Backup destination must not already exist');
+  const root = safeAssetRoot(store, assetDirectory);
   const lease = acquireMaintenanceLease(store.filename, 'shared');
   const staging = `${destination}.partial-${process.pid}`;
   try {
@@ -190,11 +202,15 @@ export async function createBackup(store: Store, assetDirectory: string, session
     let keys: { storage_key: string }[], boards: number, assets: number;
     try {
       if (snapshot.pragma('integrity_check', { simple: true }) !== 'ok') throw new Error('Backup SQLite integrity check failed');
-      keys = snapshot.prepare('SELECT DISTINCT storage_key FROM assets').all() as { storage_key: string }[];
+      // Read both roots from the copied snapshot, never from a profile that
+      // may be refreshed while this shared snapshot-and-copy lease is held.
+      avatarStorageKeys(snapshot);
+      keys = snapshot.prepare('SELECT storage_key FROM assets UNION SELECT avatar_key AS storage_key FROM users WHERE avatar_key IS NOT NULL').all() as { storage_key: string }[];
       boards = (snapshot.prepare('SELECT count(*) AS count FROM boards').get() as { count: number }).count;
       assets = (snapshot.prepare('SELECT count(*) AS count FROM assets').get() as { count: number }).count;
     } finally { snapshot.close(); }
-    for (const { storage_key } of keys) copyFileSync(join(assetDirectory, storage_key), join(staging, 'assets', storage_key));
+    for (const { storage_key } of keys) regularBlob(root, storage_key, true);
+    for (const { storage_key } of keys) copyFileSync(join(root, storage_key), join(staging, 'assets', storage_key));
     writeFileSync(join(staging, 'session-secret'), sessionSecret, { mode: 0o600 });
     const files = ['whiteboard.sqlite', 'session-secret', ...keys.map(key => `assets/${key.storage_key}`)];
     const manifest: Manifest = { version: 1, createdAt: new Date().toISOString(), boards, assets, files: Object.fromEntries(files.map(file => [file, hash(join(staging, file))])) };
