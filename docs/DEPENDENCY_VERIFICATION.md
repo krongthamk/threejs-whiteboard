@@ -2,6 +2,12 @@
 
 Checked on 2026-09-29.
 
+F3 final dependency audit — 2026-10-05: the authentication, account UI,
+provisioning and local test provider add no packages or fonts. The installed
+strict SPDX audit passes unchanged; results are under
+`test-results/verification/f3-final`. The test provider uses existing Node HTTP
+and crypto APIs and is never imported by the production server.
+
 F3 authentication foundation — 2026-10-05: no new packages or font assets.
 Google's authorization-code flow uses existing Node fetch/crypto APIs, bounded
 direct HTTPS token exchange and strict identity claims. The implementation uses

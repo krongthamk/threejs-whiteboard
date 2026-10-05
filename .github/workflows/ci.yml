@@ -51,6 +51,12 @@ jobs:
         if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
       - run: pnpm test:app
         if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
+      - name: Google sign-in browser flow
+        run: pnpm exec playwright test --config playwright.app.config.ts tests/app/google-auth.spec.ts --output test-results/google-auth
+        if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
+        env:
+          WHITEBOARD_TEST_GOOGLE: '1'
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/google-auth
       - run: pnpm test:routed
         if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
       - uses: actions/upload-artifact@v4
