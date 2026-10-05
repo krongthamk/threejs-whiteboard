@@ -8,6 +8,9 @@
   },
   "scripts": {
     "dev": "pnpm --filter @whiteboard/app dev",
+    "dev:demo": "VITE_DEMO=1 pnpm dev",
+    "build:demo": "VITE_DEMO=1 VITE_TEST_HOOKS=0 pnpm --filter @whiteboard/app build && node scripts/check-production-hooks.mjs",
+    "test:demo": "playwright test --config playwright.demo.config.ts",
     "dev:spikes": "vite --config spikes/vite.config.ts",
     "build:spikes": "vite build --config spikes/vite.config.ts",
     "preview:spikes": "vite preview --config spikes/vite.config.ts --host 127.0.0.1 --port 4175 --strictPort",

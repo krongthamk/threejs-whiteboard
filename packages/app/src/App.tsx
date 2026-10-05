@@ -15,6 +15,7 @@ import { AccountAccess, type BoardAccess } from './account';
 import { AccountAvatar } from './account-avatar';
 import { BoardConnection, type ConnectionStatus, type RemotePresence, type SyncBlockedState } from './collaboration';
 import { api, ApiError } from './api';
+import { DemoConnection } from './demo-collaboration';
 import { ExportDialog } from './export-dialog';
 import { Minimap } from './minimap';
 import { BoardErrorBoundary } from './error-boundary';
@@ -55,12 +56,12 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
   const [readOnly, setReadOnly] = useState(access?.board.role === 'viewer');
   const [peers, setPeers] = useState<Pick<RemotePresence, 'clientId' | 'name' | 'color'>[]>([]);
   const [dialog, setDialog] = useState<'share' | 'rename' | 'export' | null>(null);
-  const connectionRef = useRef<BoardConnection | null>(null);
+  const connectionRef = useRef<BoardConnection | DemoConnection | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    let cancelled = false, instance: EditorRuntime | undefined, connection: BoardConnection | undefined;
+    let cancelled = false, instance: EditorRuntime | undefined, connection: BoardConnection | DemoConnection | undefined;
     let unsubscribe: (() => void) | undefined;
     let latestPresence: RemotePresence[] = [];
     let currentReadOnly = access?.board.role === 'viewer';
@@ -80,7 +81,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     const leave = () => connection?.setPresence({ cursor: null });
     void (async () => {
       try {
-        if (access) connection = await BoardConnection.open(access.board, access.session, {
+        if (access) connection = await (access.session.demo ? DemoConnection : BoardConnection).open(access.board, access.session, {
           onStatus: value => { if (!cancelled) setStatus(value); },
           onReadOnly: value => { currentReadOnly = value; if (!cancelled) { setReadOnly(value); if (instance) { instance.readOnly = value; if (value) instance.textEditor.cancel(); } } },
           onPresence: values => {
@@ -145,14 +146,14 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     diagnostics.invalidIds.size ? `${diagnostics.invalidIds.size} invalid element${diagnostics.invalidIds.size === 1 ? '' : 's'}` : '',
     diagnostics.malformedRecords ? `${diagnostics.malformedRecords} malformed record${diagnostics.malformedRecords === 1 ? '' : 's'}` : '',
   ].filter(Boolean).join(' and ') : '';
-  const statusLabel = !access ? 'Local board' : status === 'limited' ? 'Sync paused' : status === 'live' ? 'Connected' : status === 'offline' ? 'Offline · edits on this device' : status === 'unauthorized' ? 'Access unavailable' : status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…';
+  const statusLabel = !access ? 'Local board' : access.session.demo ? (status === 'live' ? 'Saved in this browser' : status === 'offline' ? 'Changes not saved' : 'Saving…') : status === 'limited' ? 'Sync paused' : status === 'live' ? 'Connected' : status === 'offline' ? 'Offline · edits on this device' : status === 'unauthorized' ? 'Access unavailable' : status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…';
   return <main className="workspace">
     {/* A disposed renderer releases its WebGL context; each replacement owns a fresh canvas. */}
     <canvas key={`${access?.board.id ?? 'local'}:${access?.session.user.id ?? 'local'}:${connectionRevision}`} ref={canvasRef} className="board-canvas" aria-label="Whiteboard canvas" tabIndex={0} />
     <input ref={fileInputRef} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,.excalidraw,.json,application/json" aria-label="Import images" onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (runtime && files.length) void runtime.assets.importFiles(files); }} />
     <header className="board-header surface">
       {access ? <button className="icon-button board-back" aria-label="Back to boards" title="Back to boards" onClick={access.onBack}><ArrowLeft size={20} /></button> : <div className="brand-mark" aria-hidden="true"><SquarePen size={22} strokeWidth={1.7} /></div>}
-      <div className="board-heading"><span className="workspace-label">YOUR WORKSPACE</span><h1>{boardTitle}</h1></div>
+      <div className="board-heading"><span className="workspace-label">{access?.session.demo ? 'LOCAL DEMO' : 'YOUR WORKSPACE'}</span><h1>{boardTitle}</h1></div>
       <div className={`board-status status-${status}`} role="status"><span className="status-dot" />{statusLabel}{effectiveReadOnly && <span className="view-only">View only</span>}</div>
       <button className="icon-button help-button" onClick={() => setShortcuts(true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts"><Keyboard size={19} /></button>
     </header>
@@ -162,15 +163,16 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
       {access?.board.role === 'owner' && <button className="share-button" onClick={() => setDialog('share')}><Users size={16} />Share</button>}
       {access && !effectiveReadOnly && <button className="icon-button" aria-label="Add images" title="Import images or Excalidraw file" disabled={uploading || !runtime} onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /></button>}
       <button className="icon-button" aria-label="Export board" title="Export board" disabled={!runtime} onClick={() => setDialog('export')}><Download size={18} /></button>
-      {access && <><AccountAvatar user={access.session.user} /><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={access.onSignOut}><LogOut size={17} /></button></>}
+      {access && !access.session.demo && <><AccountAvatar user={access.session.user} /><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={access.onSignOut}><LogOut size={17} /></button></>}
     </div>
+    {access?.session.demo && <p className="demo-notice surface">No account · Saved locally · Collaborate in another tab</p>}
     {!runtime && !error && <div className="board-loading" role="status">Opening board…</div>}
     {uploading && <div className="upload-status surface" role="status">Importing…</div>}
     {runtime && <BoardChrome runtime={runtime} revision={revision} readOnly={effectiveReadOnly} />}
     {(hiddenItems || unsupportedSchema || syncBlocked || importReport) && <div className="board-data-notice surface" role="status" aria-label="Board data notice">
       {importReport && <section aria-label="Import report">
         <button className="icon-button" aria-label="Dismiss import report" onClick={() => setImportReport(null)}><X size={16} /></button>
-        <p>Imported {importReport.imported} element{importReport.imported === 1 ? '' : 's'}. Skipped {importReport.skipped.length}. {importReport.pending > 0 ? importReport.message ? `${importReport.pending} added locally, not acknowledged before the import stopped.` : `${importReport.pending} added locally, awaiting sync.` : `${importReport.acknowledged} acknowledged by the server.`}</p>
+        <p>Imported {importReport.imported} element{importReport.imported === 1 ? '' : 's'}. Skipped {importReport.skipped.length}. {importReport.pending > 0 ? importReport.message ? `${importReport.pending} added locally, not acknowledged before the import stopped.` : `${importReport.pending} added locally, awaiting sync.` : access?.session.demo ? `${importReport.acknowledged} saved in this browser.` : `${importReport.acknowledged} acknowledged by the server.`}</p>
         {importReport.message && <p>{importReport.message}</p>}
         {importReport.batches > 1 && <p>This import uses {importReport.batches} undo steps. Undo each step to remove it.</p>}
         <button className="board-reload" onClick={() => {
@@ -335,6 +337,18 @@ function BoardSettings({ access, title, kind, onClose }: { access: BoardAccess; 
   const [value, setValue] = useState(kind === 'rename' ? title : '');
   const [role, setRole] = useState<'editor' | 'viewer'>('editor');
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
+  if (access.session.demo && kind === 'share') return <Modal title="Try collaboration" onClose={onClose}>
+    <div className="simple-form">
+      <p className="dialog-description">Open this board in another tab in the same browser to draw together with anonymous cursors. Boards stay in this browser. This link will not share your work with other devices yet.</p>
+      <a className="primary-button demo-tab-link" href={location.href} target="_blank" rel="noopener">Open another tab</a>
+      <label htmlFor="demo-board-link">Link for this browser</label><input id="demo-board-link" readOnly value={location.href} onFocus={event => event.currentTarget.select()} />
+      <button className="primary-button" onClick={() => {
+        void navigator.clipboard.writeText(location.href).then(() => { setMessage('Link copied.'); setError(''); })
+          .catch(() => setError('Select and copy the board link above.'));
+      }}>Copy link</button>
+      {message && <p className="form-success" role="status">{message}</p>}{error && <p className="form-error" role="alert">{error}</p>}
+    </div>
+  </Modal>;
   return <Modal title={kind === 'rename' ? 'Rename board' : 'Share this board'} onClose={onClose}>
     <form className="simple-form" onSubmit={event => { event.preventDefault(); setBusy(true); setError(''); setMessage(''); void (async () => {
       try {

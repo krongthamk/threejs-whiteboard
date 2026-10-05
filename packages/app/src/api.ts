@@ -1,6 +1,8 @@
+import { demoApi } from './demo-workspace';
+
 export interface User { id: string; username: string; name?: string; color?: string; avatarUrl?: string | null }
-export interface PublicConfig { googleSignIn: boolean }
-export interface Session { user: User; expiresAt: number }
+export interface PublicConfig { googleSignIn: boolean; demo?: boolean }
+export interface Session { user: User; expiresAt: number; demo?: boolean }
 export type BoardRole = 'owner' | 'editor' | 'viewer';
 export interface Member extends User { name: string; avatarUrl: string | null; role: BoardRole }
 export interface BoardInfo { id: string; title: string; role: BoardRole; updatedAt: number }
@@ -27,7 +29,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 const boardPath = (id: string) => `/api/boards/${encodeURIComponent(id)}`;
-export const api = {
+const remoteApi = {
   config: (signal?: AbortSignal) => request<PublicConfig>('/api/config', { signal }),
   session: () => request<Session>('/api/session'),
   login: (username: string, password: string) => request<Session>('/api/session', { method: 'POST', body: JSON.stringify({ username, password }) }),
@@ -44,3 +46,5 @@ export const api = {
   copyAsset: (id: string, sourceBoardId: string, assetId: string) => request<AssetInfo>(`${boardPath(id)}/assets/copy`, { method: 'POST', body: JSON.stringify({ sourceBoardId, assetId }) }),
   assetUrl: (id: string, assetId: string) => `${boardPath(id)}/assets/${encodeURIComponent(assetId)}`,
 };
+
+export const api: typeof remoteApi = import.meta.env.VITE_DEMO === '1' ? demoApi : remoteApi;

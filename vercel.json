@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "app": {
+      "root": "packages/app",
+      "framework": "vite",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "buildCommand": "VITE_DEMO=1 VITE_TEST_HOOKS=0 pnpm --filter @whiteboard/app build",
+      "outputDirectory": "dist",
+      "rewrites": [
+        { "source": "/board/:path*", "destination": "/index.html" }
+      ]
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": { "service": "app" } }
+  ]
+}

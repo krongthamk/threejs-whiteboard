@@ -6,6 +6,7 @@ import { AccountAvatar } from './account-avatar';
 
 export interface BoardAccess { session: Session; board: BoardInfo; onBack(): void; onSignOut(): void; onSessionExpired(): void; onBoardChange(board: BoardInfo): void }
 const routeBoard = () => /^\/board\/([^/]+)\/?$/.exec(location.pathname)?.[1];
+const demoBuild = import.meta.env.VITE_DEMO === '1';
 
 export function AccountAccess({ children }: { children(access: BoardAccess): ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -30,13 +31,15 @@ export function AccountAccess({ children }: { children(access: BoardAccess): Rea
     void (async () => {
       try {
         const restored = await api.session(); if (cancelled) return;
+        if (demoBuild && !restored.demo) throw new Error('The demo is not available yet. Please try again shortly.');
         setSession(restored);
         const list = await api.boards(); if (cancelled) return;
         setBoards(list);
         const id = routeBoard();
         if (id) { const ticket = navigation.current, found = await api.board(decodeURIComponent(id)); if (!cancelled && ticket === navigation.current && routeBoard() === id) setBoard(found); }
+        else if (restored.demo) { const first = list[0] ?? await api.createBoard('My first board'); if (!cancelled) enter(first); }
       } catch (cause) {
-        if (!cancelled && !(cause instanceof ApiError && cause.status === 401)) setError(cause instanceof Error ? cause.message : 'The workspace could not open. Please try again.');
+        if (!cancelled && (demoBuild || !(cause instanceof ApiError && cause.status === 401))) setError(cause instanceof Error ? cause.message : 'The workspace could not open. Please try again.');
       } finally { if (!cancelled) setLoading(false); }
     })();
     return () => { cancelled = true; };
@@ -75,6 +78,7 @@ export function AccountAccess({ children }: { children(access: BoardAccess): Rea
   };
   const back = () => { navigation.current++; setBoard(null); history.pushState({}, '', '/'); void loadBoards().catch(cause => setError(String(cause.message))); };
   const sessionExpired = () => {
+    if (session?.demo) { window.location.reload(); return; }
     navigation.current++; setBoard(null); setBoards([]); setSession(null); setCreating(false);
     setError('Your session ended. Sign in again. Your local work is kept on this device.');
     // Retain the board URL so same-account sign-in opens its existing cache.
@@ -90,12 +94,13 @@ export function AccountAccess({ children }: { children(access: BoardAccess): Rea
 
   if (loading) return <div className="account-page"><div className="account-loading" role="status">Opening your workspace…</div></div>;
   if (session && board) return <>{children({ session, board, onBack: back, onSignOut: () => void signOut(), onSessionExpired: sessionExpired, onBoardChange: value => { if (decodeURIComponent(routeBoard() ?? '') === value.id) setBoard(value); } })}{banner}</>;
+  if (!session && demoBuild) return <div className="account-page"><section className="signin-card surface"><p className="eyebrow">LOCAL DEMO</p><h1>The demo is unavailable.</h1><p>Please try again shortly.</p><button className="primary-button" onClick={() => location.reload()}>Try again</button></section>{banner}</div>;
   if (!session) return <div className="account-page"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><SignIn onSubmit={login} busy={busy} googleSignIn={googleSignIn} />{banner}</div>;
   return <div className="account-page boards-page">
-    <header className="account-topbar"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><div className="account-user"><AccountAvatar user={session.user} /><span>{session.user.name ?? session.user.username}</span><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}><LogOut size={18} /></button></div></header>
-    <section className="boards-content"><div className="boards-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Room for the next idea.</h1><p>Pick up where you left off, or start a fresh board.</p></div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={17} />New board</button></div>
+    <header className="account-topbar"><div className="account-brand"><SquarePen size={23} /><span>Whiteboard</span></div><div className="account-user">{session.demo ? <span>Local demo · No account needed</span> : <><AccountAvatar user={session.user} /><span>{session.user.name ?? session.user.username}</span><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}><LogOut size={18} /></button></>}</div></header>
+    <section className="boards-content"><div className="boards-heading"><div><p className="eyebrow">{session.demo ? 'LOCAL DEMO' : 'YOUR WORKSPACE'}</p><h1>{session.demo ? 'A space to try things.' : 'Room for the next idea.'}</h1><p>{session.demo ? 'Boards and images are saved in this browser only. Open a board in two tabs to try collaboration. Clearing site data removes your saved work.' : 'Pick up where you left off, or start a fresh board.'}</p></div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={17} />New board</button></div>
       <div className="board-list" aria-label="Your boards">
-        {boards.map((item, index) => <button className="board-card surface" key={item.id} onClick={() => enter(item)}><div className={`board-card-preview palette-${index % 3}`} aria-hidden="true"><span /><i /><b /></div><div className="board-card-details"><h2>{item.title}</h2><div><span>{item.role === 'viewer' ? 'View only' : item.role === 'owner' ? 'Your board' : 'Shared with you'}</span><span>{new Date(item.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></div></div></button>)}
+        {boards.map((item, index) => <button className="board-card surface" key={item.id} onClick={() => enter(item)}><div className={`board-card-preview palette-${index % 3}`} aria-hidden="true"><span /><i /><b /></div><div className="board-card-details"><h2>{item.title}</h2><div><span>{session.demo ? 'Saved in this browser' : item.role === 'viewer' ? 'View only' : item.role === 'owner' ? 'Your board' : 'Shared with you'}</span><span>{new Date(item.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></div></div></button>)}
         {!boards.length && <button className="empty-board-card" onClick={() => setCreating(true)}><span><Plus size={24} /></span><h2>Your first board starts here</h2><p>A space for notes, sketches and shared thinking.</p></button>}
       </div>
     </section>

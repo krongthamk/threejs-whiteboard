@@ -1,10 +1,35 @@
 # Three.js collaborative whiteboard
 
-A private, self-hosted whiteboard with shapes, pressure-aware drawing, native text editing, bound connectors, images, collaborative cursors, per-session undo, and PNG/SVG/PDF export. The document is a Yjs model; Three.js is its disposable visual projection.
+A browser whiteboard with shapes, pressure-aware drawing, native text editing, bound connectors, images, collaborative cursors, per-session undo, and PNG/SVG/PDF export. The document is a Yjs model; Three.js is its disposable visual projection.
 
 Implementation and measured acceptance evidence are tracked against [the build plan](docs/BUILD_PLAN.md) in [the execution log](docs/EXECUTION_LOG.md). The selected initial benchmark/deployment machine is this Mac (Apple M1 Pro, 32 GiB); local results do not establish performance on other hardware.
 
-## Run locally
+## Browser-only demo (Vercel)
+
+No sign-in, backend, database service, or hosting account for a backend is needed.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev:demo
+```
+
+Open http://127.0.0.1:5173. Boards and imported images save in this browser's
+IndexedDB; the board list is in localStorage. **Share → Open another tab** tries
+anonymous live edits and cursors in the same browser profile and site origin.
+Sharing across devices or different browsers is deferred until a relay is available.
+Clearing site data removes saved work. PNG/SVG/PDF exports are available; they are
+not editable backups. Private browsing may discard data when its windows close.
+
+`pnpm build:demo` creates the static production build. [Vercel setup](docs/VERCEL.md)
+is configured in `vercel.json`, with demo mode enabled and no server service.
+`pnpm test:demo` exercises local persistence and tab collaboration without a backend.
+
+## Private self-hosted app (optional)
+
+The original authenticated server remains available separately. These instructions
+are not needed for the browser-only demo.
+
+### Run locally
 
 Google sign-in is temporarily disabled by default, including when OAuth credentials
 are present. Use a provisioned username and password. To restore Google later,

@@ -24,6 +24,7 @@ jobs:
         env:
           VITE_TEST_HOOKS: '0'
       - run: node scripts/check-production-hooks.mjs
+      - run: pnpm build:demo
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -59,6 +60,8 @@ jobs:
         env:
           WHITEBOARD_TEST_GOOGLE: '1'
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/google-auth
+      - run: pnpm test:demo
+        if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
       - run: pnpm test:routed
         if: ${{ !cancelled() && steps.install-browser.outcome == 'success' }}
       - uses: actions/upload-artifact@v4
