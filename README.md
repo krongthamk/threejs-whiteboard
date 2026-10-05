@@ -20,6 +20,8 @@ Owners can grant, change, or remove another account’s board access through Sha
 
 The server migrates legacy account storage transactionally while preserving existing accounts and schema-2 boards. Sessions include a display name and optional local avatar URL; backups and asset cleanup retain current avatar files.
 
+Configured deployments can use allowlisted Google sign-in through `/api/auth/google/start`. The server links verified identities to intended accounts, keeps profile pictures locally, and returns to the requested board with the usual HttpOnly session cookie. See [Google configuration](packages/server/README.md#google-configuration).
+
 ```sh
 pnpm dev
 ```

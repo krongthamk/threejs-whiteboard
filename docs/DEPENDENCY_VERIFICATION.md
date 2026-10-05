@@ -2,6 +2,16 @@
 
 Checked on 2026-09-29.
 
+F3 authentication foundation — 2026-10-05: no new packages or font assets.
+Google's authorization-code flow uses existing Node fetch/crypto APIs, bounded
+direct HTTPS token exchange and strict identity claims. The implementation uses
+the direct token-endpoint TLS validation option in
+[OIDC Core 3.1.3.7](https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation),
+with a fixed production endpoint, redirects disabled and no browser ID-token
+input. No JWT signature library or Google SDK is added. Test-provider overrides
+are restricted to explicit test mode and a validated loopback origin. Existing
+SQLite and image-header dependencies support migration and private avatar files.
+
 F2 final dependency audit — 2026-10-05: the importer, safety checks and native
 acceptance coverage add no packages or fonts. The installed strict SPDX audit
 passes unchanged; results are recorded under `test-results/verification/f2-final`.

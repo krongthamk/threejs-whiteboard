@@ -1,8 +1,8 @@
 import { Server, type Connection, type onStoreDocumentPayload } from '@hocuspocus/server';
 import { Database } from '@hocuspocus/extension-database';
 import * as Y from 'yjs';
-import { randomUUID } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { isIP } from 'node:net';
@@ -12,11 +12,12 @@ import { BoardUpdateValidator, IncompleteBoardUpdateError } from '../../model/sr
 import { assertSafeImageDimensions, readImageHeader } from '../../model/src/image-header.js';
 import { checkUpdateResources, UpdateResourceError } from './update-limits.js';
 import { acquireMaintenanceLease } from './maintenance.js';
-import type { GoogleConfig } from './google-config.js';
+import { googleEndpoints, type GoogleConfig } from './google-config.js';
+import { exchangeGoogleCode, fetchGoogleAvatar, GoogleAuthError, safeGoogleReturnPath } from './google-auth.js';
 
 class HttpError extends Error { constructor(readonly status: number, message: string) { super(message); } }
 interface Options { databasePath: string; assetDirectory: string; sessionSecret: string; google?: GoogleConfig | null; port?: number; host?: string; allowedOrigins?: string[]; websocketPath?: string; secureCookies?: boolean; trustedProxy?: boolean; staticDirectory?: string; maxUpdateBytes?: number; maxBoardBytes?: number; maxBufferedBytes?: number; slowSocketGraceMs?: number; maxInboundBytes?: number; maxClockGrowth?: number }
-interface AuthContext { token: string; userId: string; name: string; role: 'owner' | 'editor' | 'viewer'; roleVersion?: string; expiresAt: number; invalidated?: boolean }
+interface AuthContext { token: string; userId: string; name: string; initialName: string; role: 'owner' | 'editor' | 'viewer'; roleVersion?: string; expiresAt: number; invalidated?: boolean }
 type Metrics = { updates: number; awareness: number; persistedUpdates: number; persistenceMs: number; compactions: number; windowAt: number; windowUpdates: number; windowAwareness: number };
 
 export function createWhiteboardServer(options: Options) {
@@ -70,6 +71,7 @@ export function createWhiteboardServer(options: Options) {
   const failedLogins = new Map<string, { since: number; count: number }>();
   const pendingAccountLogins = new Map<string, number>();
   let pendingLogins = 0;
+  let pendingGoogleLogins = 0;
   function loginAddress(request: IncomingMessage): string {
     const peer = request.socket.remoteAddress ?? 'local', forwarded = request.headers['x-forwarded-for'];
     const last = options.trustedProxy && typeof forwarded === 'string' ? forwarded.split(',').at(-1)?.trim() : undefined;
@@ -80,6 +82,14 @@ export function createWhiteboardServer(options: Options) {
     // one: normalize only their IP portion and retain the interface scope.
     const scope = address.indexOf('%'), ip = scope < 0 ? address : address.slice(0, scope);
     return new URL(`http://[${ip}]/`).hostname + (scope < 0 ? '' : address.slice(scope));
+  }
+  function admitLogin(request: IncomingMessage): string {
+    const now = Date.now();
+    for (const [key, entry] of loginAttempts) if (now - entry.since >= 60000) loginAttempts.delete(key);
+    const address = loginAddress(request); let attempts = loginAttempts.get(address);
+    if (!attempts) { attempts = { since: now, count: 0 }; loginAttempts.set(address, attempts); }
+    if (++attempts.count > 30) throw new HttpError(429, 'Too many sign-in attempts; try again in a minute');
+    return address;
   }
   let draining = false, closed: Promise<void> | undefined;
   function metric(boardId: string): Metrics {
@@ -104,6 +114,72 @@ export function createWhiteboardServer(options: Options) {
   }
   const publicSession = ({ user, expiresAt }: Session) => ({ user, expiresAt });
   const cookie = (token: string, maxAge = 43200) => `board_session=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${options.secureCookies ? '; Secure' : ''}`;
+  const googleCookie = (binding: string, maxAge = 600) => `board_google_state=${binding}; HttpOnly; SameSite=Lax; Path=/api/auth/google/callback; Max-Age=${maxAge}${options.secureCookies || options.google?.publicOrigin.startsWith('https:') ? '; Secure' : ''}`;
+  function googleRedirect(response: ServerResponse, location: string) {
+    response.writeHead(302, { Location: location, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); response.end();
+  }
+  async function googleAuth(request: IncomingMessage, response: ServerResponse, url: URL) {
+    const google = options.google;
+    if (!google || request.method !== 'GET') throw new HttpError(404, 'Not found');
+    try {
+      if (draining) throw new HttpError(503, 'Server is draining');
+      admitLogin(request);
+      if (url.pathname === '/api/auth/google/start') {
+        if (url.searchParams.getAll('return').length > 1) throw new GoogleAuthError();
+        const returnPath = safeGoogleReturnPath(url.searchParams.get('return'), google.publicOrigin);
+        const state = randomBytes(32).toString('base64url'), nonce = randomBytes(32).toString('base64url');
+        const verifier = randomBytes(32).toString('base64url'), binding = randomBytes(32).toString('base64url');
+        const authorization = new URL(googleEndpoints(google).authorizationEndpoint);
+        authorization.search = new URLSearchParams({ client_id: google.clientId, redirect_uri: google.redirectUri,
+          response_type: 'code', scope: 'openid email profile', state, nonce, code_challenge: createHash('sha256').update(verifier).digest('base64url'),
+          code_challenge_method: 'S256', prompt: 'select_account', ...(google.allowedDomains.length === 1 ? { hd: google.allowedDomains[0]! } : {}) }).toString();
+        store.createOAuthState({ state, nonce, verifier, returnPath, expiresAt: Date.now() + 600_000, browserBindingHash: createHash('sha256').update(binding).digest('hex') });
+        response.setHeader('Set-Cookie', googleCookie(binding)); return googleRedirect(response, authorization.href);
+      }
+      if (pendingGoogleLogins >= 4) throw new HttpError(429, 'Sign-in is busy; try again shortly');
+      const binding = request.headers.cookie?.split(';').map(part => part.trim()).find(part => part.startsWith('board_google_state='))?.slice('board_google_state='.length);
+      if (!binding || !/^[A-Za-z0-9_-]{43}$/.test(binding) || url.searchParams.getAll('state').length !== 1) throw new GoogleAuthError();
+      const state = store.consumeOAuthState(url.searchParams.get('state')!, createHash('sha256').update(binding).digest('hex'));
+      if (!state) throw new GoogleAuthError();
+      response.setHeader('Set-Cookie', googleCookie('', 0));
+      if (url.searchParams.has('error') || url.searchParams.getAll('code').length !== 1) throw new GoogleAuthError();
+      // State is consumed before the first network await, including all failing exchanges.
+      pendingGoogleLogins++;
+      try {
+        const identity = await exchangeGoogleCode(google, state, url.searchParams.get('code')!);
+        if (draining) throw new HttpError(503, 'Server is draining');
+        const user = store.resolveExternalIdentity({ provider: 'google', ...identity });
+        if (identity.picture) {
+          try {
+            let currentCopy = false;
+            if (user.avatarKey) {
+              try { const stat = lstatSync(join(options.assetDirectory, user.avatarKey)); currentCopy = stat.isFile() && stat.size > 0 && stat.size <= 2 * 1024 * 1024; }
+              catch { /* Missing bytes are fetched again on the next sign-in. */ }
+            }
+            const fresh = currentCopy && user.avatarUpdatedAt !== null && Date.now() - user.avatarUpdatedAt < 7 * 24 * 60 * 60 * 1000;
+            const avatar = await fetchGoogleAvatar(google, identity.picture, fresh ? user.avatarUrlFingerprint : null);
+            if (draining) throw new HttpError(503, 'Server is draining');
+            const latest = store.userProfile(user.id);
+            if (avatar && latest?.avatarUrlFingerprint === user.avatarUrlFingerprint && latest.avatarUpdatedAt === user.avatarUpdatedAt) {
+              const storageKey = randomUUID();
+              writeFileSync(join(options.assetDirectory, storageKey), avatar.bytes, { flag: 'wx', mode: 0o600 });
+              store.setAvatar(user.id, { storageKey, urlFingerprint: avatar.fingerprint, updatedAt: Date.now() });
+            }
+          } catch { console.warn({ event: 'google-avatar-unavailable' }); }
+        }
+        if (draining) throw new HttpError(503, 'Server is draining');
+        const session = store.createSession(user.id);
+        response.setHeader('Set-Cookie', [googleCookie('', 0), cookie(session.token)]);
+        return googleRedirect(response, safeGoogleReturnPath(state.returnPath, google.publicOrigin));
+      } finally { pendingGoogleLogins--; }
+    } catch (error) {
+      const status = error instanceof HttpError ? error.status : error instanceof GoogleAuthError && error.denied ? 403 : 400;
+      const message = error instanceof HttpError || error instanceof GoogleAuthError ? error.message : 'Google sign-in could not be completed. Please try again.';
+      response.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'none'; base-uri 'none'; frame-ancestors 'none'" });
+      response.end(`<!doctype html><html lang="en"><meta charset="utf-8"><title>Google sign-in</title><h1>Unable to sign in</h1><p>${message}</p><a href="/">Back to Whiteboard</a></html>`);
+    }
+  }
   function json(response: ServerResponse, status: number, data?: unknown) { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(data === undefined ? undefined : JSON.stringify(data)); }
   async function body(request: IncomingMessage, limit = 65536): Promise<Buffer> {
     const chunks: Buffer[] = []; let length = 0;
@@ -157,31 +233,30 @@ export function createWhiteboardServer(options: Options) {
   }
   async function api(request: IncomingMessage, response: ServerResponse) {
     try {
-      const path = new URL(request.url ?? '/', 'http://localhost').pathname, method = request.method ?? 'GET';
+      const url = new URL(request.url ?? '/', 'http://localhost'), path = url.pathname, method = request.method ?? 'GET';
       const readRequest = method === 'GET' || method === 'HEAD';
+      const googleRoute = path === '/api/auth/google/start' || path === '/api/auth/google/callback';
+      const googleNavigation = googleRoute && method === 'GET';
       const origin = request.headers.origin;
-      if (origin && !origins.has(origin)) throw new HttpError(403, 'Origin is not allowed');
-      if (origin) { response.setHeader('Access-Control-Allow-Origin', origin); response.setHeader('Access-Control-Allow-Credentials', 'true'); response.setHeader('Vary', 'Origin'); }
+      if (origin && !googleNavigation && !origins.has(origin)) throw new HttpError(403, 'Origin is not allowed');
+      if (origin && !googleNavigation) { response.setHeader('Access-Control-Allow-Origin', origin); response.setHeader('Access-Control-Allow-Credentials', 'true'); response.setHeader('Vary', 'Origin'); }
       if (method === 'OPTIONS') { response.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,PATCH,DELETE,OPTIONS'); response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization'); return json(response, 204); }
       if (path === '/health') return json(response, 200, { status: 'ok' });
       if (path === '/ready') { const ready = !draining && persistenceFailed.size === 0; return json(response, ready ? 200 : 503, { ready }); }
       if (serveStatic && path !== websocketPath && serveStatic(request, response, path)) return;
       if (serveStatic && !path.startsWith('/api/')) throw new HttpError(404, 'Not found');
       if (path === '/api/config' && readRequest) return json(response, 200, { googleSignIn: !!options.google });
-      if (!options.google && (path === '/api/auth/google/start' || path === '/api/auth/google/callback')) throw new HttpError(404, 'Not found');
+      if (googleRoute) return await googleAuth(request, response, url);
       if (draining && !['GET', 'HEAD'].includes(method)) throw new HttpError(503, 'Server is draining');
       // Browser cookie mutations must carry an approved Origin. Bearer clients
       // and CLI tools are explicit-token requests and do not use ambient auth.
       if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && request.headers.cookie && !request.headers.authorization?.startsWith('Bearer ') && !origin) throw new HttpError(403, 'Origin is required for cookie-authenticated changes');
       if (path === '/api/session' && method === 'POST') {
         const now = Date.now();
-        for (const [key, entry] of loginAttempts) if (now - entry.since >= 60000) loginAttempts.delete(key);
         for (const [key, entry] of failedLogins) if (now - entry.since >= 60000) failedLogins.delete(key);
-        const address = loginAddress(request); let attempts = loginAttempts.get(address);
-        if (!attempts) { attempts = { since: now, count: 0 }; loginAttempts.set(address, attempts); }
-        if (++attempts.count > 30) throw new HttpError(429, 'Too many sign-in attempts; try again in a minute');
+        const address = admitLogin(request);
         const data = await jsonBody(request);
-        if (typeof data.username !== 'string' || data.username.length > 80 || typeof data.password !== 'string' || data.password.length > 1024) throw new HttpError(400, 'Username and password are required');
+        if (typeof data.username !== 'string' || data.username.length > 254 || typeof data.password !== 'string' || data.password.length > 1024) throw new HttpError(400, 'Username and password are required');
         const accountKey = `${address}\0${data.username}`, failures = failedLogins.get(accountKey);
         const accountPending = pendingAccountLogins.get(accountKey) ?? 0;
         if ((failures?.count ?? 0) + accountPending >= 5) throw new HttpError(429, 'Too many sign-in attempts for this account; try again in a minute');
@@ -206,6 +281,21 @@ export function createWhiteboardServer(options: Options) {
       }
       const session = authenticate(request);
       if (path === '/api/session' && readRequest) return json(response, 200, publicSession(session));
+      const avatarRoute = path.match(/^\/api\/users\/([a-zA-Z0-9-]+)\/avatar$/);
+      if (avatarRoute && readRequest) {
+        const user = store.userProfile(avatarRoute[1]!);
+        if (!user?.avatarKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.avatarKey)) throw new HttpError(404, 'Avatar not found');
+        let descriptor: number | undefined;
+        try {
+          descriptor = openSync(join(options.assetDirectory, user.avatarKey), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+          const stat = fstatSync(descriptor); if (!stat.isFile() || stat.size > 2 * 1024 * 1024) throw new Error();
+          const bytes = readFileSync(descriptor), header = readImageHeader(bytes);
+          if (!['image/png', 'image/jpeg'].includes(header.mimeType)) throw new Error();
+          response.writeHead(200, { 'Content-Type': header.mimeType, 'Content-Length': bytes.length, 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' });
+          return response.end(method === 'HEAD' ? undefined : bytes);
+        } catch { throw new HttpError(404, 'Avatar not found'); }
+        finally { if (descriptor !== undefined) closeSync(descriptor); }
+      }
       if (path === '/api/session/logout' && method === 'POST') {
         store.logout(session.sessionId);
         // Passive sockets may not send another packet after logout. Revoke their
@@ -375,7 +465,7 @@ export function createWhiteboardServer(options: Options) {
         try { persistSnapshot(documentName, document); }
         catch (error) { persistenceFailure(documentName, document, error); throw Object.assign(new Error('Board persistence is unavailable'), { reason: 'persistence-failed' }); }
       }
-      connectionConfig.readOnly = role === 'viewer'; return { userId: session.user.id, name: session.user.username, token: sessionToken, role, roleVersion, expiresAt: session.expiresAt };
+      connectionConfig.readOnly = role === 'viewer'; return { userId: session.user.id, name: session.user.name, initialName: session.user.name, token: sessionToken, role, roleVersion, expiresAt: session.expiresAt };
     },
     async connected({ connection, context, documentName }) {
       let expiration: ReturnType<typeof setTimeout> | undefined;
@@ -423,6 +513,9 @@ export function createWhiteboardServer(options: Options) {
         resetConnection(connection, documentName, null, context.expiresAt <= Date.now() ? 'session-expired' : 'session-revoked');
         throw new Error('Session ended');
       }
+      // A tab may still cache its original login label after a profile refresh.
+      // Accept that authenticated label but always broadcast the current one.
+      context.name = session.user.name;
       const roleVersion = store.membershipVersion();
       if (roleVersion !== context.roleVersion) {
         const role = store.role(documentName, session.user.id);
@@ -480,7 +573,7 @@ export function createWhiteboardServer(options: Options) {
       for (const [clientId, state] of states) {
         const existing = awareness.getStates().get(clientId);
         if (!context || context.invalidated || !state || state.userId !== context.userId
-          || state.name !== undefined && state.name !== context.name
+          || state.name !== undefined && state.name !== context.name && state.name !== context.initialName
           || existing && existing.userId !== context.userId) {
           states.delete(clientId); continue;
         }

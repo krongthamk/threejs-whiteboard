@@ -16,7 +16,7 @@ supply a password (at least 12 characters) without printing it. Use
 `provision --reset-password <username>` to replace a password and revoke all of
 that account's sessions, or `provision --revoke-sessions <username>` to revoke
 sessions without changing its password. There is no public
-signup or anonymous board access. Account names are unique, case-sensitive,
+signup or anonymous board access. Password-account names are unique, case-sensitive,
 2–80 Unicode letters/numbers or `_.@-`.
 
 `WHITEBOARD_DATA_DIR` selects the data directory (default `data` relative to the
@@ -58,9 +58,42 @@ leave Google disabled; malformed fully configured settings fail startup with
 sanitized diagnostics. Never supply both secret sources or commit a secret.
 `GET /api/config` exposes only `{googleSignIn: boolean}` and contains no credentials.
 
+The browser starts at `/api/auth/google/start?return=/board/<id>`. The return
+value must be a local absolute path; unsafe values are refused. Google uses an
+authorization-code exchange with PKCE, a random nonce and a ten-minute,
+single-use state bound to a separate HttpOnly/SameSite=Lax browser cookie.
+The callback verifies issuer, audience, expiry, nonce and verified e-mail.
+Domain allowlisting requires both the hosted-domain claim and e-mail domain
+to match; an explicitly allowed full e-mail is an alternative. A stable Google
+subject keeps its existing account when its verified address changes. First
+sign-in can link a unique matching provisioned account; ambiguous addresses or
+a replacement subject trying to claim an already-linked account are refused.
+Password hashes and existing board memberships are retained.
+
+Production exchanges go only to Google's fixed HTTPS token endpoint, with
+normal TLS verification, redirects disabled and a bounded response/timeout.
+The server relies on the direct token-endpoint TLS validation permitted by
+[OpenID Connect Core 3.1.3.7](https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation)
+instead of a separate JWT signature library. Browser-supplied ID tokens are
+never accepted. `WHITEBOARD_GOOGLE_ISSUER_OVERRIDE` works only under
+`NODE_ENV=test`, and only for an exact loopback HTTP origin; production ignores it.
+
+Profile pictures are fetched server-side from HTTPS Googleusercontent hosts;
+redirects, credentials and unrelated hosts are refused. Only PNG/JPEG headers
+matching the response MIME are accepted, at most 2 MiB, 4,096 pixels per side and
+16 million pixels. These bounds precede browser decoding. Fetches time out after
+five seconds. Immutable local copies refresh when the source changes, after
+seven days, or when a copy is missing; a failure keeps the previous copy and
+does not prevent sign-in. The client receives only a local versioned avatar URL.
+ID/access/refresh tokens and provider picture URLs are never stored or logged.
+Sessions remain twelve hours; external accounts without a password use the same
+dummy-scrypt failure path as an incorrect password. Google start/callback and
+password login share the per-address sign-in limit.
+
 ## HTTP contract
 
-Errors are `{ "error": "message" }`. Session responses are
+Errors are `{ "error": "message" }`, except Google navigation failures, which
+return a small sanitized HTML page with a link back to the app. Session responses are
 `{ user: { id, username, name, avatarUrl }, expiresAt }`; `expiresAt` is Unix milliseconds.
 `name` falls back to the username and fits within 80 UTF-16 units without splitting
 a grapheme; `avatarUrl` is a local versioned URL or null. Internal storage keys,
@@ -83,8 +116,11 @@ use the current document title.
 | Method and path | Body / result |
 | --- | --- |
 | `GET/HEAD /api/config` | Public `{googleSignIn: boolean}`; no secrets |
+| `GET /api/auth/google/start` | Browser authorization redirect with validated local `return`; disabled routes return 404; HEAD is not accepted |
+| `GET /api/auth/google/callback` | One-use browser-bound callback; sets the ordinary session cookie and redirects locally; HEAD is not accepted |
 | `POST /api/session` | `{username,password}` → session + cookie |
 | `GET /api/session` | Current identity and expiry; no token |
+| `GET/HEAD /api/users/:id/avatar` | Authenticated local PNG/JPEG or 404; private one-hour cache and nosniff |
 | `POST /api/session/logout` | Revokes session and clears cookie; 204 |
 | `GET /api/boards` | `{boards: Board[]}`; membership only |
 | `POST /api/boards` | `{title}` → 201 `{board}`; caller becomes owner |
@@ -136,7 +172,9 @@ already authenticated session changes. Awareness remains ephemeral. Presence
 user IDs and names come from the authenticated account; conflicting supplied
 identities are dropped before application or broadcast. A correct user ID with
 no name receives the server's account name. One account cannot overwrite another
-account's existing awareness client ID. Valid viewer cursor presence remains
+account's existing awareness client ID. When a profile changes, an existing
+connection may still send its original authenticated label, but the server
+broadcasts the current display name. Valid viewer cursor presence remains
 available even though viewers cannot write board content.
 
 Rectangle and ellipse labels use the existing schema-2 document update path;
