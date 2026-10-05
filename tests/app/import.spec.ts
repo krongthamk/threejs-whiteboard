@@ -1,11 +1,33 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { importExcalidraw, resolveBinding, textBlock } from '@whiteboard/model';
+import { createHash } from 'node:crypto';
+import { importExcalidraw, resolveBinding, textBlock, contentBounds } from '@whiteboard/model';
 import { evidenceDirectory } from '../evidence';
 
 const genuinePath = resolve('packages/model/test/fixtures/excalidraw/official-app-mixed.excalidraw');
 const genuineText = readFileSync(genuinePath, 'utf8');
+// Independent literal oracle also pinned by the model fixture test.
+const genuineSubstitutions = [
+  "Hand-drawn roughness replaced with native geometry",
+  "Mvvz2TXWVRnk7mOQY2rJr: roundness dropped",
+  "fIo3BfVKxhwqiVgJELmIw: roundness dropped",
+  "YxKBvfx2G2OLI_f7FQ2_m: diamond replaced with rectangle",
+  "YxKBvfx2G2OLI_f7FQ2_m: roundness dropped",
+  "G8UkyWBtHtJa8YJME8h-b: line replaced with native pressure stroke; routing and width may differ",
+  "G8UkyWBtHtJa8YJME8h-b: roundness dropped",
+  "Pe6uQSqh3fsgG_2n6qlrH: freehand outline replaced with native pressure stroke",
+  "Pe6uQSqh3fsgG_2n6qlrH: frame membership and clipping dropped",
+  "Z7wFkiZM1-H07-hCs7xfe: frame replaced with transparent rectangle; frame behavior dropped",
+  "Excalifont substituted with Inter",
+  "7E6z6f9TLJTe7Ux5YYblL: bound label reflow/placement uses native font metrics and shape insets",
+  "6jm0dQ6b0vtBaXTUil35A: text dimensions recalculated with native font metrics",
+  "aewPn17Wtk9Ppz7gKcOL4: start gapped endpoint projected onto target bounds",
+  "aewPn17Wtk9Ppz7gKcOL4: start gap/focus/orbit binding behavior replaced with native normalized binding",
+  "aewPn17Wtk9Ppz7gKcOL4: end gapped endpoint projected onto target bounds",
+  "aewPn17Wtk9Ppz7gKcOL4: end gap/focus/orbit binding behavior replaced with native normalized binding",
+  "aewPn17Wtk9Ppz7gKcOL4: roundness dropped"
+];
 const simple = (count = 1) => ({ type: 'excalidraw', version: 2, elements: Array.from({ length: count }, (_, i) => ({ id: `source-${i}`, type: 'rectangle', x: 100 + i * 8, y: 100, width: 100, height: 80 })) });
 function namedMessageKind(bytes: Buffer): number[] {
   let cursor = 0;
@@ -32,7 +54,8 @@ test('genuine official file merges with existing content, keeps following arrows
   await open(page, 'Real Excalidraw import'); await page.evaluate(() => { window.whiteboard.board.create('rect', { id: 'existing', x: -200, y: -200 }); });
   await page.waitForFunction(() => !window.whiteboardConnection!.provider.hasUnsyncedChanges);
   const expected = importExcalidraw(JSON.parse(genuineText), { newId: (() => { let n = 0; return () => 'expected-' + ++n; })(), firstIndex: null });
-  const before = await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length);
+  expect(createHash('sha256').update(genuineText).digest('hex')).toBe('dd49a1f29fefca2a51fee4c5983a570db27688a3fb003d11929a9af12305d55f');
+  const baseline = await values(page), before = await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length);
   await page.getByRole('button', { name: 'Add images', exact: true }).click(); await file(page, genuineText);
   await expect.poll(async () => (await values(page)).length).toBe(expected.elements.length + 1);
   await expect(page.getByRole('region', { name: 'Import report' })).toContainText(`${expected.elements.length} acknowledged by the server`);
@@ -40,15 +63,77 @@ test('genuine official file merges with existing content, keeps following arrows
   expect(imported.map(e => e.type)).toEqual(expected.elements.map(e => e.type));
   expect(await page.evaluate(() => window.whiteboard.board.undoManager.undoStack.length)).toBe(before + 1);
   const connector = imported.find(e => e.type === 'connector' && 'elementId' in e.props.start)!; if (connector.type !== 'connector' || !('elementId' in connector.props.start)) throw new Error('Expected following arrow');
+  const reportDownload = page.waitForEvent('download');
+  await page.getByRole('region', { name: 'Import report' }).getByRole('button', { name: 'Download full import report' }).click();
+  const report = JSON.parse(readFileSync((await (await reportDownload).path())!, 'utf8'));
+  expect(report).toEqual({ imported: 9, acknowledged: 9, pending: 0, batches: 1, skipped: [], substituted: genuineSubstitutions });
+  const importedSnapshot = await values(page);
+  await page.evaluate(() => window.whiteboard.board.undoManager.undo()); expect(await values(page)).toEqual(baseline);
+  await page.waitForFunction(() => !window.whiteboardConnection!.provider.hasUnsyncedChanges);
+  await page.evaluate(() => window.whiteboard.board.undoManager.redo()); expect(await values(page)).toEqual(importedSnapshot);
+  await page.waitForFunction(() => !window.whiteboardConnection!.provider.hasUnsyncedChanges);
+  const label = imported.find(e => e.type === 'rect' && textBlock(e)?.text === 'Bound rectangle\n日本語 label')!, image = imported.find(e => e.type === 'image')!;
+  const block = textBlock(label)!;
+  const bounds = contentBounds(imported);
+  const probes = await page.evaluate(async ({ label, image, block, bounds, ids }) => {
+    const { board, renderer, session, exporter } = window.whiteboard;
+    const inspect = (source: CanvasImageSource, width: number, height: number, origin: { x: number; y: number }, scale: number) => {
+      const raster = document.createElement('canvas'); raster.width = width; raster.height = height;
+      const ctx = raster.getContext('2d')!; ctx.drawImage(source, 0, 0); const pixels = ctx.getImageData(0, 0, width, height).data;
+      let ink = 0, outside = 0, firstLine = 0, secondLine = 0;
+      for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+        const wx = origin.x + (x + .5) / scale, wy = origin.y + (y + .5) / scale;
+        // Exclude the native stroke and the arrow endpoint at the rectangle edge.
+        if (wx < label.x + 4 || wx > label.x + label.w - 4 || wy < label.y + 4 || wy > label.y + label.h - 4) continue;
+        const at = (y * width + x) * 4;
+        if (Math.max(pixels[at]!, pixels[at + 1]!, pixels[at + 2]!) > 64 || pixels[at + 3]! < 200) continue;
+        ink++; if (wy < label.y + label.h / 2) firstLine++; else secondLine++;
+        if (wx < label.x + block.insetX - 1 || wx > label.x + label.w - block.insetX + 1 || wy < label.y + block.insetY - 1 || wy > label.y + label.h - block.insetY + 1) outside++;
+      }
+      const ix = Math.floor((image.x + image.w / 2 - origin.x) * scale), iy = Math.floor((image.y + image.h / 2 - origin.y) * scale);
+      const rgba = [...ctx.getImageData(ix, iy, 1, 1).data];
+      return { ink, outside, firstLine, secondLine, rgba, raster: raster.toDataURL() };
+    };
+    const live = async () => {
+      await renderer.whenReady(); renderer.render(); const canvas = renderer.webgl.domElement, ratio = renderer.webgl.getPixelRatio(), camera = session.getState().camera, scale = camera.zoom * ratio;
+      return inspect(canvas, canvas.width, canvas.height, { x: camera.x - canvas.width / (2 * scale), y: camera.y - canvas.height / (2 * scale) }, scale);
+    };
+    const screen = await live(), png = [];
+    for (const scale of [1, 2]) {
+      const bitmap = await createImageBitmap(await exporter.create({ format: 'png', scale, transparent: false, padding: 0, selection: ids, title: 'Genuine Excalidraw import' }));
+      try { png.push(inspect(bitmap, bitmap.width, bitmap.height, bounds, scale)); } finally { bitmap.close(); }
+    }
+    // Bounded test-only negative controls prove the probes observe actual paints.
+    // Restore each mutation through undo before checking persistence/history.
+    const before = board.readAll(); let hiddenLabel, hiddenImage;
+    try { board.update(label.id, { style: { ...label.style, opacity: 0 } }); hiddenLabel = await live(); } finally { board.undoManager.undo(); }
+    try { board.update(image.id, { style: { ...image.style, opacity: 0 } }); hiddenImage = await live(); } finally { board.undoManager.undo(); }
+    const restored = board.readAll(); await live();
+    return { screen, png, hiddenLabel, hiddenImage, before, restored };
+  }, { label, image, block, bounds, ids: imported.map(e => e.id) });
+  expect(probes.restored).toEqual(probes.before);
+  for (const [name, raster] of [['live', probes.screen], ['png1', probes.png[0]!], ['png2', probes.png[1]!]] as const) {
+    expect(raster.firstLine, name + ' Latin line').toBeGreaterThan(30); expect(raster.secondLine, name + ' Japanese line').toBeGreaterThan(30);
+    expect(raster.outside, name + ' inset').toBe(0); expect(raster.rgba, name + ' original embedded PNG pixel').toEqual([70, 130, 180, 255]);
+  }
+  expect(probes.hiddenLabel!.ink, 'label-hidden negative control').toBe(0);
+  expect(probes.hiddenImage!.rgba, 'image-hidden negative control').not.toEqual([70, 130, 180, 255]);
+  const directory = evidenceDirectory(info);
+  writeFileSync(resolve(directory, 'report.json'), JSON.stringify(report, null, 2));
+  for (const [name, raster] of [['live-raster', probes.screen], ['png1', probes.png[0]!], ['png2', probes.png[1]!], ['hidden-label', probes.hiddenLabel!], ['hidden-image', probes.hiddenImage!]] as const) {
+    writeFileSync(resolve(directory, name + '.png'), Buffer.from(raster.raster.split(',')[1]!, 'base64'));
+  }
+  writeFileSync(resolve(directory, 'pixel-probes.json'), JSON.stringify(probes, (key, value) => key === 'raster' ? undefined : value, 2));
   const targetId = connector.props.start.elementId;
-  const first = resolveBinding(connector.props.start, new Map(imported.map(e => [e.id, e])));
+  const first = resolveBinding(connector.props.start, new Map(imported.map(e => [e.id, e]))), fixedEnd = resolveBinding(connector.props.end, new Map(imported.map(e => [e.id, e])));
   await page.evaluate(id => { const e = window.whiteboard.board.read(id)!; window.whiteboard.board.update(id, { x: e.x + 60 }); }, targetId);
   const moved = await values(page), updated = moved.find(e => e.id === connector.id)!; if (updated.type !== 'connector') throw new Error('Expected connector');
   expect(resolveBinding(updated.props.start, new Map(moved.map(e => [e.id, e]))).x).toBeCloseTo(first.x + 60);
+  expect(resolveBinding(updated.props.end, new Map(moved.map(e => [e.id, e])))).toEqual(fixedEnd);
   await page.waitForFunction(() => !window.whiteboardConnection!.provider.hasUnsyncedChanges);
   await page.evaluate(async () => { await window.whiteboard.renderer.whenReady(); window.whiteboard.renderer.render(); });
   const settled = await page.evaluate(() => window.whiteboard.renderer.stats()); expect(settled.pendingTexts).toBe(0); expect(settled.visibleTexts).toBeGreaterThanOrEqual(expected.elements.filter(e => !!textBlock(e)).length);
-  const directory = evidenceDirectory(info); writeFileSync(resolve(directory, 'imported.json'), JSON.stringify({ elements: moved, settled }, null, 2)); await page.screenshot({ path: resolve(directory, 'live.png') });
+  writeFileSync(resolve(directory, 'imported.json'), JSON.stringify({ elements: moved, settled }, null, 2)); await page.screenshot({ path: resolve(directory, 'settled-ui.png') });
   await page.reload(); await page.waitForFunction(() => !!window.whiteboard && !!window.whiteboardConnection?.provider.synced); expect(await values(page)).toEqual(moved);
 });
 

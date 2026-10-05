@@ -83,25 +83,6 @@ Text outside the shipped font coverage remains editable and saved, with a warnin
 
 Drop or paste PNG/JPEG/WebP images, or use Add images. Image bytes stay in the private asset store; the document carries asset IDs. Uploads with EXIF rotation or mirroring are normalized to PNG pixels; legacy photos receive the same correction for SVG/PDF export. Images are limited to 20 MiB, 16,384 pixels per side, 100 million pixels, and the active GPU's maximum texture dimension. The server, importer, and renderer check encoded dimensions before decoding; a mismatched image instance displays a placeholder. Copy/paste preserves element geometry, bindings and ordering between boards; referenced images are copied through authenticated source/destination checks. Mutating requests recheck the current session and permissions after the request body arrives, in the same transaction as the write.
 
-Add images also accepts `.excalidraw` files. Drop a file on the canvas or paste
-Excalidraw clipboard JSON to merge it into the current board. Import requires
-edit access and a live connection with existing changes acknowledged. Imported
-elements keep their source coordinates when visible; an entirely offscreen
-scene moves into the viewport. The app selects and fits the imported elements
-and shows a dismissible report of skipped records and conversions. Embedded
-images are decoded, cropped after EXIF orientation, and flipped before upload.
-
-Excalidraw sources are limited to 50 MiB, 10,000 records, and 100 active images.
-The app checks the server's actual update and storage limits before writing.
-A fitting import takes one undo step. Larger imports use consecutive batches
-of at most 500 elements, reduced further to fit byte and resource limits; each
-batch takes a separate undo step. Batches wait for server acknowledgements.
-If the connection or available capacity changes, import stops and reports
-what was added locally and what was acknowledged. An acknowledgement means
-server application, not a separate disk-durability receipt. A stopped-import
-report records acknowledgements at the time it stopped; retained local changes
-can finish syncing after reconnection.
-
 Views are bounded to one million document units from the origin on each axis. The canvas adapts when display pixel density changes, including between monitors, with a pixel ratio capped at two.
 
 Export the board or selection as PNG at 1×–4×, a self-contained SVG, or a single-page vector PDF. Background transparency is optional. PNG export reuses tiles up to 4,096 pixels per side, limited further by the GPU, subject to the browser's final canvas limit (32,767 pixels per side / 100 million pixels). A lost graphics context reports an error and a new export can retry. Export reads the document snapshot, excluding selection handles, remote presence, and unfinished gestures. Only used fonts and referenced image bytes are included in SVG/PDF. Exports retain glyphs too small to display on screen; shape labels remain clipped to their inset boxes. Latin and Japanese are the validated shipped font coverage; other scripts need suitable local fonts and equivalent tests. During native text editing, browser font fallback and punctuation spacing can differ from the committed canvas; text, selection and IME remain native. Committed sizing and export use the same measured font runs.
@@ -120,6 +101,48 @@ Line wrapping keeps grapheme clusters together, including combining accents, emo
 Text, sticky notes, and shape labels allow up to 50,000 UTF-16 units; some emoji count as two. Over-limit insertions are rejected visibly without truncating the existing draft. Layout positioning waits briefly during typing above 5,000 units; camera, resize and peer geometry changes update immediately. Existing saved text above the limit is quarantined with an invalid-item notice, never silently shortened.
 
 The document model rejects incomplete Unicode characters before saving text or pasting clipboard content. Coordinates, stroke widths, and derived element dimensions are limited to one billion document units; font size is limited to 1024. A batch that exceeds these limits is rejected before any element changes. Unsupported document schemas remain available for recovery but cannot be edited, undone, or redone.
+
+## Import from Excalidraw
+
+Add images also accepts `.excalidraw` files. Drop a file on the canvas or paste
+Excalidraw clipboard JSON to merge it into the current board. Import requires
+edit access and a live connection with existing changes acknowledged. Imported
+elements keep their source coordinates when visible; an entirely offscreen
+scene moves into the viewport. The app selects and fits the imported elements
+and shows a dismissible report of skipped records and conversions. Embedded
+images are decoded, cropped after EXIF orientation, and flipped before upload.
+
+Version-2 files and Excalidraw clipboard payloads use these mappings:
+
+| Source content | Imported result and reported changes |
+| --- | --- |
+| Rectangle, ellipse | Editable native shapes; transparent fills remain unfilled. |
+| Diamond | Editable rectangle; the shape substitution is reported. |
+| Text and shape-bound text | Editable text or a native shape label. Labels reflow within the shape insets; native font metrics determine wrapping and size. Unsupported or additional container labels remain free text. |
+| Fonts | Cascadia becomes IBM Plex Mono; other source fonts become Inter, with shipped Japanese fallback. Font substitutions are listed. |
+| Freedraw and line | Native pressure strokes. Freehand pressure is retained; outlines, line routing and width can differ. |
+| Arrow | Native straight, curved or elbow connector. Valid target bindings follow the imported targets; native routing, gap projection and arrowhead changes are reported. Missing or invalid targets retain point endpoints. |
+| Embedded PNG, JPEG, WebP | Private image assets with validated dimensions; EXIF orientation, crop and flips are baked into uploaded pixels. SVG/GIF, missing files and invalid images are skipped with reasons. |
+| Frame or magic frame | Transparent rectangle, with its name when present. Frame membership and clipping are dropped. |
+| Groups | Group structure is dropped; the report gives the number of affected groups. |
+| Roughness, hatch, dashes, rounded corners | Native geometry, solid fills and solid strokes replace these effects; visible losses are reported. |
+| Links and locks | Dropped and reported. |
+| Embeddables, iframes, unknown types, malformed elements | Skipped individually with reasons. Deleted source records are omitted. |
+
+The report counts native output elements, so a shape and its absorbed label count
+as one. Download the full report to inspect every reason and substitution.
+Repeated imports use fresh IDs and create additional copies.
+
+Excalidraw sources are limited to 50 MiB, 10,000 records, and 100 active images.
+The app checks the server's actual update and storage limits before writing.
+A fitting import takes one undo step. Larger imports use consecutive batches
+of at most 500 elements, reduced further to fit byte and resource limits; each
+batch takes a separate undo step. Batches wait for server acknowledgements.
+If the connection or available capacity changes, import stops and reports
+what was added locally and what was acknowledged. An acknowledgement means
+server application, not a separate disk-durability receipt. A stopped-import
+report records acknowledgements at the time it stopped; retained local changes
+can finish syncing after reconnection.
 
 ## Verification
 

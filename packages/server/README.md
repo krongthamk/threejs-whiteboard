@@ -58,7 +58,7 @@ use the current document title.
 | `GET /api/boards` | `{boards: Board[]}`; membership only |
 | `POST /api/boards` | `{title}` → 201 `{board}`; caller becomes owner |
 | `GET /api/boards/:id` | `{board}` |
-| `GET /api/boards/:id/import-budget` | Member-only advisory update/storage limits, exact storage counters, and authoritative Yjs state vector; no-store |
+| `GET/HEAD /api/boards/:id/import-budget` | Member-only advisory update/storage limits, exact storage counters, and authoritative Yjs state vector; no-store |
 | `PATCH /api/boards/:id` | `{title}` → `{board}`; owner/editor |
 | `POST /api/boards/:id/members` | `{username,role:'editor'|'viewer'}`; owner only; 204 |
 | `DELETE /api/boards/:id/members/:username` | Removes access; owner only; owner membership is protected; 204 |
