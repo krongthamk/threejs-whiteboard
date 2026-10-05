@@ -10,7 +10,14 @@ const directory = mkdtempSync(join(tmpdir(), 'whiteboard-browser-'));
 const routed = process.env.WHITEBOARD_TEST_SHARDS === '2';
 const testPort = Number(process.env.WHITEBOARD_TEST_PORT ?? 3001);
 if (!Number.isInteger(testPort) || testPort < 1 || testPort > 65535) throw new Error('WHITEBOARD_TEST_PORT must be an integer from 1 to 65535.');
-const options = { databasePath: join(directory, 'test.sqlite'), assetDirectory: join(directory, 'assets'), sessionSecret: randomBytes(40).toString('hex'), port: routed ? 0 : testPort };
+function testLimit(name: string): number | undefined {
+  const raw = process.env[name]; if (raw === undefined) return;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive safe integer.`);
+  return value;
+}
+const options = { databasePath: join(directory, 'test.sqlite'), assetDirectory: join(directory, 'assets'), sessionSecret: randomBytes(40).toString('hex'), port: routed ? 0 : testPort,
+  maxUpdateBytes: testLimit('WHITEBOARD_TEST_MAX_UPDATE_BYTES'), maxInboundBytes: testLimit('WHITEBOARD_TEST_MAX_INBOUND_BYTES') };
 const app = createWhiteboardServer(options);
 for (const username of ['alice', 'bob', 'viewer', 'outsider']) app.store.createUser(username, 'browser-test-only-password');
 await app.listen();

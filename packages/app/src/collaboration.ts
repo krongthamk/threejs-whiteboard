@@ -3,6 +3,8 @@ import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/pro
 import { IndexeddbPersistence, fetchUpdates } from 'y-indexeddb';
 import { BoardDocument, type Point, type Box } from '@whiteboard/model';
 import { api, ApiError, type BoardInfo, type Session } from './api';
+import type { ImportLease, ImportTransport } from './import-transport';
+import { waitForSignal } from '@whiteboard/renderer';
 
 export type ConnectionStatus = 'connecting' | 'live' | 'offline' | 'reconnecting' | 'unauthorized' | 'limited';
 export interface SyncBlockedState {
@@ -39,6 +41,23 @@ function storedBlock(raw: string | null, epoch: string): SyncBlockedState | null
 }
 
 const colors = ['#5267ce', '#c46135', '#24836e', '#a64d83', '#785db2', '#25779b'];
+const uintBytes = (n: number): number => { let size = 1; while (n >= 128) { n = Math.floor(n / 128); size++; } return size; };
+function awarenessFrameBytes(state: Presence | null, name: string, clientId: number, clock: number): number {
+  const encoder = new TextEncoder(), nameBytes = encoder.encode(name).length, jsonBytes = encoder.encode(JSON.stringify(state)).length;
+  const payload = 1 + uintBytes(clientId) + uintBytes(clock) + uintBytes(jsonBytes) + jsonBytes;
+  return uintBytes(nameBytes) + nameBytes + 1 + uintBytes(payload) + payload;
+}
+/** Receiver selection cap and exact named awareness-frame budget; local selection stays complete. */
+export function boundedWirePresence(presence: Presence, name: string, clientId: number, clock: number, limit: number): Presence | null {
+  const state = { ...presence, selection: presence.selection.slice(0, 1000) };
+  const fits = () => awarenessFrameBytes(state, name, clientId, clock) <= limit;
+  if (!fits()) {
+    let low = 0, high = state.selection.length;
+    while (low < high) { const count = Math.ceil((low + high) / 2); state.selection = presence.selection.slice(0, count); if (fits()) low = count; else high = count - 1; }
+    state.selection = presence.selection.slice(0, low);
+  }
+  return fits() ? state : null;
+}
 function colorFor(id: string): string {
   let hash = 0; for (const character of id) hash = (Math.imul(hash, 31) + character.charCodeAt(0)) | 0;
   return colors[(hash >>> 0) % colors.length]!;
@@ -56,12 +75,13 @@ function parsePresence(clientId: number, state: Record<string, unknown>): Remote
 }
 
 /** Owns transport and local durable storage, separate from the editor's session state. */
-export class BoardConnection {
+export class BoardConnection implements ImportTransport {
   readonly board: BoardDocument;
   readonly provider: HocuspocusProvider;
   readonly persistence: IndexeddbPersistence;
   private readonly socket: HocuspocusProviderWebsocket;
   private presence: Presence;
+  private readonly documentName: string;
   private sentPresence = '';
   private lastPresenceAt = -Infinity;
   private presenceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -82,6 +102,19 @@ export class BoardConnection {
   private retrySynced = false;
   private finishingRetry = false;
   private scopeReadOnly = false;
+  private importControllers = new Set<AbortController>();
+  private presenceHolds = 0;
+  private presenceByteLimit = 4 * 1024 * 1024;
+  /** Only this client's state belongs on our wire; remote timeout removals belong to the server. */
+  private readonly sendLocalPresence = (change: { added: number[]; updated: number[]; removed: number[] }, origin: unknown) => {
+    if (origin === this.provider || this.destroyed || this.blocked || this.presenceHolds) return;
+    const id = this.board.doc.clientID;
+    if (![...change.added, ...change.updated, ...change.removed].includes(id)) return;
+    const awareness = this.provider.awareness, state = awareness?.getLocalState() as Presence | null;
+    const clock = awareness?.meta?.get(id)?.clock ?? 0;
+    if (awarenessFrameBytes(state ?? null, this.documentName, id, clock) > this.presenceByteLimit) return;
+    this.provider.awarenessUpdateHandler({ added: change.added.filter(client => client === id), updated: change.updated.filter(client => client === id), removed: change.removed.filter(client => client === id) }, origin);
+  };
   private readonly storageChanged = (event: StorageEvent) => {
     if (event.key === this.cacheEpochKey && event.newValue !== event.oldValue) this.resetPermissions(false, 'cache-reset');
     if (event.key === this.blockedKey) {
@@ -91,7 +124,7 @@ export class BoardConnection {
   };
 
   private constructor(board: BoardDocument, persistence: IndexeddbPersistence, session: Session, info: BoardInfo, private callbacks: ConnectionCallbacks, private readonly cacheEpoch: string) {
-    this.board = board; this.persistence = persistence; this.session = session;
+    this.board = board; this.persistence = persistence; this.session = session; this.documentName = info.id;
     this.cacheEpochKey = `whiteboard:${session.user.id}:${info.id}:cache-epoch`;
     this.blockedKey = `whiteboard:${session.user.id}:${info.id}:sync-blocked`;
     const sharedMarker = localStorage.getItem(this.blockedKey);
@@ -138,9 +171,11 @@ export class BoardConnection {
         this.identityChanged = false;
         clearTimeout(this.persistenceRetry);
         this.scopeReadOnly = scope === 'readonly';
+        if (this.scopeReadOnly) this.stopImports('This board became read-only.');
         callbacks.onReadOnly(this.scopeReadOnly || !!this.blocked);
       },
       onAuthenticationFailed: ({ reason }) => {
+        this.stopImports('Authentication failed during import.');
         if (this.destroyed || this.permissionReset || this.blocked && !this.retrying) return;
         if (reason === 'session-identity-changed' || this.identityChanged) {
           this.authorizationFailed = true; this.retrying = false; this.retrySynced = false;
@@ -181,6 +216,7 @@ export class BoardConnection {
         if (message && typeof message === 'object' && 'type' in message && message.type === 'permission-changed'
           && 'boardId' in message && message.boardId === info.id && 'resetRequired' in message && message.resetRequired === true) {
           if ('reason' in message && message.reason === 'persistence-failed') {
+            this.stopImports('The server could not save changes during import.');
             if (this.blocked) return;
             // Let the provider reconnect with this Doc and the same durable cache.
             // Rotating a permission-reset cache here would lose accepted edits.
@@ -193,6 +229,7 @@ export class BoardConnection {
         }
       },
       onClose: ({ event }) => {
+        this.stopImports('The connection closed. Reconnect before importing more elements.');
         if (this.destroyed || this.permissionReset) return;
         const rejection = syncRejection({ reason: event.code === 1009 ? 'update-too-large' : event.reason,
           retryable: event.reason === 'board-full' || event.reason === 'inbound-overload' || event.reason === 'incomplete-update' });
@@ -226,6 +263,8 @@ export class BoardConnection {
     // This connection owns the socket exclusively. Keep the provider's public
     // connect/disconnect and destroy lifecycle working for this owned socket.
     this.provider.manageSocket = true;
+    this.provider.awareness?.off('update', this.provider.boundAwarenessUpdateHandler);
+    this.provider.awareness?.on('update', this.sendLocalPresence);
     this.provider.attach();
     if (!this.blocked) { this.flushPresence(); void this.socket.connect().catch(() => {}); }
   }
@@ -251,6 +290,7 @@ export class BoardConnection {
     if (this.destroyed || this.permissionReset) return;
     const retain = reason === 'session-expired' || reason === 'session-revoked';
     this.permissionReset = true; this.authorizationFailed = true; this.discardPersistence = !retain;
+    this.stopImports('Board access changed during import.');
     this.callbacks.onReadOnly(true);
     clearTimeout(this.persistenceRetry); this.retrying = false;
     this.socket.disconnect();
@@ -267,6 +307,7 @@ export class BoardConnection {
   private pauseSync(state: SyncBlockedState, persist = true): void {
     if (this.destroyed || this.permissionReset) return;
     this.blocked = { ...state, retrying: false }; this.retrying = false; this.retrySynced = false;
+    this.stopImports('The server paused sync during import.');
     clearTimeout(this.persistenceRetry); clearTimeout(this.presenceTimer); this.presenceTimer = undefined;
     this.socket.disconnect();
     if (persist) {
@@ -320,28 +361,92 @@ export class BoardConnection {
     if (this.blocked) this.resetPermissions(true, 'local-changes-discarded');
   }
 
+  private stopImports(message: string): void {
+    for (const controller of this.importControllers) controller.abort(new Error(message));
+  }
+
+  beginImport(signal: AbortSignal): ImportLease {
+    const controller = new AbortController(), combined = AbortSignal.any([signal, controller.signal]);
+    const connected = () => {
+      combined.throwIfAborted();
+      if (this.destroyed || this.permissionReset || this.blocked || this.scopeReadOnly || this.authorizationFailed) throw new Error('This board cannot currently accept an import.');
+      if (this.socket.status !== 'connected' || !this.provider.isAuthenticated || !this.provider.synced) throw new Error('Reconnect and wait for existing changes to sync before importing.');
+    };
+    const assertReady = () => { connected(); if (this.provider.hasUnsyncedChanges) throw new Error('Wait for existing changes to sync before importing.'); };
+    assertReady();
+    this.importControllers.add(controller); this.presenceHolds++;
+    // sendLocalPresence also suppresses the 15-second automatic heartbeat during this lease.
+    clearTimeout(this.presenceTimer); this.presenceTimer = undefined;
+    let released = false;
+    return {
+      signal: combined, assertReady,
+      budget: async () => {
+        assertReady();
+        const response = await api.importBudget(this.documentName, combined);
+        assertReady();
+        const { limits, storage } = response;
+        if (![limits.maxUpdateBytes, limits.maxBoardBytes, limits.maxInboundBytes, limits.maxClockGrowth, limits.maxInboundMessages].every(n => Number.isSafeInteger(n) && n > 0) || ![storage.snapshotBytes, storage.updateBytes].every(n => Number.isSafeInteger(n) && n >= 0)) throw new Error('The server returned an invalid import budget.');
+        this.presenceByteLimit = Math.min(limits.maxUpdateBytes, Math.floor(limits.maxInboundBytes / 4));
+        let stateVector: Uint8Array;
+        try { stateVector = Uint8Array.from(atob(response.stateVector), c => c.charCodeAt(0)); Y.decodeStateVector(stateVector); }
+        catch { throw new Error('The server returned an invalid import state vector.'); }
+        return { ...limits, ...storage, stateVector };
+      },
+      waitAcknowledged: async () => {
+        connected();
+        if (!this.provider.hasUnsyncedChanges) return;
+        let listener: ((event: { number: number }) => void) | undefined, timeout: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await waitForSignal(new Promise<void>((resolve, reject) => {
+            listener = ({ number }) => { if (number === 0) resolve(); };
+            this.provider.on('unsyncedChanges', listener);
+            timeout = setTimeout(() => reject(new Error('Import acknowledgment timed out. Added local elements may still be waiting for sync.')), 10_000);
+          }), combined);
+          assertReady();
+        } finally { if (listener) this.provider.off('unsyncedChanges', listener); clearTimeout(timeout); }
+      },
+      release: () => {
+        if (released) return; released = true;
+        this.importControllers.delete(controller); this.presenceHolds--;
+        this.flushPresence();
+      },
+    };
+  }
+
   /** Coalesce changing awareness only; document gestures are sent immediately. */
   setPresence(patch: Partial<Pick<Presence, 'cursor' | 'selection' | 'editingTextId' | 'viewport'>>): void {
     if (this.destroyed || this.blocked) return;
     this.presence = { ...this.presence, ...patch };
+    if (this.presenceHolds) return;
     if (this.presenceTimer !== undefined) return;
     const remaining = 50 - (performance.now() - this.lastPresenceAt);
     if (remaining <= 0) this.flushPresence();
     else this.presenceTimer = setTimeout(() => { this.presenceTimer = undefined; this.flushPresence(); }, remaining);
   }
 
-  private flushPresence(): void {
-    if (this.destroyed || this.blocked) return;
-    const encoded = JSON.stringify(this.presence);
-    if (encoded === this.sentPresence) return;
-    this.provider.awareness?.setLocalState(this.presence);
+  private flushPresence(): boolean {
+    if (this.destroyed || this.presenceHolds) return false;
+    const clock = (this.provider.awareness?.meta?.get(this.board.doc.clientID)?.clock ?? 0) + 1;
+    const state = boundedWirePresence(this.presence, this.documentName, this.board.doc.clientID,
+      clock, this.presenceByteLimit);
+    if (!state) {
+      // Clear stale large state before a lease restores the automatic heartbeat listener.
+      this.provider.awareness?.setLocalState(null); this.sentPresence = '';
+      return awarenessFrameBytes(null, this.documentName, this.board.doc.clientID, clock) <= this.presenceByteLimit;
+    }
+    const encoded = JSON.stringify(state);
+    if (encoded === this.sentPresence) return true;
+    this.provider.awareness?.setLocalState(state);
     this.sentPresence = encoded; this.lastPresenceAt = performance.now();
+    return true;
   }
 
   async destroy(): Promise<void> {
     if (this.destroyed) return;
     this.destroyed = true; clearTimeout(this.presenceTimer); clearTimeout(this.persistenceRetry); cancelAnimationFrame(this.presenceFrame);
+    this.stopImports('The board closed during import.');
     window.removeEventListener('storage', this.storageChanged);
+    this.provider.awareness?.off('update', this.sendLocalPresence);
     this.provider.awareness?.setLocalState(null); this.provider.destroy();
     await this.persistence.destroy();
     if (this.discardPersistence) void this.persistence.clearData().catch(() => {});

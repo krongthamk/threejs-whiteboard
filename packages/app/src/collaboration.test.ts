@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { BoardConnection } from './collaboration';
+import { BoardConnection, boundedWirePresence } from './collaboration';
+import * as Y from 'yjs';
 import { api, ApiError } from './api';
 
 const transport = vi.hoisted(() => ({
@@ -7,17 +8,28 @@ const transport = vi.hoisted(() => ({
   socketOptions: {} as Record<string, any>,
   attach: vi.fn(), socketDestroy: vi.fn(),
   unsynced: false,
+  listeners: new Map<string, Set<(event: any) => void>>(),
+  awarenessListener: undefined as ((change: any, origin: unknown) => void) | undefined,
+  awarenessState: null as any,
   fetchUpdates: vi.fn(async () => {}),
   disconnect: vi.fn(), connect: vi.fn(async () => {}), destroy: vi.fn(), clearData: vi.fn(async () => {}), storageDestroy: vi.fn(),
 }));
 vi.mock('@hocuspocus/provider', () => ({ HocuspocusProviderWebsocket: class {
+  status = 'connected';
   constructor(options: Record<string, any>) { transport.socketOptions = options; }
   disconnect = transport.disconnect;
   connect = transport.connect;
   destroy = transport.socketDestroy;
 }, HocuspocusProvider: class {
+  isAuthenticated = true; synced = true;
   get hasUnsyncedChanges() { return transport.unsynced; }
-  awareness = { setLocalState: vi.fn() };
+  boundAwarenessUpdateHandler = vi.fn();
+  awarenessUpdateHandler = vi.fn();
+  awareness = { getLocalState: () => transport.awarenessState, meta: new Map(),
+    setLocalState: vi.fn(state => { transport.awarenessState = state; const id = transport.options.document.clientID; const clock = (this.awareness.meta.get(id)?.clock ?? 0) + 1; this.awareness.meta.set(id, { clock }); transport.awarenessListener?.({ added: [], updated: [id], removed: [] }, 'local'); }),
+    on: vi.fn((_name, listener) => { transport.awarenessListener = listener; }), off: vi.fn() };
+  on(name: string, listener: (event: any) => void) { const set = transport.listeners.get(name) ?? new Set(); set.add(listener); transport.listeners.set(name, set); }
+  off(name: string, listener: (event: any) => void) { transport.listeners.get(name)?.delete(listener); }
   constructor(options: Record<string, any>) { transport.options = options; }
   disconnect = transport.disconnect;
   connect = transport.connect;
@@ -38,6 +50,8 @@ beforeEach(() => {
   cache = new Map();
   tabCache = new Map();
   transport.unsynced = false;
+  transport.listeners.clear();
+  transport.awarenessListener = undefined; transport.awarenessState = null;
   transport.fetchUpdates.mockImplementation(async () => {});
   vi.stubGlobal('window', { addEventListener: vi.fn((name, callback) => { if (name === 'storage') storage = callback; }), removeEventListener: vi.fn() });
   vi.stubGlobal('location', { href: 'http://localhost:3001/board/board-id', protocol: 'http:' });
@@ -49,12 +63,64 @@ afterEach(async () => {
   for (const connection of connections.splice(0)) { await connection.destroy(); connection.board.destroy(); }
   vi.unstubAllGlobals(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.useRealTimers();
 });
-async function open() {
+async function open(username = 'owner') {
   const callbacks = { onPermissionChange: vi.fn(), onError: vi.fn(), onStatus: vi.fn(), onPresence: vi.fn(), onReadOnly: vi.fn(), onSyncBlocked: vi.fn() };
   const connection = await BoardConnection.open({ id: 'board-id', title: 'Board', role: 'owner', updatedAt: 0 },
-    { user: { id: 'owner-id', username: 'owner' }, expiresAt: Date.now() + 120000 }, callbacks);
+    { user: { id: 'owner-id', username }, expiresAt: Date.now() + 120000 }, callbacks);
   connections.push(connection); return { connection, callbacks };
 }
+
+test('import lease waits for provider ACK drain, suspends automatic awareness wire updates, and resumes once', async () => {
+  const { connection } = await open(), signal = new AbortController();
+  vi.spyOn(api, 'importBudget').mockResolvedValue({ limits: { maxUpdateBytes: 2000, maxInboundBytes: 3000, maxInboundMessages: 256, maxBoardBytes: 10000, maxClockGrowth: 1000 }, storage: { snapshotBytes: 0, updateBytes: 0 }, stateVector: Buffer.from(Y.encodeStateVector(connection.board.doc)).toString('base64') });
+  const lease = connection.beginImport(signal.signal); await lease.budget();
+  expect(connection.provider.awareness?.off).toHaveBeenCalledWith('update', connection.provider.boundAwarenessUpdateHandler);
+  transport.unsynced = true; let done = false; const pending = lease.waitAcknowledged().then(() => { done = true; });
+  expect(transport.listeners.get('unsyncedChanges')?.size).toBe(1);
+  for (const listener of transport.listeners.get('unsyncedChanges') ?? []) listener({ number: 1 }); await Promise.resolve(); expect(done).toBe(false);
+  transport.unsynced = false; for (const listener of transport.listeners.get('unsyncedChanges') ?? []) listener({ number: 0 }); await pending;
+  expect(transport.listeners.get('unsyncedChanges')?.size).toBe(0);
+  lease.release(); lease.release(); expect(connection.provider.awareness?.on).toHaveBeenCalledOnce();
+});
+test('disconnect aborts an outstanding import ACK and releases its event listener and awareness hold', async () => {
+  const { connection } = await open(), lease = connection.beginImport(new AbortController().signal);
+  transport.unsynced = true; const pending = lease.waitAcknowledged();
+  transport.options.onClose({ event: { code: 1006, reason: '' } });
+  await expect(pending).rejects.toThrow('connection closed'); expect(transport.listeners.get('unsyncedChanges')?.size).toBe(0);
+  lease.release(); expect(connection.provider.awareness?.on).toHaveBeenCalledOnce();
+});
+test('wire presence obeys receiver and exact byte caps without truncating local selection', () => {
+  const selection = Array.from({ length: 10000 }, (_, i) => `${i}-` + 'long-id-'.repeat(8)), presence = { userId: 'u', name: 'Name', color: '#334455', cursor: null, selection, editingTextId: null };
+  const state = boundedWirePresence(presence, '日本語-board', 0xffffffff, 128, 1024)!;
+  expect(state.selection.length).toBeGreaterThan(0); expect(state.selection.length).toBeLessThan(1000); expect(selection).toHaveLength(10000);
+  expect(new TextEncoder().encode(JSON.stringify(state)).length).toBeLessThan(1024 - 20);
+  expect(boundedWirePresence(presence, 'board', 1, 1, 5)).toBeNull();
+});
+test('a tiny post-import awareness allowance clears stale state before resuming automatic refresh', async () => {
+  const { connection } = await open('x'.repeat(80)); connection.setPresence({ selection: Array.from({ length: 1000 }, () => crypto.randomUUID()) });
+  const lease = connection.beginImport(new AbortController().signal);
+  vi.spyOn(api, 'importBudget').mockResolvedValue({ limits: { maxUpdateBytes: 500, maxInboundBytes: 500, maxInboundMessages: 256, maxBoardBytes: 10000, maxClockGrowth: 1000 }, storage: { snapshotBytes: 0, updateBytes: 0 }, stateVector: Buffer.from(Y.encodeStateVector(connection.board.doc)).toString('base64') });
+  await lease.budget(); lease.release();
+  expect(connection.provider.awareness?.setLocalState).toHaveBeenLastCalledWith(null);
+  expect(connection.provider.awareness?.on).toHaveBeenCalledOnce();
+});
+test('local awareness publishes immediately after a lease, ignores remote timeout removals and bounds automatic heartbeats', async () => {
+  const { connection } = await open(); const wire = vi.mocked(connection.provider.awarenessUpdateHandler); wire.mockClear();
+  const lease = connection.beginImport(new AbortController().signal);
+  connection.setPresence({ selection: ['latest-selection'] });
+  transport.awarenessListener?.({ added: [], updated: [connection.board.doc.clientID], removed: [] }, 'timeout'); expect(wire).not.toHaveBeenCalled();
+  lease.release(); expect(wire).toHaveBeenCalledOnce(); expect(transport.awarenessState.selection).toEqual(['latest-selection']);
+  wire.mockClear(); transport.awarenessListener?.({ added: [], updated: [], removed: Array.from({ length: 80 }, (_, i) => i + 1).filter(id => id !== connection.board.doc.clientID) }, 'timeout'); expect(wire).not.toHaveBeenCalled();
+  transport.awarenessListener?.({ added: [], updated: [connection.board.doc.clientID], removed: [] }, 'timeout'); expect(wire).toHaveBeenCalledOnce();
+});
+test('a refused import still sanitizes cached awareness before provider reconnect can resend it', async () => {
+  const { connection } = await open('x'.repeat(80)); connection.setPresence({ selection: Array.from({ length: 1000 }, () => crypto.randomUUID()) });
+  const lease = connection.beginImport(new AbortController().signal);
+  vi.spyOn(api, 'importBudget').mockResolvedValue({ limits: { maxUpdateBytes: 500, maxInboundBytes: 500, maxInboundMessages: 256, maxBoardBytes: 10000, maxClockGrowth: 1000 }, storage: { snapshotBytes: 0, updateBytes: 0 }, stateVector: Buffer.from(Y.encodeStateVector(connection.board.doc)).toString('base64') });
+  await lease.budget(); transport.options.onStateless({ payload: JSON.stringify({ type: 'sync-rejected', boardId: 'board-id', reason: 'board-full', retryable: true }) });
+  const wire = vi.mocked(connection.provider.awarenessUpdateHandler); wire.mockClear(); lease.release();
+  expect(transport.awarenessState).toBeNull(); expect(wire).not.toHaveBeenCalled();
+});
 
 test('persistence-failed keeps the same document and IndexedDB cache for provider reconnect', async () => {
   const onPermissionChange = vi.fn(), onError = vi.fn();

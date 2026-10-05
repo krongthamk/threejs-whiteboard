@@ -4,6 +4,9 @@ import { api } from './api';
 import { normalizeImageOrientation } from './image-orientation';
 import type { SessionStore } from './session';
 import { encodeClipboard, parseClipboard, preparePastedElements, type ClipboardEnvelope } from './clipboard-model';
+import { ExcalidrawImporter, isExcalidrawText, type ImportReport } from './excalidraw-import';
+import type { ImportTransport } from './import-transport';
+import { MAX_EXCALIDRAW_BYTES } from '@whiteboard/model';
 
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export interface BoardAssetsOptions {
@@ -15,15 +18,19 @@ export interface BoardAssetsOptions {
   maxImageDimension(): number;
   onError(message: string): void;
   onBusy?(busy: boolean): void;
+  importTransport?: ImportTransport;
+  onImportReport?(report: ImportReport): void;
 }
 interface DecodedFile { file: File; blob: Blob; width: number; height: number }
 
-/** Browser I/O around pure clipboard preparation. Every completed import is one model gesture. */
+/** Browser I/O for images and clipboard; Excalidraw additions use exact, acknowledged import batches. */
 export class BoardAssets {
   private stopped = false;
   private activeJobs = 0;
+  private readonly excalidraw: ExcalidrawImporter;
 
   constructor(private readonly options: BoardAssetsOptions) {
+    this.excalidraw = new ExcalidrawImporter({ ...options, transport: options.importTransport, onReport: options.onImportReport });
     options.canvas.addEventListener('dragover', this.dragOver);
     options.canvas.addEventListener('drop', this.drop);
     window.addEventListener('copy', this.copy);
@@ -86,9 +93,23 @@ export class BoardAssets {
     return { file, blob, width: header.width, height: header.height };
   }
 
-  /** Errors are surfaced through onError; failed or closed imports add no document elements. */
+  /** Errors surface through onError. An interrupted split Excalidraw import may retain completed batches. */
   async importFiles(files: readonly File[], point = this.center()): Promise<void> {
     if (files.length === 0) return;
+    const documents = files.filter(file => /\.(?:excalidraw|json)$/i.test(file.name) || file.type === 'application/json');
+    if (documents.length) {
+      await this.run(async () => {
+        if (!this.writable()) return;
+        for (const file of documents) {
+          if (file.size > MAX_EXCALIDRAW_BYTES) throw new Error(`${file.name} exceeds the 50 MiB Excalidraw limit.`);
+          const text = await file.text(); if (!this.writable()) return;
+          await this.excalidraw.importText(text, file.size);
+        }
+      });
+      const images = files.filter(file => !documents.includes(file));
+      if (images.length) await this.importFiles(images, point);
+      return;
+    }
     await this.run(async () => {
       if (!this.writable()) return;
       if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) throw new Error('The image insertion point is invalid.');
@@ -198,6 +219,8 @@ export class BoardAssets {
     if (this.ignore(event) || !event.clipboardData) return;
     try {
       const text = event.clipboardData.getData('text/plain');
+      // Recognize Excalidraw before the whiteboard clipboard's smaller 8 MiB cap.
+      if (text && isExcalidrawText(text)) { event.preventDefault(); void this.run(async () => { if (this.writable()) await this.excalidraw.importText(text); }); return; }
       const envelope = text ? parseClipboard(text) : null;
       if (envelope) { event.preventDefault(); void this.importClipboard(envelope); return; }
       const files = Array.from(event.clipboardData.files);
@@ -215,6 +238,7 @@ export class BoardAssets {
   destroy(): void {
     if (this.stopped) return;
     this.stopped = true;
+    this.excalidraw.destroy();
     this.options.canvas.removeEventListener('dragover', this.dragOver); this.options.canvas.removeEventListener('drop', this.drop);
     window.removeEventListener('copy', this.copy); window.removeEventListener('cut', this.cut); window.removeEventListener('paste', this.paste);
   }

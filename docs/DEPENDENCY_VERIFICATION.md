@@ -2,6 +2,12 @@
 
 Checked on 2026-09-29.
 
+F2.3 import integration update — 2026-10-05: no new packages or font assets.
+The exact update planner reuses pinned Yjs and fractional indexing. The server's
+existing bounded update-resource parser is shared from the model package so
+client preflight and server admission enforce the same limits. Image crop and
+flip normalization uses the existing browser decoding and canvas APIs.
+
 F2.2 Excalidraw converter update — 2026-10-05: no new packages or font assets.
 The pure converter reuses the pinned `fractional-indexing` package and the
 model's image-header validation. Color parsing uses standard CSS color values

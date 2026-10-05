@@ -6,10 +6,10 @@ afterEach(() => vi.unstubAllGlobals());
 const header = { mimeType: 'image/jpeg' as const, width: 80, height: 40, orientation: 2 };
 function fixture(output = new Blob(['normalized'], { type: 'image/png' })) {
   const bitmap = { width: 80, height: 40, close: vi.fn() };
-  const drawImage = vi.fn(), canvas = { width: 0, height: 0, getContext: () => ({ drawImage }), toBlob: (done: (blob: Blob) => void) => done(output) };
+  const drawImage = vi.fn(), translate = vi.fn(), scale = vi.fn(), canvas = { width: 0, height: 0, getContext: () => ({ drawImage, translate, scale }), toBlob: (done: (blob: Blob) => void) => done(output) };
   vi.stubGlobal('document', { createElement: vi.fn(() => canvas) });
   vi.stubGlobal('createImageBitmap', vi.fn(async () => bitmap));
-  return { bitmap, canvas, drawImage };
+  return { bitmap, canvas, drawImage, translate, scale };
 }
 it('retains ordinary bytes and performs no pixel allocation', async () => {
   const { orientation, ...ordinary } = header, blob = new Blob(['original']);
@@ -50,4 +50,19 @@ it('converts ordinary validated pixels when a consumer needs an 8-bit PNG', asyn
   const result = await normalizeImagePixels(new Blob(['16-bit samples']), { width: 80, height: 40 });
   expect(result.type).toBe('image/png'); expect(drawImage).toHaveBeenCalledWith(bitmap, 0, 0);
   expect(bitmap.close).toHaveBeenCalledOnce(); expect(canvas.width).toBe(0);
+});
+
+it('crops oriented source coordinates before flipping and rounds fractional output dimensions up', async () => {
+  const { bitmap, canvas, drawImage, translate, scale } = fixture();
+  let allocated: number[] = [];
+  const toBlob = canvas.toBlob; canvas.toBlob = done => { allocated = [canvas.width, canvas.height]; toBlob(done); };
+  await normalizeImagePixels(new Blob(), header, undefined, { crop: { x: 12.5, y: 3, width: 1.2, height: 2.1 }, flipX: true, flipY: true });
+  expect(allocated).toEqual([2, 3]); expect(translate).toHaveBeenCalledWith(2, 3); expect(scale).toHaveBeenCalledWith(-1, -1);
+  expect(drawImage).toHaveBeenCalledWith(bitmap, 12.5, 3, 1.2, 2.1, 0, 0, 2, 3);
+  expect(bitmap.close).toHaveBeenCalledOnce(); expect(canvas.width).toBe(0);
+});
+it('rejects a crop outside the EXIF-oriented source before decoding', async () => {
+  fixture();
+  await expect(normalizeImagePixels(new Blob(), header, undefined, { crop: { x: 79, y: 0, width: 2, height: 1 }, flipX: false, flipY: false })).rejects.toThrow('crop');
+  expect(createImageBitmap).not.toHaveBeenCalled();
 });

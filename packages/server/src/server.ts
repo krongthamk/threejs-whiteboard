@@ -224,6 +224,40 @@ export function createWhiteboardServer(options: Options) {
       const route = path.match(/^\/api\/boards\/([a-zA-Z0-9-]+)(?:\/(.*))?$/); if (!route) throw new HttpError(404, 'Not found');
       const boardId = route[1]!, suffix = route[2] ?? '', board = boardAccess(boardId, session.user.id, !readRequest);
       if (!suffix && readRequest) return json(response, 200, { board });
+      if (suffix === 'import-budget' && readRequest) {
+        if (draining || persistenceFailed.size) throw new HttpError(503, 'Import budget is unavailable');
+        // This is an advisory read, not a capacity reservation. Keep the two
+        // persisted reads in one SQLite snapshot; peers may still write later.
+        let budget;
+        try {
+          budget = store.db.transaction(() => {
+            const stats = store.stats(boardId);
+            if (!stats || !Number.isSafeInteger(stats.snapshotBytes) || stats.snapshotBytes < 0 ||
+              !Number.isSafeInteger(stats.updateBytes) || stats.updateBytes < 0) throw new Error('Storage accounting is unavailable');
+            const live = server.hocuspocus.documents.get(boardId);
+            if (live?.isLoading || live?.isDestroyed || server.hocuspocus.loadingDocuments.has(boardId) ||
+              server.hocuspocus.unloadingDocuments.has(boardId)) throw new Error('Document is not ready');
+            let temporary: Y.Doc | undefined;
+            try {
+              const document = live ?? (temporary = new Y.Doc());
+              if (!live) {
+                const bytes = store.loadDocument(boardId); if (!bytes) throw new Error('Document is unavailable');
+                // Do not construct BoardDocument: a budget read must never
+                // initialize metadata, repair legacy roots, or write history.
+                Y.applyUpdate(document, bytes);
+              }
+              if (document.store.pendingStructs || document.store.pendingDs) throw new Error('Document is incomplete');
+              return {
+                limits: { maxUpdateBytes: limits.maxUpdateBytes, maxBoardBytes: limits.maxBoardBytes,
+                  maxInboundBytes: limits.maxInboundBytes, maxInboundMessages: 256, maxClockGrowth: limits.maxClockGrowth },
+                storage: { snapshotBytes: stats.snapshotBytes, updateBytes: stats.updateBytes },
+                stateVector: Buffer.from(Y.encodeStateVector(document)).toString('base64'),
+              };
+            } finally { temporary?.destroy(); }
+          })();
+        } catch { throw new HttpError(503, 'Import budget is unavailable'); }
+        return json(response, 200, budget);
+      }
       if (!suffix && method === 'PATCH') {
         const name = title((await jsonBody(request)).title);
         const renamed = commitMutation(request, current => {

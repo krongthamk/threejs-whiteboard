@@ -5,6 +5,8 @@ import { createSession, type SessionStore } from './session';
 import { BoardTextEditor } from './text-editor';
 import { BoardExporter } from './export';
 import { BoardAssets } from './assets';
+import type { ImportTransport } from './import-transport';
+import type { ImportReport } from './excalidraw-import';
 
 export interface BoardDiagnostics {
   invalidIds: ReadonlySet<string>;
@@ -21,6 +23,8 @@ export interface RuntimeOptions {
   onEditText(id: string): void;
   onEditingChange?(id: string | null): void;
   onAssetBusy?(busy: boolean): void;
+  importTransport?: ImportTransport;
+  onImportReport?(report: ImportReport): void;
   onDiagnosticsChange?(diagnostics: BoardDiagnostics): void;
   onError(message: string): void;
 }
@@ -105,7 +109,8 @@ export class EditorRuntime {
       onEditText: (id: string) => { this.textEditor.open(id); options.onEditText(id); }, isReadOnly: () => this.readOnly,
     });
     this.assets = new BoardAssets({ canvas: options.canvas, boardId: options.boardId ?? 'local', board: this.board, session: this.session,
-      isReadOnly: () => this.readOnly, maxImageDimension: () => this.renderer.getMaxImageDimension(), onError: options.onError, onBusy: options.onAssetBusy });
+      isReadOnly: () => this.readOnly, maxImageDimension: () => this.renderer.getMaxImageDimension(), onError: options.onError, onBusy: options.onAssetBusy,
+      importTransport: options.importTransport, onImportReport: options.onImportReport });
     this.observer = new ResizeObserver(() => {
       try {
         const bounds = options.canvas.getBoundingClientRect();

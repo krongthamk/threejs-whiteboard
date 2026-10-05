@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { SCHEMA_VERSION, textBlock, type ElementPatch, type ElementStyle, type ShapeTextProps, type TextProps } from '@whiteboard/model';
 import { EditorRuntime, type BoardDiagnostics } from './runtime';
+import type { ImportReport } from './excalidraw-import';
 import type { Tool } from './session';
 import { Modal } from './modal';
 import { AccountAccess, type BoardAccess } from './account';
@@ -46,6 +47,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
   const [syncBlocked, setSyncBlocked] = useState<SyncBlockedState | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const [connectionRevision, setConnectionRevision] = useState(0);
   const [shortcuts, setShortcuts] = useState(false);
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
@@ -62,6 +64,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
     let latestPresence: RemotePresence[] = [];
     let currentReadOnly = access?.board.role === 'viewer';
     setDiagnostics(null);
+    setImportReport(null);
     setSyncBlocked(null); setConfirmDiscard(false);
     const presence = () => {
       if (!instance || !connection) return;
@@ -115,6 +118,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
           onChange: () => setRevision(value => value + 1), onError: message => { if (!cancelled) setError(message); }, onEditText: () => {},
           onEditingChange: id => connection?.setPresence({ editingTextId: id }),
           onAssetBusy: setUploading,
+          importTransport: connection, onImportReport: value => { if (!cancelled) setImportReport(value); },
           onDiagnosticsChange: value => { if (!cancelled) setDiagnostics(value); },
         });
         instance.readOnly = currentReadOnly;
@@ -144,7 +148,7 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
   return <main className="workspace">
     {/* A disposed renderer releases its WebGL context; each replacement owns a fresh canvas. */}
     <canvas key={`${access?.board.id ?? 'local'}:${access?.session.user.id ?? 'local'}:${connectionRevision}`} ref={canvasRef} className="board-canvas" aria-label="Whiteboard canvas" tabIndex={0} />
-    <input ref={fileInputRef} type="file" hidden multiple accept="image/png,image/jpeg,image/webp" aria-label="Import images" onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (runtime && files.length) void runtime.assets.importFiles(files); }} />
+    <input ref={fileInputRef} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,.excalidraw,.json,application/json" aria-label="Import images" onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (runtime && files.length) void runtime.assets.importFiles(files); }} />
     <header className="board-header surface">
       {access ? <button className="icon-button board-back" aria-label="Back to boards" title="Back to boards" onClick={access.onBack}><ArrowLeft size={20} /></button> : <div className="brand-mark" aria-hidden="true"><SquarePen size={22} strokeWidth={1.7} /></div>}
       <div className="board-heading"><span className="workspace-label">YOUR WORKSPACE</span><h1>{boardTitle}</h1></div>
@@ -155,14 +159,27 @@ function EditorBoard({ access }: { access?: BoardAccess }) {
       <div className="peer-roster" aria-label="Other people on this board">{peers.slice(0, 4).map(peer => <span key={peer.clientId} className="peer-avatar" style={{ background: peer.color }} title={peer.name} aria-label={peer.name}>{peer.name.slice(0, 1).toUpperCase()}</span>)}{peers.length > 4 && <span className="more-peers">+{peers.length - 4}</span>}</div>
       {access && !effectiveReadOnly && <button className="icon-button" aria-label="Rename board" title="Rename board" onClick={() => setDialog('rename')}><Pencil size={17} /></button>}
       {access?.board.role === 'owner' && <button className="share-button" onClick={() => setDialog('share')}><Users size={16} />Share</button>}
-      {access && !effectiveReadOnly && <button className="icon-button" aria-label="Add images" title="Add images" disabled={uploading || !runtime} onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /></button>}
+      {access && !effectiveReadOnly && <button className="icon-button" aria-label="Add images" title="Import images or Excalidraw file" disabled={uploading || !runtime} onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /></button>}
       <button className="icon-button" aria-label="Export board" title="Export board" disabled={!runtime} onClick={() => setDialog('export')}><Download size={18} /></button>
       {access && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={access.onSignOut}><LogOut size={17} /></button>}
     </div>
     {!runtime && !error && <div className="board-loading" role="status">Opening board…</div>}
-    {uploading && <div className="upload-status surface" role="status">Adding images…</div>}
+    {uploading && <div className="upload-status surface" role="status">Importing…</div>}
     {runtime && <BoardChrome runtime={runtime} revision={revision} readOnly={effectiveReadOnly} />}
-    {(hiddenItems || unsupportedSchema || syncBlocked) && <div className="board-data-notice surface" role="status" aria-label="Board data notice">
+    {(hiddenItems || unsupportedSchema || syncBlocked || importReport) && <div className="board-data-notice surface" role="status" aria-label="Board data notice">
+      {importReport && <section aria-label="Import report">
+        <button className="icon-button" aria-label="Dismiss import report" onClick={() => setImportReport(null)}><X size={16} /></button>
+        <p>Imported {importReport.imported} element{importReport.imported === 1 ? '' : 's'}. Skipped {importReport.skipped.length}. {importReport.pending > 0 ? `${importReport.pending} added locally, awaiting sync.` : `${importReport.acknowledged} acknowledged by the server.`}</p>
+        {importReport.message && <p>{importReport.message}</p>}
+        {importReport.batches > 1 && <p>This import uses {importReport.batches} undo steps. Undo each step to remove it.</p>}
+        <button className="board-reload" onClick={() => {
+          const url = URL.createObjectURL(new Blob([JSON.stringify(importReport, null, 2)], { type: 'application/json' }));
+          const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'excalidraw-import-report.json';
+          try { document.body.append(anchor); anchor.click(); } finally { anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 0); }
+        }}>Download full import report</button>
+        {importReport.skipped.length > 0 && <details><summary>Skipped elements</summary><ul>{importReport.skipped.slice(0, 20).map((item, i) => <li key={i}>{item.id.slice(0, 128)}: {item.reason.slice(0, 256)}</li>)}</ul>{importReport.skipped.length > 20 && <p>{importReport.skipped.length - 20} more skipped elements.</p>}</details>}
+        {importReport.substituted.length > 0 && <details><summary>Substitutions and unsupported features</summary><ul>{importReport.substituted.slice(0, 20).map((item, i) => <li key={i}>{item.slice(0, 512)}</li>)}</ul>{importReport.substituted.length > 20 && <p>{importReport.substituted.length - 20} more substitutions.</p>}</details>}
+      </section>}
       {hiddenItems && <p>{hiddenItems} {diagnostics!.invalidIds.size + diagnostics!.malformedRecords === 1 ? 'was' : 'were'} hidden. Other items remain available.</p>}
       {unsupportedSchema && <p>This board uses an unsupported format. Editing is disabled. Reload after updating the app.</p>}
       {syncBlocked && <>

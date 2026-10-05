@@ -83,6 +83,23 @@ Text outside the shipped font coverage remains editable and saved, with a warnin
 
 Drop or paste PNG/JPEG/WebP images, or use Add images. Image bytes stay in the private asset store; the document carries asset IDs. Uploads with EXIF rotation or mirroring are normalized to PNG pixels; legacy photos receive the same correction for SVG/PDF export. Images are limited to 20 MiB, 16,384 pixels per side, 100 million pixels, and the active GPU's maximum texture dimension. The server, importer, and renderer check encoded dimensions before decoding; a mismatched image instance displays a placeholder. Copy/paste preserves element geometry, bindings and ordering between boards; referenced images are copied through authenticated source/destination checks. Mutating requests recheck the current session and permissions after the request body arrives, in the same transaction as the write.
 
+Add images also accepts `.excalidraw` files. Drop a file on the canvas or paste
+Excalidraw clipboard JSON to merge it into the current board. Import requires
+edit access and a live connection with existing changes acknowledged. Imported
+elements keep their source coordinates when visible; an entirely offscreen
+scene moves into the viewport. The app selects and fits the imported elements
+and shows a dismissible report of skipped records and conversions. Embedded
+images are decoded, cropped after EXIF orientation, and flipped before upload.
+
+Excalidraw sources are limited to 50 MiB, 10,000 records, and 100 active images.
+The app checks the server's actual update and storage limits before writing.
+A fitting import takes one undo step. Larger imports use consecutive batches
+of at most 500 elements, reduced further to fit byte and resource limits; each
+batch takes a separate undo step. Batches wait for server acknowledgements.
+If the connection or available capacity changes, import stops and reports
+what was added locally and what was acknowledged. An acknowledgement means
+server application, not a separate disk-durability receipt.
+
 Views are bounded to one million document units from the origin on each axis. The canvas adapts when display pixel density changes, including between monitors, with a pixel ratio capped at two.
 
 Export the board or selection as PNG at 1×–4×, a self-contained SVG, or a single-page vector PDF. Background transparency is optional. PNG export reuses tiles up to 4,096 pixels per side, limited further by the GPU, subject to the browser's final canvas limit (32,767 pixels per side / 100 million pixels). A lost graphics context reports an error and a new export can retry. Export reads the document snapshot, excluding selection handles, remote presence, and unfinished gestures. Only used fonts and referenced image bytes are included in SVG/PDF. Exports retain glyphs too small to display on screen; shape labels remain clipped to their inset boxes. Latin and Japanese are the validated shipped font coverage; other scripts need suitable local fonts and equivalent tests. During native text editing, browser font fallback and punctuation spacing can differ from the committed canvas; text, selection and IME remain native. Committed sizing and export use the same measured font runs.
@@ -165,6 +182,13 @@ image crops and flips are described for the app to bake during asset upload.
 Image asset IDs in this pure result are temporary and must be replaced before
 insertion. The converter caps source JSON at 50 MiB, raw elements at 10,000 and
 active images at 100; file callers must check original bytes before parsing.
+`planImport(board, elements, options)` stages exact same-writer transactions
+without changing the live document or undo history. It checks framed bytes,
+decoded resources, accepted append bytes, and reconnect history against an
+authenticated server budget. Callers replay only the first batch synchronously
+after `isImportPlanCurrent`; following an await or commit, they fetch a fresh
+budget and replan the remaining elements. Staged update bytes are evidence and
+must never be applied to the live writer.
 Step verification and app integration work are tracked in the
 [feature implementation ledger](docs/IMPLEMENTATION_STATUS.md).
 

@@ -58,6 +58,7 @@ use the current document title.
 | `GET /api/boards` | `{boards: Board[]}`; membership only |
 | `POST /api/boards` | `{title}` → 201 `{board}`; caller becomes owner |
 | `GET /api/boards/:id` | `{board}` |
+| `GET /api/boards/:id/import-budget` | Member-only advisory update/storage limits, exact storage counters, and authoritative Yjs state vector; no-store |
 | `PATCH /api/boards/:id` | `{title}` → `{board}`; owner/editor |
 | `POST /api/boards/:id/members` | `{username,role:'editor'|'viewer'}`; owner only; 204 |
 | `DELETE /api/boards/:id/members/:username` | Removes access; owner only; owner membership is protected; 204 |
@@ -83,6 +84,16 @@ clients without ambient cookies. Browser WebSocket
 Origin is checked as well. Unknown boards and boards outside membership both
 return 404. Authenticated GET endpoints also accept HEAD with the same read
 permissions and headers, without response bodies or board mutations.
+
+The import budget returns `{limits,storage,stateVector}`. `limits` contains the
+actual configured `maxUpdateBytes`, `maxBoardBytes`, `maxInboundBytes`, and
+`maxClockGrowth`, plus `maxInboundMessages: 256`. `storage` contains the exact
+SQLite `snapshotBytes` and appended `updateBytes`; `stateVector` is base64 Yjs
+state-vector bytes from the loaded authoritative document, or a temporary
+read-only document reconstructed from persistence. Viewers may read this
+information but cannot import. The endpoint returns 503 during drain,
+persistence failure, or unavailable document state. It reserves no capacity:
+peer writes may change the budget before an import reaches the server.
 
 ## Collaboration and persistence
 

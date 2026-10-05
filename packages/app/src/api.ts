@@ -3,6 +3,11 @@ export interface Session { user: User; expiresAt: number }
 export type BoardRole = 'owner' | 'editor' | 'viewer';
 export interface BoardInfo { id: string; title: string; role: BoardRole; updatedAt: number }
 export interface AssetInfo { assetId: string; width: number; height: number; mimeType?: string; url?: string }
+export interface ImportBudgetResponse {
+  limits: { maxUpdateBytes: number; maxBoardBytes: number; maxInboundBytes: number; maxInboundMessages: number; maxClockGrowth: number };
+  storage: { snapshotBytes: number; updateBytes: number };
+  stateVector: string;
+}
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) { super(message); this.name = 'ApiError'; }
@@ -30,7 +35,8 @@ export const api = {
   renameBoard: async (id: string, title: string) => (await request<{ board: BoardInfo }>(boardPath(id), { method: 'PATCH', body: JSON.stringify({ title }) })).board,
   membership: (id: string, username: string, role: 'editor' | 'viewer') => request<void>(`${boardPath(id)}/members`, { method: 'POST', body: JSON.stringify({ username, role }) }),
   removeMember: (id: string, username: string) => request<void>(`${boardPath(id)}/members/${encodeURIComponent(username)}`, { method: 'DELETE' }),
-  uploadAsset: (id: string, file: Blob) => request<AssetInfo>(`${boardPath(id)}/assets`, { method: 'POST', headers: { 'Content-Type': file.type }, body: file }),
+  uploadAsset: (id: string, file: Blob, signal?: AbortSignal) => request<AssetInfo>(`${boardPath(id)}/assets`, { method: 'POST', headers: { 'Content-Type': file.type }, body: file, signal }),
+  importBudget: (id: string, signal?: AbortSignal) => request<ImportBudgetResponse>(`${boardPath(id)}/import-budget`, { signal, cache: 'no-store' }),
   copyAsset: (id: string, sourceBoardId: string, assetId: string) => request<AssetInfo>(`${boardPath(id)}/assets/copy`, { method: 'POST', body: JSON.stringify({ sourceBoardId, assetId }) }),
   assetUrl: (id: string, assetId: string) => `${boardPath(id)}/assets/${encodeURIComponent(assetId)}`,
 };
