@@ -1,0 +1,11 @@
+[Unit]
+Description=Back up the whiteboard to its encrypted off-host repository
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/threejs-whiteboard/deploy
+ExecStart=/usr/bin/docker compose --profile operations run --rm --no-deps backup backup
+TimeoutStartSec=1h

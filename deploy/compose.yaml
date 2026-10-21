@@ -1,0 +1,97 @@
+name: threejs-whiteboard
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  app:
+    image: ${WHITEBOARD_IMAGE:-threejs-whiteboard:local}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: ${WHITEBOARD_MEMORY_LIMIT:-2g}
+    environment:
+      WHITEBOARD_ORIGINS: https://${WHITEBOARD_DOMAIN:?Set WHITEBOARD_DOMAIN in deploy/.env}
+    ports:
+      - 127.0.0.1:${WHITEBOARD_LOCAL_PORT:-3001}:3001
+    volumes:
+      - app_data:/data
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    logging: *logging
+
+  proxy:
+    profiles: [https]
+    image: caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    restart: unless-stopped
+    stop_grace_period: 30s
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    environment:
+      WHITEBOARD_DOMAIN: ${WHITEBOARD_DOMAIN:?Set WHITEBOARD_DOMAIN in deploy/.env}
+    ports:
+      - ${WHITEBOARD_HTTP_PORT:-80}:80
+      - ${WHITEBOARD_HTTPS_PORT:-443}:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+    depends_on:
+      app:
+        condition: service_healthy
+    logging: *logging
+
+  backup:
+    profiles: [operations]
+    image: ${WHITEBOARD_IMAGE:-threejs-whiteboard:local}
+    init: true
+    restart: "no"
+    stop_grace_period: 30s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${WHITEBOARD_BACKUP_MEMORY_LIMIT:-1g}
+    env_file:
+      - path: ./backup.env
+        required: false
+    environment:
+      RESTIC_PASSWORD_FILE: /run/secrets/restic_password
+      RESTIC_CACHE_DIR: /backups/restic-cache
+      WHITEBOARD_BACKUP_HOST: ${WHITEBOARD_BACKUP_HOST:?Set a unique stable WHITEBOARD_BACKUP_HOST}
+    secrets: [restic_password]
+    volumes:
+      - app_data:/data
+      - backup_staging:/backups
+      - restore_data:/restore
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    entrypoint: [sh, /app/deploy/backup.sh]
+    command: [backup]
+    logging: *logging
+
+secrets:
+  restic_password:
+    file: ./secrets/restic-password
+
+volumes:
+  app_data:
+    name: ${WHITEBOARD_DATA_VOLUME:-threejs-whiteboard-data}
+  backup_staging:
+  restore_data:
+    name: ${WHITEBOARD_RESTORE_VOLUME:-threejs-whiteboard-restored}
+  caddy_data:
+  caddy_config:

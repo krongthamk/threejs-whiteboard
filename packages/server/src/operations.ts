@@ -1,6 +1,6 @@
 import Sqlite from 'better-sqlite3';
 import { createHash } from 'node:crypto';
-import { chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, closeSync, copyFileSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
 import type { Store } from './store.js';
 import * as Y from 'yjs';
@@ -188,7 +188,16 @@ export function pruneElement(store: Store, boardId: string, elementId: string): 
 }
 
 interface Manifest { version: 1; createdAt: string; files: Record<string, string>; boards: number; assets: number }
-const hash = (path: string) => createHash('sha256').update(readFileSync(path)).digest('hex');
+// Database size can exceed the backup container's memory limit. Hash in bounded
+// chunks for both backup and restore instead of allocating the entire file.
+const hash = (path: string): string => {
+  const descriptor = openSync(path, 'r'), digest = createHash('sha256'), buffer = Buffer.allocUnsafe(64 * 1024);
+  try {
+    let bytes: number;
+    while ((bytes = readSync(descriptor, buffer, 0, buffer.length, null)) > 0) digest.update(buffer.subarray(0, bytes));
+    return digest.digest('hex');
+  } finally { closeSync(descriptor); }
+};
 /** The SQLite backup API captures a coherent live snapshot. Asset blobs are immutable. */
 export async function createBackup(store: Store, assetDirectory: string, sessionSecret: string, destination: string): Promise<Manifest> {
   if (existsSync(destination)) throw new Error('Backup destination must not already exist');

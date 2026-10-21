@@ -703,6 +703,14 @@ export class ThreeRenderer {
     for (const id of failures) options.onAssetError?.(id);
   }
 
+  /** Pixel captures need shared glyph texels as well as current visible layouts. */
+  async whenPaintReady(options: { allowImageErrors?: boolean; onAssetError?: (assetId: string) => void } = {}): Promise<void> {
+    await this.whenReady(options);
+    // A cancelled mesh or another renderer can still own generation of cached
+    // glyphs reused by the visible text. Layout completion alone is insufficient.
+    await whenTextAtlasReady();
+  }
+
   async exportPng({ bounds, scale = 2, transparent = false, signal, onAssetError }: PngOptions): Promise<Blob> {
     if (!(bounds.w > 0 && bounds.h > 0 && scale > 0)) throw new Error('PNG bounds and scale must be positive');
     signal?.throwIfAborted();
@@ -740,9 +748,7 @@ export class ThreeRenderer {
         if (top || left) await awaitExport(new Promise<void>(resolve => setTimeout(resolve, 0)));
         const tileWidth = Math.min(maxSize, width - left), tileHeight = Math.min(maxSize, height - top);
         const tileBounds = { x: bounds.x + left / scale, y: bounds.y + top / scale, w: tileWidth / scale, h: tileHeight / scale };
-        this.updateVisibleTexts(tileBounds, scale, true); await awaitExport(this.whenReady({ allowImageErrors: true, onAssetError }));
-        // Another renderer may own shared glyph generation needed by this tile.
-        await awaitExport(whenTextAtlasReady());
+        this.updateVisibleTexts(tileBounds, scale, true); await awaitExport(this.whenPaintReady({ allowImageErrors: true, onAssetError }));
         const camera = this.camera.clone(); camera.zoom = 1;
         camera.left = -tileBounds.w / 2; camera.right = tileBounds.w / 2; camera.top = tileBounds.h / 2; camera.bottom = -tileBounds.h / 2;
         camera.position.set(tileBounds.x + tileBounds.w / 2, -tileBounds.y - tileBounds.h / 2, 500); camera.updateProjectionMatrix();

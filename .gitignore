@@ -3,6 +3,8 @@ dist/
 .DS_Store
 .env
 .vercel/
+deploy/backup.env
+deploy/secrets/
 .env.*
 !.env.example
 !.env.*.example

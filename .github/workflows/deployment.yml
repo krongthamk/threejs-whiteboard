@@ -1,0 +1,44 @@
+name: Deployment infrastructure
+on:
+  push:
+    paths:
+      - deploy/**
+      - .dockerignore
+      - .github/workflows/deployment.yml
+      - packages/**
+      - pnpm-lock.yaml
+      - package.json
+  pull_request:
+    paths:
+      - deploy/**
+      - .dockerignore
+      - .github/workflows/deployment.yml
+      - packages/**
+      - pnpm-lock.yaml
+      - package.json
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  linux-lts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm exec vitest run packages/server tests/unit
+      - name: Check deployment shell scripts
+        run: shellcheck deploy/*.sh
+      - name: Check systemd unit syntax
+        run: systemd-analyze verify deploy/systemd/*.service deploy/systemd/*.timer
+      - name: Exercise the complete HTTPS and recovery deployment
+        run: pnpm exec tsx packages/loadtest/src/deployment-smoke.ts --run-isolated-stack

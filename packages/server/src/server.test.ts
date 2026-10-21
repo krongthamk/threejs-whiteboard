@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { request as httpRequest } from 'node:http';
-import { fork } from 'node:child_process';
+import { fork, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHmac } from 'node:crypto';
 import * as Y from 'yjs';
@@ -260,6 +260,41 @@ test('a failed update keeps the listener and replicas alive, and reconnect persi
   expect((await request('/ready')).status).toBe(200);
   const persisted = new Y.Doc(); Y.applyUpdate(persisted, app.store.loadDocument(board.id)!);
   expect(persisted.getMap('storage-error').get('saved-locally')).toBe('must survive'); persisted.destroy();
+});
+
+test('SIGTERM exits cleanly with active and unauthenticated WebSockets after persisting edits', async () => {
+  const path = directory(), databasePath = join(path, 'whiteboard.sqlite');
+  const initial = new Store(databasePath, secret);
+  const owner = initial.createUser('shutdown-owner', password), board = initial.createBoard(owner.id, 'Shutdown test');
+  const session = (await initial.login(owner.username, password))!;
+  initial.close();
+  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('./index.ts', import.meta.url))], {
+    stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WHITEBOARD_DATA_DIR: path,
+      WHITEBOARD_SESSION_SECRET: secret, WHITEBOARD_GOOGLE_ENABLED: '0', HOST: '127.0.0.1', PORT: '0', WHITEBOARD_DRAIN_MS: '100' },
+  });
+  cleanups.push(async () => {
+    if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await until(() => child.signalCode !== null); }
+  });
+  let output = '', errors = '';
+  child.stdout.on('data', bytes => { output += bytes.toString(); });
+  child.stderr.on('data', bytes => { errors += bytes.toString(); });
+  await until(() => output.includes('"event":"ready"'));
+  const ready = JSON.parse(output.trim().split('\n').find(line => line.includes('"event":"ready"'))!);
+  const author = await client(ready.port, board.id, session.token);
+  const idle = new WebSocket(`ws://127.0.0.1:${ready.port}/collaboration`);
+  cleanups.push(() => { idle.terminate(); });
+  await until(() => idle.readyState === WebSocket.OPEN);
+  author.doc.getMap('shutdown').set('saved', 'last accepted edit');
+  await until(() => !author.provider.hasUnsyncedChanges);
+  child.kill('SIGTERM');
+  await until(() => child.exitCode !== null || child.signalCode !== null, 5000);
+  expect({ code: child.exitCode, signal: child.signalCode, errors }).toMatchObject({ code: 0, signal: null });
+  await until(() => idle.readyState === WebSocket.CLOSED);
+  const reopened = new Store(databasePath, secret), recovered = new Y.Doc();
+  try {
+    Y.applyUpdate(recovered, reopened.loadDocument(board.id)!);
+    expect(recovered.getMap('shutdown').get('saved')).toBe('last accepted edit');
+  } finally { recovered.destroy(); reopened.close(); }
 });
 
 test('the entry point logs an unhandled rejection and drains instead of crashing', async () => {

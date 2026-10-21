@@ -95,7 +95,7 @@ test('genuine official file merges with existing content, keeps following arrows
       return { ink, outside, firstLine, secondLine, rgba, raster: raster.toDataURL() };
     };
     const live = async () => {
-      await renderer.whenReady(); renderer.render(); const canvas = renderer.webgl.domElement, ratio = renderer.webgl.getPixelRatio(), camera = session.getState().camera, scale = camera.zoom * ratio;
+      await renderer.whenPaintReady(); renderer.render(); const canvas = renderer.webgl.domElement, ratio = renderer.webgl.getPixelRatio(), camera = session.getState().camera, scale = camera.zoom * ratio;
       return inspect(canvas, canvas.width, canvas.height, { x: camera.x - canvas.width / (2 * scale), y: camera.y - canvas.height / (2 * scale) }, scale);
     };
     const screen = await live(), png = [];

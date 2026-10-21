@@ -5,7 +5,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { isIP } from 'node:net';
+import { isIP, type Socket } from 'node:net';
 import { Store, BoardFullError, publicUser, type Session } from './store.js';
 import { staticHandler } from './static.js';
 import { BoardUpdateValidator, IncompleteBoardUpdateError } from '../../model/src/document-validation.js';
@@ -597,7 +597,18 @@ export function createWhiteboardServer(options: Options) {
       network.awarenessMessages++; const stats = metric(documentName); stats.awareness++; stats.windowAwareness++;
     },
     async onRequest({ request, response }) { await api(request, response); throw null; },
-    async onUpgrade({ request, socket }) { if (new URL(request.url ?? '/', 'http://localhost').pathname !== websocketPath) { socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n'); throw null; } },
+    async onUpgrade({ request, socket }) {
+      if (draining) { socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n'); throw null; }
+      if (new URL(request.url ?? '/', 'http://localhost').pathname !== websocketPath) { socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n'); throw null; }
+    },
+  });
+  // Hocuspocus destroy() flushes and unloads document subscriptions, but leaves
+  // their multiplexed WebSocket transports (including unauthenticated ones)
+  // open. Track TCP sockets so shutdown can release them after persistence.
+  const transportSockets = new Set<Socket>();
+  server.httpServer.on('connection', socket => {
+    transportSockets.add(socket);
+    socket.once('close', () => transportSockets.delete(socket));
   });
   return { server, store, metrics, network, websocketPath,
     get port() { const address = server.httpServer.address(); return address && typeof address === 'object' ? address.port : options.port ?? 3001; },
@@ -619,6 +630,7 @@ export function createWhiteboardServer(options: Options) {
       draining = true;
       try { await server.destroy(); }
       finally {
+        for (const socket of transportSockets) socket.destroy();
         try { for (const value of validators.values()) value.dispose(); validators.clear(); if (store.db.open) store.close(); }
         finally { maintenance.release(); }
       }
