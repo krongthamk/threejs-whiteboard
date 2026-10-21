@@ -1,6 +1,6 @@
 /** Starts ONLY an isolated disposable Compose project. Never targets an existing deployment. */
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { request as httpsRequest } from 'node:https';
@@ -40,10 +40,15 @@ const isolatedEnvironment = {
   WHITEBOARD_MEMORY_LIMIT: '2g', WHITEBOARD_BACKUP_MEMORY_LIMIT: '1g', COMPOSE_PROJECT_NAME: project,
 };
 let restored = false, safeToClean = false;
-function compose(args: string[], quiet = false, env: NodeJS.ProcessEnv = process.env): string {
-  return execFileSync('docker', [...base, ...(restored ? ['-f', restoreFile] : []), ...args], {
-    cwd: root, env: { ...env, ...isolatedEnvironment }, encoding: 'utf8', stdio: quiet ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'pipe', 'inherit'],
-    timeout: 20 * 60_000, maxBuffer: 16 * 1024 * 1024,
+function compose(args: string[], quiet = false, env: NodeJS.ProcessEnv = process.env): Promise<string> {
+  // Keep the event loop available for WebSocket close handshakes while Docker
+  // stops the app; blocking here would force a 30-second container kill.
+  return new Promise((resolve, reject) => {
+    const child = execFile('docker', [...base, ...(restored ? ['-f', restoreFile] : []), ...args], {
+      cwd: root, env: { ...env, ...isolatedEnvironment }, encoding: 'utf8',
+      timeout: 20 * 60_000, maxBuffer: 16 * 1024 * 1024,
+    }, (error, stdout) => error ? reject(error) : resolve(stdout));
+    if (!quiet) child.stderr?.pipe(process.stderr);
   });
 }
 async function until(check: () => boolean | Promise<boolean>, message: string, milliseconds = 30000) {
@@ -96,10 +101,10 @@ async function connect(boardId: string, session: Session) {
   await until(() => { if (failure) throw new Error(`WebSocket authentication failed: ${failure}`); return provider.isSynced; }, 'WebSocket synchronization');
   return { board, provider };
 }
-function backup(action: string) { compose(['run', '--rm', '--no-deps', 'backup', action]); }
+async function backup(action: string) { await compose(['run', '--rm', '--no-deps', 'backup', action]); }
 
 try {
-  const rendered = JSON.parse(compose(['config', '--format', 'json'], true));
+  const rendered = JSON.parse(await compose(['config', '--format', 'json'], true));
   assert.equal(rendered.name, project);
   assert.equal(rendered.volumes.app_data.name, `${project}-data`);
   assert.equal(rendered.volumes.restore_data.name, `${project}-restored`);
@@ -107,10 +112,10 @@ try {
   assert.equal(rendered.services.app.read_only, true);
   safeToClean = true;
   console.log('Building the pinned Node LTS image and starting the isolated HTTPS stack.');
-  compose(['build', 'app']);
-  compose(['up', '-d', '--wait', '--wait-timeout', '180', 'app', 'proxy']);
-  await until(() => {
-    try { ca = compose(['exec', '-T', 'proxy', 'cat', '/data/caddy/pki/authorities/local/root.crt'], true); return ca.includes('BEGIN CERTIFICATE'); }
+  await compose(['build', 'app']);
+  await compose(['up', '-d', '--wait', '--wait-timeout', '180', 'app', 'proxy']);
+  await until(async () => {
+    try { ca = await compose(['exec', '-T', 'proxy', 'cat', '/data/caddy/pki/authorities/local/root.crt'], true); return ca.includes('BEGIN CERTIFICATE'); }
     catch { return false; }
   }, 'local test CA');
   await until(async () => { try { return (await request('/ready')).status === 200; } catch { return false; } }, 'HTTPS readiness');
@@ -120,7 +125,7 @@ try {
   const scriptPath = /src="([^"]+\.js)"/.exec(html.bytes.toString())?.[1]; assert(scriptPath);
   assert(!(await request(scriptPath)).bytes.includes(Buffer.from('whiteboardConnection')));
   for (const username of ['deployment-owner', 'deployment-editor', 'deployment-viewer']) {
-    compose(['exec', '-T', '-e', 'WHITEBOARD_PASSWORD', 'app', 'node', '--import', 'tsx', 'packages/server/src/provision.ts', username], true,
+    await compose(['exec', '-T', '-e', 'WHITEBOARD_PASSWORD', 'app', 'node', '--import', 'tsx', 'packages/server/src/provision.ts', username], true,
       { ...process.env, WHITEBOARD_PASSWORD: password });
   }
   const owner = await login('deployment-owner'), editor = await login('deployment-editor'), viewer = await login('deployment-viewer');
@@ -143,8 +148,12 @@ try {
   assert.equal(image.status, 201); const asset = image.json();
   a.board.create('image', { id: 'deployment-image', x: 0, y: 0, w: 1, h: 1, props: { assetId: asset.assetId, naturalW: 1, naturalH: 1 } });
   await until(() => b.board.read('deployment-image') !== undefined, 'image reference synchronization');
+  await compose(['stop', 'app']);
+  const status = JSON.parse(await compose(['ps', '--all', '--format', 'json', 'app'], true));
+  const stopped = Array.isArray(status) ? status[0] : status;
+  assert.equal(stopped.ExitCode, 0, 'SIGTERM must finish without Docker forcing SIGKILL');
   closeClients();
-  compose(['restart', 'app']);
+  await compose(['start', '--wait', 'app']);
   await until(async () => { try { return (await request('/ready')).status === 200; } catch { return false; } }, 'readiness after restart');
   assert.equal((await request('/api/session', { session: owner })).status, 200);
   const afterRestart = await connect(boardId, owner);
@@ -152,36 +161,36 @@ try {
   assert.deepEqual((await request(asset.url, { session: owner })).bytes, png);
   console.log('HTTPS, secure sessions, permissions, WSS collaboration/presence, image persistence and graceful restart passed.');
 
-  assert.throws(() => compose(['run', '--rm', '--no-deps', 'backup', 'status'], true), 'missing backups must fail freshness checks');
-  backup('init'); backup('backup'); backup('verify'); backup('status');
+  await assert.rejects(() => compose(['run', '--rm', '--no-deps', 'backup', 'status'], true), 'missing backups must fail freshness checks');
+  await backup('init'); await backup('backup'); await backup('verify'); await backup('status');
   afterRestart.board.create('rect', { id: 'after-backup', x: 99, y: 99 });
   const observer = await connect(boardId, editor);
   await until(() => observer.board.read('after-backup') !== undefined, 'post-backup edit');
-  backup('restore');
-  assert.throws(() => compose(['run', '--rm', '--no-deps', 'backup', 'restore'], true), 'restore must refuse an existing recovery directory');
+  await backup('restore');
+  await assert.rejects(() => compose(['run', '--rm', '--no-deps', 'backup', 'restore'], true), 'restore must refuse an existing recovery directory');
   assert(afterRestart.board.read('after-backup'), 'restore must not replace live data');
   closeClients();
   restored = true;
-  compose(['up', '-d', '--force-recreate', '--no-deps', '--wait', '--wait-timeout', '120', 'app']);
+  await compose(['up', '-d', '--force-recreate', '--no-deps', '--wait', '--wait-timeout', '120', 'app']);
   const recovered = await connect(boardId, owner);
   assert.equal(recovered.board.read('deployment-shape')?.x, 160);
   assert.equal(recovered.board.read('after-backup'), undefined);
   assert.deepEqual((await request(asset.url, { session: owner })).bytes, png);
   assert.equal((await request(`/api/boards/${boardId}/members`, { session: viewer })).status, 200);
   closeClients();
-  assert.equal((await request('/api/session', { method: 'DELETE', session: owner })).status, 204);
+  assert.equal((await request('/api/session/logout', { method: 'POST', session: owner })).status, 204);
   assert.equal((await request('/api/session', { session: owner })).status, 401);
   console.log('Encrypted backup, retention, verified remote restore, recovered sessions/memberships/assets/document and logout passed.');
 } catch (error) {
-  try { console.error(compose(['logs', '--no-color', '--tail', '100', 'app', 'proxy'], true)); } catch {}
+  try { console.error(await compose(['logs', '--no-color', '--tail', '100', 'app', 'proxy'], true)); } catch {}
   throw error;
 } finally {
   closeClients(); restored = false;
   try { if (safeToClean) {
     // Restic created these disposable files as container UID 1000; let that UID
     // remove them so a differently numbered host CI user can clean its temp dir.
-    try { compose(['run', '--rm', '--no-deps', '--entrypoint', 'sh', 'backup', '-c', 'rm -rf /repository/*'], true); } catch {}
-    compose(['down', '--volumes', '--remove-orphans'], true);
+    try { await compose(['run', '--rm', '--no-deps', '--entrypoint', 'sh', 'backup', '-c', 'rm -rf /repository/*'], true); } catch {}
+    await compose(['down', '--volumes', '--remove-orphans'], true);
   } }
   finally { rmSync(temporary, { recursive: true, force: true }); }
 }
