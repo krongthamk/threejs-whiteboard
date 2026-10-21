@@ -1,5 +1,10 @@
 # Backend deployment assessment — 2026-10-22
 
+Deployment infrastructure has since been added in [deploy/](../deploy/README.md),
+including a Node LTS image, Compose services, backup/restore jobs, systemd timers
+and a Linux deployment verification workflow. The original assessment below is
+historical; target-host access, configuration and acceptance remain required.
+
 The backend is suitable for a private, single-server pilot after the hosting
 configuration below is in place. It is not a turnkey remote production deployment:
 this repository's deployment automation targets macOS launchd on loopback, and

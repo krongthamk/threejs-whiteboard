@@ -1,0 +1,12 @@
+{$WHITEBOARD_DOMAIN} {
+    encode zstd gzip
+    header X-Content-Type-Options nosniff
+    request_body {
+        max_size 21MB
+    }
+    reverse_proxy app:3001 {
+        # The application trusts only this final hop. Do not pass an incoming
+        # user-supplied X-Forwarded-For value through as the apparent client IP.
+        header_up X-Forwarded-For {remote_host}
+    }
+}

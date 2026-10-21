@@ -1,0 +1,10 @@
+[Unit]
+Description=Check whiteboard readiness, disk capacity and backup freshness
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/threejs-whiteboard/deploy
+ExecStart=/bin/sh /opt/threejs-whiteboard/deploy/check.sh
+TimeoutStartSec=5m

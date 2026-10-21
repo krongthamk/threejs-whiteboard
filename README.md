@@ -10,6 +10,10 @@ This repository contains the authenticated, self-hosted application.
 See [deployment readiness and server requirements](docs/DEPLOYMENT_READINESS.md)
 before configuring a remote server.
 
+The [company-server deployment package](deploy/README.md) provides a Node LTS
+container, optional HTTPS proxy, persistent volumes, encrypted backup/restore
+jobs and Linux service timers. It can also sit behind an existing company proxy.
+
 ## Run locally
 
 Google sign-in is temporarily disabled by default, including when OAuth credentials

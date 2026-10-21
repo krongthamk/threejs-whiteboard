@@ -1,0 +1,34 @@
+# Build from application source only. Never send credentials, runtime data,
+# local artifacts, Git history or host node_modules to the Docker daemon.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!packages/
+!packages/**
+!spikes/
+!spikes/package.json
+!scripts/
+!scripts/check-production-hooks.mjs
+!deploy/
+!deploy/healthcheck.mjs
+!deploy/check-storage.mjs
+!deploy/backup.sh
+!deploy/Dockerfile
+**/node_modules
+**/dist
+**/data
+**/results
+**/reports
+**/test
+**/test/**
+**/*.test.ts
+**/*.sqlite*
+**/*.db*
+**/.env*
+**/session-secret
+**/google-client-secret
+**/credentials.json
+**/owner-credentials.json
+packages/loadtest/src

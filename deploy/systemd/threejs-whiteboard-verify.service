@@ -1,0 +1,11 @@
+[Unit]
+Description=Restore and verify the latest whiteboard backup in isolation
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/threejs-whiteboard/deploy
+ExecStart=/usr/bin/docker compose --profile operations run --rm --no-deps backup verify
+TimeoutStartSec=2h
