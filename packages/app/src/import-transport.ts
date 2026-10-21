@@ -5,7 +5,7 @@ export interface ImportLease {
   readonly signal: AbortSignal;
   assertReady(): void;
   budget(): Promise<ImportBudget>;
-  /** Await remote SyncStatus acknowledgments, or the local storage transaction in the browser-only demo. */
+  /** Drain actual provider SyncStatus acknowledgments, not a local write counter. */
   waitAcknowledged(): Promise<void>;
   release(): void;
 }
