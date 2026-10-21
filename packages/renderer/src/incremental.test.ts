@@ -39,7 +39,13 @@ beforeEach(() => {
   vi.stubGlobal('document', { baseURI: 'http://localhost/' });
   renderer = new ThreeRenderer({ canvas: { clientWidth: 1000, clientHeight: 800 } as HTMLCanvasElement, fontUrl: '/font.woff' });
 });
-afterEach(() => { renderer.dispose(); vi.unstubAllGlobals(); });
+afterEach(() => {
+  renderer.dispose();
+  // Disposing a consumer does not cancel Troika's shared atlas generation.
+  // Finish the controlled worker callbacks so each test owns its pending work.
+  for (const mesh of textState.instances as MockText[]) for (const finish of mesh.callbacks.splice(0)) finish();
+  vi.unstubAllGlobals();
+});
 
 function opaqueMeshes(): THREE.Mesh[] { return renderer.layers.strokes.children.filter(mesh => mesh instanceof THREE.Mesh && mesh.geometry.getAttribute('tint')) as THREE.Mesh[]; }
 function depths(mesh: THREE.Mesh): number[] {
@@ -136,6 +142,26 @@ describe('text handle lifetime', () => {
     expect(old.dispose).toHaveBeenCalledOnce(); expect(replacement.dispose).toHaveBeenCalledOnce();
     expect(renderer.getTextObject('note')).toBeUndefined(); expect(renderer.layers.text.children).toEqual([]);
     expect(renderer.stats().pendingTexts).toBe(0);
+  });
+
+  it('undo/redo paint readiness waits for glyph generation owned by the cancelled text', async () => {
+    renderer.setElements([note()]); renderer.render();
+    const original = latestText(), finishOriginal = original.callbacks.shift()!;
+    renderer.applyDiff([], ['note']); renderer.render();
+    renderer.applyDiff([note()]); renderer.render();
+    const restored = latestText();
+    // Troika may complete a cache-hit mesh before the cancelled original has
+    // finished generating the shared glyph pixels, as during an import undo/redo.
+    restored.callbacks.shift()!();
+    let ready = false;
+    const waiting = renderer.whenPaintReady().then(() => { ready = true; });
+    try {
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(ready).toBe(false);
+    } finally { finishOriginal(); }
+    await waiting;
+    expect(renderer.getTextObject('note')).toBe(restored);
+    expect(restored.visible).toBe(true);
   });
 
   it('failed replacement releases the new mesh, retains ready text, reports failure and permits retry', async () => {
