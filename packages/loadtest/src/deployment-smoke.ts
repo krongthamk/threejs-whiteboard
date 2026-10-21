@@ -153,7 +153,7 @@ try {
   const stopped = Array.isArray(status) ? status[0] : status;
   assert.equal(stopped.ExitCode, 0, 'SIGTERM must finish without Docker forcing SIGKILL');
   closeClients();
-  await compose(['start', '--wait', 'app']);
+  await compose(['start', 'app']);
   await until(async () => { try { return (await request('/ready')).status === 200; } catch { return false; } }, 'readiness after restart');
   assert.equal((await request('/api/session', { session: owner })).status, 200);
   const afterRestart = await connect(boardId, owner);
