@@ -30,10 +30,19 @@ writeFileSync(overrideFile, JSON.stringify({ services: { backup: {
 writeFileSync(restoreFile, JSON.stringify({ services: { app: { volumes: ['restore_data:/data'] } } }));
 const base = ['compose', '--project-directory', join(root, 'deploy'), '--env-file', envFile, '-p', project,
   '-f', join(root, 'deploy/compose.yaml'), '-f', overrideFile, '--profile', 'https', '--profile', 'operations'];
-let restored = false;
+// Shell environment values override --env-file in Compose. Pin every deployment
+// selector here so an operator's production environment cannot redirect this
+// disposable test or its cleanup to real data volumes.
+const isolatedEnvironment = {
+  WHITEBOARD_DOMAIN: 'localhost', WHITEBOARD_IMAGE: `${project}:test`, WHITEBOARD_LOCAL_PORT: '3031',
+  WHITEBOARD_DATA_VOLUME: `${project}-data`, WHITEBOARD_RESTORE_VOLUME: `${project}-restored`,
+  WHITEBOARD_BACKUP_HOST: project, WHITEBOARD_HTTP_PORT: '80', WHITEBOARD_HTTPS_PORT: '443',
+  WHITEBOARD_MEMORY_LIMIT: '2g', WHITEBOARD_BACKUP_MEMORY_LIMIT: '1g', COMPOSE_PROJECT_NAME: project,
+};
+let restored = false, safeToClean = false;
 function compose(args: string[], quiet = false, env: NodeJS.ProcessEnv = process.env): string {
   return execFileSync('docker', [...base, ...(restored ? ['-f', restoreFile] : []), ...args], {
-    cwd: root, env, encoding: 'utf8', stdio: quiet ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'pipe', 'inherit'],
+    cwd: root, env: { ...env, ...isolatedEnvironment }, encoding: 'utf8', stdio: quiet ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'pipe', 'inherit'],
     timeout: 20 * 60_000, maxBuffer: 16 * 1024 * 1024,
   });
 }
@@ -79,7 +88,9 @@ async function connect(boardId: string, session: Session) {
   const socket = new HocuspocusProviderWebsocket({ url: `wss://localhost/collaboration?expectedUserId=${session.user.id}`, WebSocketPolyfill: AuthenticatedWebSocket });
   const provider = new HocuspocusProvider({ websocketProvider: socket, name: boardId, token: '', document: doc,
     onAuthenticationFailed: ({ reason }) => { failure = reason; } });
-  const board = new BoardDocument(doc, { undo: false });
+  // A new viewer replica must not manufacture metadata before receiving the
+  // authoritative document; that would correctly be rejected as a write.
+  const board = new BoardDocument(doc, { undo: false, initializeMetadata: false });
   clients.push(() => { provider.destroy(); socket.destroy(); board.destroy(); doc.destroy(); });
   provider.attach();
   await until(() => { if (failure) throw new Error(`WebSocket authentication failed: ${failure}`); return provider.isSynced; }, 'WebSocket synchronization');
@@ -88,6 +99,13 @@ async function connect(boardId: string, session: Session) {
 function backup(action: string) { compose(['run', '--rm', '--no-deps', 'backup', action]); }
 
 try {
+  const rendered = JSON.parse(compose(['config', '--format', 'json'], true));
+  assert.equal(rendered.name, project);
+  assert.equal(rendered.volumes.app_data.name, `${project}-data`);
+  assert.equal(rendered.volumes.restore_data.name, `${project}-restored`);
+  assert.equal(rendered.services.app.ports[0].host_ip, '127.0.0.1');
+  assert.equal(rendered.services.app.read_only, true);
+  safeToClean = true;
   console.log('Building the pinned Node LTS image and starting the isolated HTTPS stack.');
   compose(['build', 'app']);
   compose(['up', '-d', '--wait', '--wait-timeout', '180', 'app', 'proxy']);
@@ -159,11 +177,11 @@ try {
   throw error;
 } finally {
   closeClients(); restored = false;
-  try {
+  try { if (safeToClean) {
     // Restic created these disposable files as container UID 1000; let that UID
     // remove them so a differently numbered host CI user can clean its temp dir.
     try { compose(['run', '--rm', '--no-deps', '--entrypoint', 'sh', 'backup', '-c', 'rm -rf /repository/*'], true); } catch {}
     compose(['down', '--volumes', '--remove-orphans'], true);
-  }
+  } }
   finally { rmSync(temporary, { recursive: true, force: true }); }
 }

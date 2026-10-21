@@ -64,7 +64,7 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    mem_limit: 1g
+    mem_limit: ${WHITEBOARD_BACKUP_MEMORY_LIMIT:-1g}
     env_file:
       - path: ./backup.env
         required: false
